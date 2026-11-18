@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  CheckCircle2,
   Eye,
   EyeOff,
   Keyboard,
-  KeyRound,
   Lock,
+  Mail,
   RefreshCw,
   ShieldCheck,
   X,
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
-import { ADMIN_EMAIL } from '@/src/firebase';
+import {
+  ADMIN_EMAIL,
+  mapFirebaseAuthError,
+  sendSuperAdminPasswordResetEmail,
+} from '@/src/firebase';
 
 const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -102,20 +107,20 @@ export function SuperAdminModal() {
     user,
     superAdminModalOpen,
     closeSuperAdminModal,
-    signInSuperAdminWithGoogle,
     signInSuperAdminWithEmail,
     authError,
     clearAuthError,
   } = useAuthRole();
 
-  const [usePasswordMode, setUsePasswordMode] = useState(false);
   const [adminEmail, setAdminEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [captchaCode, setCaptchaCode] = useState(() => generateAdminCaptcha());
   const [captchaInput, setCaptchaInput] = useState('');
   const [localError, setLocalError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
 
   const refreshCaptcha = useCallback(() => {
     setCaptchaCode(generateAdminCaptcha());
@@ -125,11 +130,12 @@ export function SuperAdminModal() {
   useEffect(() => {
     if (!superAdminModalOpen) return;
     setLocalError('');
+    setInfoMessage('');
     clearAuthError();
     setPassword('');
     setAdminEmail(ADMIN_EMAIL);
     refreshCaptcha();
-  }, [superAdminModalOpen, usePasswordMode, refreshCaptcha]);
+  }, [superAdminModalOpen, refreshCaptcha]);
 
   useEffect(() => {
     if (!superAdminModalOpen) return;
@@ -151,27 +157,10 @@ export function SuperAdminModal() {
     return true;
   };
 
-  const handleGoogleAdminLogin = async () => {
-    setLocalError('');
-    clearAuthError();
-    if (!verifyCaptchaOrSetError()) return;
-
-    setBusy(true);
-    try {
-      await signInSuperAdminWithGoogle();
-    } catch (err) {
-      setLocalError(
-        err instanceof Error ? err.message : 'Gagal masuk ke mode Super Admin.'
-      );
-      refreshCaptcha();
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
+    setInfoMessage('');
     clearAuthError();
     if (!verifyCaptchaOrSetError()) return;
 
@@ -186,6 +175,28 @@ export function SuperAdminModal() {
       refreshCaptcha();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleResetAdminPassword = async () => {
+    setLocalError('');
+    setInfoMessage('');
+    clearAuthError();
+    if (adminEmail.trim().toLowerCase() !== ADMIN_EMAIL) {
+      setLocalError(`Reset kata sandi hanya berlaku untuk email resmi (${ADMIN_EMAIL}).`);
+      return;
+    }
+
+    setResetBusy(true);
+    try {
+      await sendSuperAdminPasswordResetEmail();
+      setInfoMessage(
+        `Tautan atur/reset kata sandi telah dikirim ke ${ADMIN_EMAIL}. Cek kotak masuk atau folder Spam Gmail tersebut.`
+      );
+    } catch (err) {
+      setLocalError(mapFirebaseAuthError(err, 'admin'));
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -238,11 +249,12 @@ export function SuperAdminModal() {
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-100 space-y-1 leading-relaxed">
             <p className="font-bold text-amber-300">Otoritas Administrator Utama</p>
             <p className="text-[11px] text-slate-300">
-              Halaman ini hanya untuk akun Super Admin resmi (<strong className="text-white">{ADMIN_EMAIL}</strong>) untuk mengelola verifikasi ketat pegawai & seluruh antrean berkas PTSP.
+              Masuk langsung menggunakan Email & Kata Sandi Super Admin resmi (
+              <strong className="text-white">{ADMIN_EMAIL}</strong>) tanpa pop-up akun Google.
             </p>
             {user && (
               <p className="text-[11px] text-amber-200 pt-1">
-                Sesi saat ini ({user.email}) akan otomatis dialihkan setelah verifikasi Super Admin berhasil.
+                Sesi saat ini ({user.email}) akan otomatis dialihkan setelah login Super Admin berhasil.
               </p>
             )}
           </div>
@@ -254,109 +266,93 @@ export function SuperAdminModal() {
             </div>
           )}
 
-          {/* Captcha Verification */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-300">
-              1. Kode Keamanan (Captcha) *
-            </label>
-            <AdminCaptchaCanvas code={captchaCode} onRefresh={refreshCaptcha} />
-            <input
-              type="text"
-              maxLength={8}
-              value={captchaInput}
-              onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
-              placeholder="Ketik 5 karakter di atas"
-              className="w-full px-3.5 py-2.5 text-sm font-mono-tabular uppercase tracking-widest border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
-            />
-          </div>
+          {infoMessage && (
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-3 flex items-start gap-2.5 text-xs text-emerald-200">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+              <span className="leading-relaxed">{infoMessage}</span>
+            </div>
+          )}
 
-          {!usePasswordMode ? (
-            <div className="space-y-3 pt-1">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void handleGoogleAdminLogin()}
-                className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-lg transition-colors"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>
-                  {busy
-                    ? 'Memverifikasi Super Admin...'
-                    : 'Verifikasi Akun Google Super Admin'}
-                </span>
-              </button>
+          <form onSubmit={(e) => void handleEmailPasswordLogin(e)} className="space-y-3.5">
+            {/* Captcha Verification */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-300">
+                1. Kode Keamanan (Captcha) *
+              </label>
+              <AdminCaptchaCanvas code={captchaCode} onRefresh={refreshCaptcha} />
+              <input
+                type="text"
+                maxLength={8}
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                placeholder="Ketik 5 karakter di atas"
+                className="w-full px-3.5 py-2.5 text-sm font-mono-tabular uppercase tracking-widest border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
+              />
+            </div>
 
-              <div className="text-center pt-1">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                2. Email Super Admin *
+              </label>
+              <input
+                type="email"
+                required
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-sm border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                3. Kata Sandi Super Admin *
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
+                />
                 <button
                   type="button"
-                  onClick={() => setUsePasswordMode(true)}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 transition-colors"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
                 >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Gunakan Email & Password Admin</span>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-          ) : (
-            <form onSubmit={(e) => void handleEmailPasswordLogin(e)} className="space-y-3 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Email Super Admin *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Kata Sandi Super Admin *
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-3.5 pr-10 py-2.5 text-sm border border-slate-700 bg-slate-950 text-white rounded-lg focus:outline-none focus:border-amber-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+            <button
+              type="submit"
+              disabled={busy || resetBusy}
+              className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-colors"
+            >
+              <Lock className="w-4 h-4" />
+              <span>{busy ? 'Memverifikasi...' : 'Masuk Mode Super Admin'}</span>
+            </button>
 
+            <div className="text-center pt-1">
               <button
-                type="submit"
-                disabled={busy}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                type="button"
+                disabled={resetBusy || busy}
+                onClick={() => void handleResetAdminPassword()}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 disabled:opacity-60 transition-colors"
               >
-                <Lock className="w-4 h-4" />
-                <span>{busy ? 'Memverifikasi...' : 'Masuk Mode Super Admin'}</span>
+                <Mail className="w-3.5 h-3.5" />
+                <span>
+                  {resetBusy
+                    ? 'Mengirim tautan atur sandi...'
+                    : 'Lupa / Belum atur password? Kirim tautan ke email admin'}
+                </span>
               </button>
-
-              <div className="text-center pt-1">
-                <button
-                  type="button"
-                  onClick={() => setUsePasswordMode(false)}
-                  className="text-[11px] font-semibold text-slate-400 hover:text-amber-300 transition-colors"
-                >
-                  ← Kembali ke Verifikasi Google Super Admin
-                </button>
-              </div>
-            </form>
-          )}
+            </div>
+          </form>
         </div>
       </div>
     </div>

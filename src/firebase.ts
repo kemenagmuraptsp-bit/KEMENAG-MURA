@@ -3,6 +3,8 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   GoogleAuthProvider,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -209,21 +211,34 @@ export function isEligibleSessionUser(user: User | null): boolean {
   return Boolean(user.emailVerified || isNipEmployeeEmail(user.email));
 }
 
-export function mapFirebaseAuthError(error: unknown): string {
+export function mapFirebaseAuthError(
+  error: unknown,
+  context: 'nip' | 'admin' | 'google' = 'nip'
+): string {
   const code =
     typeof error === 'object' && error !== null && 'code' in error
       ? String((error as { code?: unknown }).code)
       : '';
   const msg = error instanceof Error ? error.message : String(error ?? '');
 
+  if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
+    const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'domain aplikasi ini';
+    return `Domain "${host}" belum masuk daftar Authorized Domains di Firebase Auth. Tambahkan "${host}" pada Firebase Console > Authentication > Settings > Authorized domains.`;
+  }
+  if (code === 'auth/popup-blocked' || msg.includes('popup-blocked')) {
+    return 'Jendela pop-up login Google diblokir browser. Harap izinkan pop-up untuk situs ini lalu coba lagi.';
+  }
   if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
-    return 'Login NIP & Password memerlukan pengaktifan metode "Email/Password" di Firebase Console (Authentication > Sign-in method). Silakan hubungi Admin untuk mengaktifkannya.';
+    return 'Metode login Email/Password belum diaktifkan di Firebase Console (Authentication > Sign-in method). Silakan aktifkan terlebih dahulu.';
   }
   if (
     code === 'auth/invalid-credential' ||
     code === 'auth/wrong-password' ||
     code === 'auth/user-not-found'
   ) {
+    if (context === 'admin') {
+      return 'Email atau Password Super Admin tidak sesuai, atau akun tersebut belum disetel password di Firebase Auth.';
+    }
     return 'NIP atau Password yang Anda masukkan salah, atau NIP belum terdaftar.';
   }
   if (code === 'auth/email-already-in-use') {
@@ -245,24 +260,6 @@ export async function signInWithGoogleAndRecord(): Promise<User> {
   return user;
 }
 
-export async function signInSuperAdminWithGoogle(): Promise<User> {
-  const adminProvider = new GoogleAuthProvider();
-  adminProvider.setCustomParameters({
-    prompt: 'select_account',
-    login_hint: ADMIN_EMAIL,
-  });
-  const credential = await signInWithPopup(auth, adminProvider);
-  const user = credential.user;
-  if (!user.email || user.email.toLowerCase() !== ADMIN_EMAIL || !user.emailVerified) {
-    await signOut(auth);
-    throw new Error(
-      `Akses Super Admin ditolak. Akun yang dipilih bukan akun administrator resmi (${ADMIN_EMAIL}).`
-    );
-  }
-  await upsertGoogleUserProfile(user);
-  return user;
-}
-
 export async function signInSuperAdminWithEmail(email: string, password: string): Promise<User> {
   const cleanEmail = email.trim().toLowerCase();
   if (cleanEmail !== ADMIN_EMAIL) {
@@ -273,13 +270,22 @@ export async function signInSuperAdminWithEmail(email: string, password: string)
   }
   const credential = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
   if (!credential.user.emailVerified) {
+    try {
+      await sendEmailVerification(credential.user);
+    } catch {
+      // Ignore rate-limit error if verification email was recently sent
+    }
     await signOut(auth);
     throw new Error(
-      'Akun email belum terverifikasi untuk hak Super Admin. Gunakan tombol "Masuk Google Super Admin" di atas.'
+      `Email ${ADMIN_EMAIL} belum terverifikasi satu kali. Tautan verifikasi telah dikirim ke kotak masuk ${ADMIN_EMAIL} — klik tautan di email tersebut lalu login kembali.`
     );
   }
   await upsertGoogleUserProfile(credential.user);
   return credential.user;
+}
+
+export async function sendSuperAdminPasswordResetEmail(): Promise<void> {
+  await sendPasswordResetEmail(auth, ADMIN_EMAIL);
 }
 
 export async function signInEmployeeWithNip(nip: string, password: string): Promise<User> {

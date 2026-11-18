@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   BadgeCheck,
+  Check,
+  Copy,
+  ExternalLink,
   Eye,
   EyeOff,
   KeyRound,
@@ -15,6 +18,9 @@ import { useAuthRole } from '@/src/context/AuthRoleContext';
 import { KUA_BRANCHES } from '@/src/data/kemenagData';
 import { sanitizeNipDigits, type EmployeeUnitCategory } from '@/src/firebase';
 import { KemenagEmblem } from '@/src/components/KemenagEmblem';
+
+const FIREBASE_AUTH_SETTINGS_URL =
+  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/settings';
 
 const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -140,6 +146,10 @@ export function LoginModal() {
   const [captchaInput, setCaptchaInput] = useState('');
   const [localError, setLocalError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [copiedHost, setCopiedHost] = useState(false);
+
+  const currentHost =
+    typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : '';
 
   const refreshCaptcha = useCallback(() => {
     setCaptchaCode(generateCaptchaCode());
@@ -150,6 +160,7 @@ export function LoginModal() {
     if (!loginModalOpen) return;
     setLocalError('');
     clearAuthError();
+    setCopiedHost(false);
     refreshCaptcha();
   }, [loginModalOpen, loginModalTab, employeeMode, refreshCaptcha]);
 
@@ -226,6 +237,20 @@ export function LoginModal() {
   };
 
   const activeError = localError || authError;
+  const isUnauthorizedDomainError =
+    Boolean(activeError) &&
+    (activeError.includes('Authorized Domains') || activeError.includes('unauthorized-domain'));
+
+  const handleCopyHost = async () => {
+    if (!currentHost || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(currentHost);
+      setCopiedHost(true);
+      window.setTimeout(() => setCopiedHost(false), 2000);
+    } catch {
+      // Ignore clipboard failures in restricted iframes
+    }
+  };
 
   return (
     <div
@@ -294,9 +319,48 @@ export function LoginModal() {
         {/* Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
           {activeError && (
-            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 p-3 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{activeError}</span>
+            <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/50 p-3.5 space-y-2.5 text-xs text-red-700 dark:text-red-300">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{activeError}</span>
+              </div>
+              {isUnauthorizedDomainError && (
+                <div className="pl-6 space-y-2 pt-1 border-t border-red-200 dark:border-red-900/60">
+                  {currentHost && (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-950 border border-red-200 dark:border-red-900 px-2.5 py-1.5">
+                      <code className="text-[11px] text-slate-800 dark:text-amber-300 truncate select-all">
+                        {currentHost}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyHost()}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-200 shrink-0 transition-colors"
+                      >
+                        {copiedHost ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <span>Tersalin</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Salin Domain</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  <a
+                    href={FIREBASE_AUTH_SETTINGS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-[11px] font-bold text-red-900 dark:text-red-100 transition-colors"
+                  >
+                    <span>Buka Firebase Authorized Domains</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

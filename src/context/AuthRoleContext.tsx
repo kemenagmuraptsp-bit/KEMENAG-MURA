@@ -9,7 +9,6 @@ import {
   registerEmployeeNipRequest,
   signInEmployeeWithNip,
   signInSuperAdminWithEmail,
-  signInSuperAdminWithGoogle,
   signInWithGoogleAndRecord,
   signOutGoogle,
   subscribeAllEmployeeRequests,
@@ -61,7 +60,6 @@ interface AuthRoleContextValue {
   adminConsoleTriggerCount: number;
   requestOpenAdminConsole: () => void;
   signInWithGoogle: () => Promise<User | null>;
-  signInSuperAdminWithGoogle: () => Promise<User | null>;
   signInSuperAdminWithEmail: (email: string, password: string) => Promise<User | null>;
   signInWithNip: (nip: string, password: string) => Promise<User | null>;
   registerWithNip: (params: {
@@ -281,26 +279,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       setLoginModalOpen(false);
       return loggedIn;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Gagal masuk dengan Akun Google.';
-      if (!msg.includes('popup-closed-by-user')) {
-        setAuthError('Gagal masuk dengan Akun Google. Pastikan pop-up diizinkan pada browser Anda.');
-      }
-      return null;
-    }
-  };
-
-  const handleSignInSuperAdminWithGoogle = async (): Promise<User | null> => {
-    setAuthError('');
-    try {
-      const loggedIn = await signInSuperAdminWithGoogle();
-      setSuperAdminModalOpen(false);
-      setAdminConsoleTriggerCount((c) => c + 1);
-      return loggedIn;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Gagal verifikasi Super Admin.';
-      if (!msg.includes('popup-closed-by-user')) {
-        setAuthError(msg);
-        throw err instanceof Error ? err : new Error(msg);
+      const msg = err instanceof Error ? err.message : '';
+      if (!msg.includes('popup-closed-by-user') && !msg.includes('cancelled-popup-request')) {
+        setAuthError(mapFirebaseAuthError(err, 'google'));
       }
       return null;
     }
@@ -317,7 +298,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       setAdminConsoleTriggerCount((c) => c + 1);
       return loggedIn;
     } catch (err) {
-      const friendly = mapFirebaseAuthError(err);
+      const friendly = mapFirebaseAuthError(err, 'admin');
       setAuthError(friendly);
       throw new Error(friendly);
     }
@@ -565,7 +546,6 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         adminConsoleTriggerCount,
         requestOpenAdminConsole,
         signInWithGoogle,
-        signInSuperAdminWithGoogle: handleSignInSuperAdminWithGoogle,
         signInSuperAdminWithEmail: handleSignInSuperAdminWithEmail,
         signInWithNip,
         registerWithNip,
