@@ -231,17 +231,22 @@ export function mapFirebaseAuthError(
   if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
     return 'Metode login Email/Password belum diaktifkan di Firebase Console (Authentication > Sign-in method). Silakan aktifkan terlebih dahulu.';
   }
-  if (
-    code === 'auth/invalid-credential' ||
-    code === 'auth/wrong-password' ||
-    code === 'auth/user-not-found'
-  ) {
+  if (code === 'auth/user-not-found') {
     if (context === 'admin') {
-      return 'Email atau Password Super Admin tidak sesuai, atau akun tersebut belum disetel password di Firebase Auth.';
+      return `Akun Super Admin (${ADMIN_EMAIL}) belum terdaftar di Firebase Auth. Klik "Aktivasi Akun Pertama Kali" atau tambahkan di Firebase Console.`;
+    }
+    return 'NIP belum terdaftar atau tidak ditemukan.';
+  }
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+    if (context === 'admin') {
+      return `Kata sandi Super Admin salah, atau akun ${ADMIN_EMAIL} belum disetel kata sandinya di Firebase Auth.`;
     }
     return 'NIP atau Password yang Anda masukkan salah, atau NIP belum terdaftar.';
   }
   if (code === 'auth/email-already-in-use') {
+    if (context === 'admin') {
+      return `Akun ${ADMIN_EMAIL} sudah terdaftar di Firebase Auth. Gunakan "Kirim Tautan Atur/Reset Sandi" untuk menyetel ulang kata sandi.`;
+    }
     return 'NIP ini sudah terdaftar. Silakan langsung masuk menggunakan NIP dan Password Anda.';
   }
   if (code === 'auth/weak-password') {
@@ -282,6 +287,25 @@ export async function signInSuperAdminWithEmail(email: string, password: string)
   }
   await upsertGoogleUserProfile(credential.user);
   return credential.user;
+}
+
+export async function activateSuperAdminEmailAccount(
+  email: string,
+  password: string
+): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (cleanEmail !== ADMIN_EMAIL) {
+    throw new Error(`Aktivasi Super Admin hanya berlaku untuk akun resmi (${ADMIN_EMAIL}).`);
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Isi Kata Sandi minimal 6 karakter pada kolom password terlebih dahulu.');
+  }
+  const credential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, password);
+  try {
+    await sendEmailVerification(credential.user);
+  } finally {
+    await signOut(auth);
+  }
 }
 
 export async function sendSuperAdminPasswordResetEmail(): Promise<void> {

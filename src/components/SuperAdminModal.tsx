@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
   Eye,
   EyeOff,
   Keyboard,
@@ -9,14 +10,21 @@ import {
   Mail,
   RefreshCw,
   ShieldCheck,
+  UserPlus,
   X,
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
+  activateSuperAdminEmailAccount,
   ADMIN_EMAIL,
   mapFirebaseAuthError,
   sendSuperAdminPasswordResetEmail,
 } from '@/src/firebase';
+
+const FIREBASE_USERS_URL =
+  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/users';
+const FIREBASE_PROVIDERS_URL =
+  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/providers';
 
 const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -121,6 +129,7 @@ export function SuperAdminModal() {
   const [infoMessage, setInfoMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
+  const [activateBusy, setActivateBusy] = useState(false);
 
   const refreshCaptcha = useCallback(() => {
     setCaptchaCode(generateAdminCaptcha());
@@ -200,7 +209,34 @@ export function SuperAdminModal() {
     }
   };
 
+  const handleActivateFirstTimeAdmin = async () => {
+    setLocalError('');
+    setInfoMessage('');
+    clearAuthError();
+    if (!verifyCaptchaOrSetError()) return;
+
+    setActivateBusy(true);
+    try {
+      await activateSuperAdminEmailAccount(adminEmail, password);
+      setInfoMessage(
+        `Akun ${ADMIN_EMAIL} berhasil didaftarkan dengan kata sandi tersebut! Silakan cek kotak masuk Gmail ${ADMIN_EMAIL}, klik tautan verifikasi, lalu klik "Masuk Mode Super Admin".`
+      );
+    } catch (err) {
+      setLocalError(mapFirebaseAuthError(err, 'admin'));
+      refreshCaptcha();
+    } finally {
+      setActivateBusy(false);
+    }
+  };
+
   const activeError = localError || authError;
+  const showCredentialHelpers =
+    Boolean(activeError) &&
+    (activeError.includes('Kata sandi Super Admin') ||
+      activeError.includes('belum terdaftar') ||
+      activeError.includes('belum disetel'));
+  const showProviderHelper =
+    Boolean(activeError) && activeError.includes('Sign-in method');
 
   return (
     <div
@@ -260,9 +296,55 @@ export function SuperAdminModal() {
           </div>
 
           {activeError && (
-            <div className="rounded-xl border border-rose-500/40 bg-rose-950/60 p-3 flex items-start gap-2.5 text-xs text-rose-200">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-              <span className="leading-relaxed">{activeError}</span>
+            <div className="rounded-xl border border-rose-500/40 bg-rose-950/60 p-3.5 space-y-2.5 text-xs text-rose-200">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                <span className="leading-relaxed">{activeError}</span>
+              </div>
+
+              {(showCredentialHelpers || showProviderHelper) && (
+                <div className="pl-6 pt-2 border-t border-rose-500/25 flex flex-wrap items-center gap-2">
+                  {showCredentialHelpers && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={activateBusy || busy || resetBusy}
+                        onClick={() => void handleActivateFirstTimeAdmin()}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-[11px] font-bold text-amber-200 disabled:opacity-60 transition-colors"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>
+                          {activateBusy
+                            ? 'Mendaftarkan...'
+                            : 'Aktivasi Akun Admin Pertama Kali'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={resetBusy || busy || activateBusy}
+                        onClick={() => void handleResetAdminPassword()}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] font-bold text-slate-200 disabled:opacity-60 transition-colors"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Kirim Tautan Atur/Reset Sandi</span>
+                      </button>
+                    </>
+                  )}
+                  <a
+                    href={showProviderHelper ? FIREBASE_PROVIDERS_URL : FIREBASE_USERS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-rose-400/40 text-[11px] font-bold text-rose-100 transition-colors"
+                  >
+                    <span>
+                      {showProviderHelper
+                        ? 'Aktifkan Email/Password di Firebase'
+                        : 'Cek Firebase Auth Users'}
+                    </span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -330,7 +412,7 @@ export function SuperAdminModal() {
 
             <button
               type="submit"
-              disabled={busy || resetBusy}
+              disabled={busy || resetBusy || activateBusy}
               className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-colors"
             >
               <Lock className="w-4 h-4" />
@@ -340,7 +422,7 @@ export function SuperAdminModal() {
             <div className="text-center pt-1">
               <button
                 type="button"
-                disabled={resetBusy || busy}
+                disabled={resetBusy || busy || activateBusy}
                 onClick={() => void handleResetAdminPassword()}
                 className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 hover:text-amber-300 disabled:opacity-60 transition-colors"
               >
