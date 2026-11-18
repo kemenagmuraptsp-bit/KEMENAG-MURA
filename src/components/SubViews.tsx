@@ -231,11 +231,24 @@ export function LayananView({
   onOpenServiceSidebar: () => void;
   onTicketCreated: (ticket: PTSPTicket) => void;
 }) {
-  const { user, isEligibleUser, isAdmin, isNipSession, myVerifiedEmployee } = useAuthRole();
+  const {
+    user,
+    isEligibleUser,
+    isAdmin,
+    isNipSession,
+    myVerifiedEmployee,
+    adminConsoleTriggerCount,
+  } = useAuthRole();
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [ticketQuery, setTicketQuery] = useState('');
   const [cloudTickets, setCloudTickets] = useState<CloudPtspTicketRecord[]>([]);
+
+  useEffect(() => {
+    if (isAdmin && adminConsoleTriggerCount > 0) {
+      setShowAdminPanel(true);
+    }
+  }, [isAdmin, adminConsoleTriggerCount]);
 
   useEffect(() => {
     if (!user || !isEligibleUser) {
@@ -297,7 +310,11 @@ export function LayananView({
         />
 
         {/* Admin Console (Strict Employee Verification & Cloud Ticket Queue) */}
-        {isAdmin && showAdminPanel && <AdminVerificationPanel />}
+        {isAdmin && showAdminPanel && (
+          <div id="admin-console" className="scroll-mt-28">
+            <AdminVerificationPanel />
+          </div>
+        )}
 
         <div className="space-y-8">
           <UnitServicesCatalog

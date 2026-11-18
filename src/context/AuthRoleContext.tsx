@@ -8,6 +8,8 @@ import {
   mapFirebaseAuthError,
   registerEmployeeNipRequest,
   signInEmployeeWithNip,
+  signInSuperAdminWithEmail,
+  signInSuperAdminWithGoogle,
   signInWithGoogleAndRecord,
   signOutGoogle,
   subscribeAllEmployeeRequests,
@@ -53,7 +55,14 @@ interface AuthRoleContextValue {
   loginModalTab: 'google' | 'pegawai';
   openLoginModal: (tab?: 'google' | 'pegawai') => void;
   closeLoginModal: () => void;
+  superAdminModalOpen: boolean;
+  openSuperAdminModal: () => void;
+  closeSuperAdminModal: () => void;
+  adminConsoleTriggerCount: number;
+  requestOpenAdminConsole: () => void;
   signInWithGoogle: () => Promise<User | null>;
+  signInSuperAdminWithGoogle: () => Promise<User | null>;
+  signInSuperAdminWithEmail: (email: string, password: string) => Promise<User | null>;
   signInWithNip: (nip: string, password: string) => Promise<User | null>;
   registerWithNip: (params: {
     fullName: string;
@@ -119,6 +128,8 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
   const [loginModalTab, setLoginModalTab] = useState<'google' | 'pegawai'>('google');
+  const [superAdminModalOpen, setSuperAdminModalOpen] = useState<boolean>(false);
+  const [adminConsoleTriggerCount, setAdminConsoleTriggerCount] = useState<number>(0);
 
   const isEligibleUser = isEligibleSessionUser(user);
   const isNipSession = isNipEmployeeEmail(user?.email);
@@ -214,14 +225,53 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     };
   }, [user, isEligibleUser, isAdmin]);
 
+  const requestOpenAdminConsole = () => {
+    setAdminConsoleTriggerCount((c) => c + 1);
+  };
+
+  useEffect(() => {
+    const onGlobalKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      const isCtrlAltShortcut = e.ctrlKey && e.altKey && !e.metaKey && (key === 'a' || key === 'k');
+      const isAltShiftShortcut = e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && key === 'a';
+
+      if (!isCtrlAltShortcut && !isAltShiftShortcut) return;
+
+      e.preventDefault();
+      if (isAdmin) {
+        setSuperAdminModalOpen(false);
+        setLoginModalOpen(false);
+        setAdminConsoleTriggerCount((c) => c + 1);
+      } else {
+        setAuthError('');
+        setLoginModalOpen(false);
+        setSuperAdminModalOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', onGlobalKeyDown);
+    return () => window.removeEventListener('keydown', onGlobalKeyDown);
+  }, [isAdmin]);
+
   const openLoginModal = (tab: 'google' | 'pegawai' = 'google') => {
     setAuthError('');
+    setSuperAdminModalOpen(false);
     setLoginModalTab(tab);
     setLoginModalOpen(true);
   };
 
   const closeLoginModal = () => {
     setLoginModalOpen(false);
+  };
+
+  const openSuperAdminModal = () => {
+    setAuthError('');
+    setLoginModalOpen(false);
+    setSuperAdminModalOpen(true);
+  };
+
+  const closeSuperAdminModal = () => {
+    setSuperAdminModalOpen(false);
   };
 
   const signInWithGoogle = async (): Promise<User | null> => {
@@ -236,6 +286,40 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         setAuthError('Gagal masuk dengan Akun Google. Pastikan pop-up diizinkan pada browser Anda.');
       }
       return null;
+    }
+  };
+
+  const handleSignInSuperAdminWithGoogle = async (): Promise<User | null> => {
+    setAuthError('');
+    try {
+      const loggedIn = await signInSuperAdminWithGoogle();
+      setSuperAdminModalOpen(false);
+      setAdminConsoleTriggerCount((c) => c + 1);
+      return loggedIn;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal verifikasi Super Admin.';
+      if (!msg.includes('popup-closed-by-user')) {
+        setAuthError(msg);
+        throw err instanceof Error ? err : new Error(msg);
+      }
+      return null;
+    }
+  };
+
+  const handleSignInSuperAdminWithEmail = async (
+    email: string,
+    password: string
+  ): Promise<User | null> => {
+    setAuthError('');
+    try {
+      const loggedIn = await signInSuperAdminWithEmail(email, password);
+      setSuperAdminModalOpen(false);
+      setAdminConsoleTriggerCount((c) => c + 1);
+      return loggedIn;
+    } catch (err) {
+      const friendly = mapFirebaseAuthError(err);
+      setAuthError(friendly);
+      throw new Error(friendly);
     }
   };
 
@@ -475,7 +559,14 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         loginModalTab,
         openLoginModal,
         closeLoginModal,
+        superAdminModalOpen,
+        openSuperAdminModal,
+        closeSuperAdminModal,
+        adminConsoleTriggerCount,
+        requestOpenAdminConsole,
         signInWithGoogle,
+        signInSuperAdminWithGoogle: handleSignInSuperAdminWithGoogle,
+        signInSuperAdminWithEmail: handleSignInSuperAdminWithEmail,
         signInWithNip,
         registerWithNip,
         signOut,

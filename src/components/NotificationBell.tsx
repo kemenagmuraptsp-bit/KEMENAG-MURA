@@ -42,6 +42,7 @@ export function HeaderAccountControls({
     unreadCount,
     markNotificationRead,
     markAllNotificationsRead,
+    requestOpenAdminConsole,
     signOut,
   } = useAuthRole();
 
@@ -296,6 +297,25 @@ export function HeaderAccountControls({
                 <FileClock className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 <span>Riwayat Layanan & Berkas</span>
               </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    requestOpenAdminConsole();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg font-bold text-amber-800 dark:text-amber-300 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 flex items-center justify-between gap-2"
+                >
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>Konsol Super Admin</span>
+                  </span>
+                  <span className="text-[9px] font-mono-tabular px-1.5 py-0.5 rounded bg-amber-200/80 dark:bg-amber-900/60">
+                    Ctrl+Alt+A
+                  </span>
+                </button>
+              )}
 
               {accountTier === 'masyarakat' && (
                 <button

@@ -245,6 +245,43 @@ export async function signInWithGoogleAndRecord(): Promise<User> {
   return user;
 }
 
+export async function signInSuperAdminWithGoogle(): Promise<User> {
+  const adminProvider = new GoogleAuthProvider();
+  adminProvider.setCustomParameters({
+    prompt: 'select_account',
+    login_hint: ADMIN_EMAIL,
+  });
+  const credential = await signInWithPopup(auth, adminProvider);
+  const user = credential.user;
+  if (!user.email || user.email.toLowerCase() !== ADMIN_EMAIL || !user.emailVerified) {
+    await signOut(auth);
+    throw new Error(
+      `Akses Super Admin ditolak. Akun yang dipilih bukan akun administrator resmi (${ADMIN_EMAIL}).`
+    );
+  }
+  await upsertGoogleUserProfile(user);
+  return user;
+}
+
+export async function signInSuperAdminWithEmail(email: string, password: string): Promise<User> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (cleanEmail !== ADMIN_EMAIL) {
+    throw new Error(`Email Super Admin harus menggunakan akun resmi (${ADMIN_EMAIL}).`);
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Password wajib diisi minimal 6 karakter.');
+  }
+  const credential = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
+  if (!credential.user.emailVerified) {
+    await signOut(auth);
+    throw new Error(
+      'Akun email belum terverifikasi untuk hak Super Admin. Gunakan tombol "Masuk Google Super Admin" di atas.'
+    );
+  }
+  await upsertGoogleUserProfile(credential.user);
+  return credential.user;
+}
+
 export async function signInEmployeeWithNip(nip: string, password: string): Promise<User> {
   const email = nipToEmployeeEmail(nip);
   if (!password || password.length < 6) {

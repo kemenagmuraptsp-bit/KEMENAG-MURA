@@ -15,8 +15,9 @@ import { Footer } from '@/src/components/Footer';
 import { BerandaView } from '@/src/components/BerandaView';
 import { ServiceSidebar } from '@/src/components/ServiceSidebar';
 import { KemenagEmblem } from '@/src/components/KemenagEmblem';
-import { AuthRoleProvider } from '@/src/context/AuthRoleContext';
+import { AuthRoleProvider, useAuthRole } from '@/src/context/AuthRoleContext';
 import { LoginModal } from '@/src/components/LoginModal';
+import { SuperAdminModal } from '@/src/components/SuperAdminModal';
 import {
   ProfilView,
   LayananView,
@@ -49,6 +50,16 @@ const VIEW_TITLES: Record<PageView, string> = {
   'e-pengaduan': 'E-Pengaduan | Kemenag Kabupaten Murung Raya',
   kontak: 'Kontak & KUA | Kemenag Kabupaten Murung Raya',
 };
+
+function SuperAdminNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
+  const { isAdmin, adminConsoleTriggerCount } = useAuthRole();
+  useEffect(() => {
+    if (isAdmin && adminConsoleTriggerCount > 0) {
+      onTrigger();
+    }
+  }, [isAdmin, adminConsoleTriggerCount]);
+  return null;
+}
 
 export default function App() {
   const [activeView, setActiveView] = useState<PageView>('beranda');
@@ -170,6 +181,19 @@ export default function App() {
     setServiceSidebarOpen(false);
     setActiveView('layanan');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenAdminConsole = () => {
+    setServiceSidebarOpen(false);
+    setActiveView('layanan');
+    window.setTimeout(() => {
+      const el = document.getElementById('admin-console');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 90);
   };
 
   const handleTicketCreated = (ticket: PTSPTicket) => {
@@ -396,6 +420,8 @@ export default function App() {
         onSelectArticle={setSelectedArticle}
       />
       <LoginModal />
+      <SuperAdminModal />
+      <SuperAdminNavigationWatcher onTrigger={handleOpenAdminConsole} />
       </div>
     </AuthRoleProvider>
   );
