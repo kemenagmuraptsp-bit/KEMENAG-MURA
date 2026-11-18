@@ -12,11 +12,14 @@ import {
   Play,
   ExternalLink,
   AlertCircle,
+  Award,
+  Download,
+  ZoomIn,
+  X,
 } from 'lucide-react';
 import {
   OFFICE_INFO,
   SERVICE_UNITS,
-  NEWS_ARTICLES,
   GALLERY_ITEMS,
   VIDEO_ITEMS,
   PPID_DOCUMENTS,
@@ -35,6 +38,7 @@ import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
   AccountAccessBanner,
   AdminVerificationPanel,
+  OperatorTicketConsole,
 } from '@/src/components/KepegawaianGateAndAdmin';
 import {
   subscribePtspTickets,
@@ -235,12 +239,15 @@ export function LayananView({
     user,
     isEligibleUser,
     isAdmin,
+    isOperatorPtsp,
+    isOperatorSeksi,
     isNipSession,
     myVerifiedEmployee,
     adminConsoleTriggerCount,
   } = useAuthRole();
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showOperatorPanel, setShowOperatorPanel] = useState(true);
   const [ticketQuery, setTicketQuery] = useState('');
   const [cloudTickets, setCloudTickets] = useState<CloudPtspTicketRecord[]>([]);
 
@@ -307,12 +314,21 @@ export function LayananView({
         <AccountAccessBanner
           showAdminPanel={showAdminPanel}
           onToggleAdminPanel={() => setShowAdminPanel((p) => !p)}
+          showOperatorPanel={showOperatorPanel}
+          onToggleOperatorPanel={() => setShowOperatorPanel((p) => !p)}
         />
 
-        {/* Admin Console (Strict Employee Verification & Cloud Ticket Queue) */}
+        {/* Super Admin Console */}
         {isAdmin && showAdminPanel && (
           <div id="admin-console" className="scroll-mt-28">
             <AdminVerificationPanel />
+          </div>
+        )}
+
+        {/* Operator PTSP / Operator Seksi Console */}
+        {!isAdmin && (isOperatorPtsp || isOperatorSeksi) && showOperatorPanel && (
+          <div id="operator-console" className="scroll-mt-28">
+            <OperatorTicketConsole />
           </div>
         )}
 
@@ -469,12 +485,13 @@ export function LayananView({
 /* 3. BERITA VIEW                                                             */
 /* -------------------------------------------------------------------------- */
 export function BeritaView({ onSelectArticle }: { onSelectArticle: (a: NewsArticle) => void }) {
+  const { newsArticles } = useAuthRole();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Semua');
 
-  const categories = ['Semua', ...Array.from(new Set(NEWS_ARTICLES.map((a) => a.category)))];
+  const categories = ['Semua', ...Array.from(new Set(newsArticles.map((a) => a.category)))];
 
-  const filtered = NEWS_ARTICLES.filter((art) => {
+  const filtered = newsArticles.filter((art) => {
     const matchCat = category === 'Semua' || art.category === category;
     const matchSearch =
       !search.trim() ||
@@ -791,7 +808,22 @@ export function PPIDView({ onNavigate }: { onNavigate: (v: PageView) => void }) 
   );
 }
 
+const MAKLUMAT_IMAGE_URL = '/assets/aistudio/Gemini_Generated_Image_e8sbs3e8sbs3e8sb_137a9be9.jpg';
+
+const MAKLUMAT_COMMITMENTS = [
+  'Memberikan pelayanan dengan sepenuh hati, profesional, ramah, cepat, tepat, transparan, dan akuntabel.',
+  'Memberikan pelayanan sesuai dengan persyaratan, prosedur, jangka waktu, dan ketentuan biaya yang berlaku.',
+  'Memberikan pelayanan secara adil, mudah, dan tidak diskriminatif kepada seluruh masyarakat.',
+  'Menjaga integritas dan profesionalitas serta tidak melakukan praktik korupsi, kolusi, nepotisme, pungutan liar, dan gratifikasi.',
+  'Menjamin keamanan dan kerahasiaan data serta dokumen pengguna layanan sesuai ketentuan peraturan perundang-undangan.',
+  'Memberikan kemudahan akses informasi dan pelayanan melalui Pelayanan Terpadu Satu Pintu (PTSP).',
+  'Menindaklanjuti setiap pengaduan, kritik, dan saran masyarakat sebagai upaya peningkatan kualitas pelayanan.',
+  'Melakukan evaluasi dan perbaikan pelayanan secara berkelanjutan demi mewujudkan kepuasan masyarakat.',
+];
+
 export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) => void }) {
+  const [zoomMaklumat, setZoomMaklumat] = useState(false);
+
   const pillars = [
     {
       num: '01',
@@ -825,27 +857,172 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
     },
   ];
 
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="bg-white">
+    <div className="bg-white dark:bg-slate-950">
       <PageHeader
         kicker="Reformasi Birokrasi · WBK / WBBM"
         title="Zona Integritas Kemenag Kabupaten Murung Raya"
-        description="Komitmen mewujudkan Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM) melalui 6 area perubahan."
+        description="Komitmen mewujudkan Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM) melalui 6 area perubahan serta Maklumat Pelayanan."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pillars.map((p) => (
-            <div key={p.num} className="border border-slate-200 rounded-xl p-6 space-y-2.5 bg-white">
-              <span className="font-mono-tabular text-xs font-bold text-emerald-700">
-                Pilar {p.num}
-              </span>
-              <h2 className="text-base font-bold text-slate-900">{p.title}</h2>
-              <p className="text-sm text-slate-600 leading-relaxed">{p.desc}</p>
-            </div>
-          ))}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        {/* Quick Anchor Navigation */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <button
+            type="button"
+            onClick={() => scrollToSection('pilar-zi')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+            <span>6 Pilar WBK / WBBM</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('maklumat-pelayanan')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white transition-colors"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-300" />
+            <span>Maklumat Pelayanan</span>
+          </button>
         </div>
 
+        {/* Section 1: 6 Pilar WBK / WBBM */}
+        <section id="pilar-zi" className="scroll-mt-28 space-y-6">
+          <div className="space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
+              Area Perubahan
+            </p>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              6 Pilar Zona Integritas WBK / WBBM
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {pillars.map((p) => (
+              <div
+                key={p.num}
+                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-2.5 bg-white dark:bg-slate-900"
+              >
+                <span className="font-mono-tabular text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                  Pilar {p.num}
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">{p.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {p.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Section 2: Maklumat Pelayanan */}
+        <section
+          id="maklumat-pelayanan"
+          className="scroll-mt-28 rounded-2xl border-2 border-emerald-800/20 dark:border-emerald-700/40 bg-emerald-50/40 dark:bg-slate-900/80 p-6 sm:p-8 lg:p-10 space-y-8"
+        >
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-emerald-900/15 dark:border-slate-800 pb-6">
+            <div className="space-y-2 max-w-3xl">
+              <div className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest text-emerald-800 dark:text-emerald-400">
+                <Award className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>Piagam & Komitmen Resmi Pelayanan Publik</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                Maklumat Pelayanan
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                Kantor Kementerian Agama Kabupaten Murung Raya menyatakan kesanggupan penuh untuk
+                menyelenggarakan pelayanan sesuai standar pelayanan yang telah ditetapkan.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setZoomMaklumat(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-bold border border-emerald-800 dark:border-emerald-500 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100/70 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>Perbesar Piagam</span>
+              </button>
+              <a
+                href={MAKLUMAT_IMAGE_URL}
+                download="Maklumat-Pelayanan-Kemenag-Murung-Raya.jpg"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Dokumen</span>
+              </a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Official Signed Document Poster */}
+            <div className="lg:col-span-5">
+              <button
+                type="button"
+                onClick={() => setZoomMaklumat(true)}
+                aria-label="Perbesar piagam Maklumat Pelayanan"
+                className="group relative block w-full rounded-xl border-2 border-emerald-900/25 dark:border-emerald-600/40 bg-white dark:bg-slate-950 p-2 shadow-lg overflow-hidden text-left"
+              >
+                <img
+                  src={MAKLUMAT_IMAGE_URL}
+                  alt="Maklumat Pelayanan Kantor Kementerian Agama Kabupaten Murung Raya"
+                  className="w-full h-auto rounded-lg object-contain transition-transform duration-300 group-hover:scale-[1.01]"
+                />
+                <span className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 px-1 pb-0.5">
+                  <ZoomIn className="w-3.5 h-3.5" />
+                  <span>Klik gambar untuk membaca dokumen ukuran penuh</span>
+                </span>
+              </button>
+            </div>
+
+            {/* Structured Transcript & Commitments */}
+            <div className="lg:col-span-7 space-y-5">
+              <div className="rounded-xl bg-emerald-900 text-white p-5 border-l-4 border-amber-400">
+                <p className="text-xs sm:text-sm font-extrabold leading-relaxed tracking-wide uppercase">
+                  &ldquo;Dengan ini, kami menyatakan sanggup menyelenggarakan pelayanan sesuai
+                  dengan standar pelayanan yang telah ditetapkan.&rdquo;
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4">
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                  8 Poin Komitmen Pelayanan Kami:
+                </h3>
+                <ol className="space-y-3">
+                  {MAKLUMAT_COMMITMENTS.map((item, idx) => (
+                    <li key={item} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-200">
+                      <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300 font-mono-tabular text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="leading-relaxed">{item}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/80 dark:bg-amber-950/30 p-5 space-y-3">
+                <p className="text-xs sm:text-sm font-bold italic text-slate-900 dark:text-amber-100 leading-relaxed">
+                  APABILA KAMI TIDAK MENEPATI JANJI PELAYANAN INI, KAMI SIAP MENERIMA SANKSI SESUAI
+                  KETENTUAN PERATURAN PERUNDANG-UNDANGAN DAN MEMBERIKAN KOMPENSASI PELAYANAN SESUAI
+                  KETENTUAN YANG BERLAKU.
+                </p>
+                <div className="pt-2 border-t border-amber-300/60 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700 dark:text-slate-300">
+                  <span>Puruk Cahu, 1 Agustus 2026</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    Kepala Kankemenag Kab. Murung Raya · H. Maslan, S.Ag, M.Pd
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: E-Pengaduan CTA */}
         <div className="bg-emerald-950 text-white rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-amber-300 uppercase tracking-wider">
@@ -869,6 +1046,52 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
           </button>
         </div>
       </div>
+
+      {/* Lightbox Zoom Modal for Maklumat Pelayanan */}
+      {zoomMaklumat && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tampilan penuh Maklumat Pelayanan"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setZoomMaklumat(false);
+          }}
+        >
+          <div className="relative max-w-3xl w-full max-h-[92vh] bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+              <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                Maklumat Pelayanan — Kemenag Kabupaten Murung Raya
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={MAKLUMAT_IMAGE_URL}
+                  download="Maklumat-Pelayanan-Kemenag-Murung-Raya.jpg"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setZoomMaklumat(false)}
+                  aria-label="Tutup pratinjau dokumen"
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto pt-3 flex justify-center">
+              <img
+                src={MAKLUMAT_IMAGE_URL}
+                alt="Maklumat Pelayanan Kantor Kementerian Agama Kabupaten Murung Raya ukuran penuh"
+                className="max-h-[78vh] w-auto rounded-lg object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

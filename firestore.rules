@@ -57,6 +57,40 @@ service cloud.firestore {
       return val is string && (val == 'kankemenag' || val == 'kua_kecamatan' || val == 'madrasah');
     }
 
+    function isValidOperatorRole(val) {
+      return val is string && (val == 'pegawai' || val == 'operator_ptsp' || val == 'operator_seksi');
+    }
+
+    function isValidAssignedUnitId(val) {
+      return val is string && (
+        val == 'all' ||
+        val == 'sekretariat' ||
+        val == 'bimas-islam' ||
+        val == 'pendis' ||
+        val == 'bimas-hindu' ||
+        val == 'bimas-kristen' ||
+        val == 'kepegawaian'
+      );
+    }
+
+    function isOperatorPtsp() {
+      return isVerifiedEmployee()
+        && 'operatorRole' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.operatorRole == 'operator_ptsp';
+    }
+
+    function isOperatorSeksiForUnit(unitId) {
+      return isVerifiedEmployee()
+        && 'operatorRole' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.operatorRole == 'operator_seksi'
+        && 'assignedUnitId' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.assignedUnitId == unitId;
+    }
+
+    function canManageTicketUnit(unitId) {
+      return isAdmin() || isOperatorPtsp() || isOperatorSeksiForUnit(unitId);
+    }
+
     function isValidUserProfile(data, userId) {
       return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'lastLoginAt'])
         && data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'createdAt', 'lastLoginAt'])
@@ -160,6 +194,9 @@ service cloud.firestore {
           'jabatan',
           'unitKerja',
           'unitCategory',
+          'operatorRole',
+          'assignedUnitId',
+          'assignedUnitTitle',
           'status',
           'verifiedBy',
           'verifiedAt',
@@ -172,9 +209,76 @@ service cloud.firestore {
         && data.jabatan is string && data.jabatan.size() >= 2 && data.jabatan.size() <= 120
         && data.unitKerja is string && data.unitKerja.size() >= 2 && data.unitKerja.size() <= 150
         && (!('unitCategory' in data) || isValidUnitCategory(data.unitCategory))
+        && (!('operatorRole' in data) || isValidOperatorRole(data.operatorRole))
+        && (!('assignedUnitId' in data) || isValidAssignedUnitId(data.assignedUnitId))
+        && (!('assignedUnitTitle' in data) || (data.assignedUnitTitle is string && data.assignedUnitTitle.size() <= 100))
         && data.status is string && (data.status == 'active' || data.status == 'revoked')
         && data.verifiedBy is string && data.verifiedBy.size() >= 3 && data.verifiedBy.size() <= 160
         && data.verifiedAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidNewsArticle(data, articleId) {
+      return data.keys().hasAll([
+          'id',
+          'slug',
+          'title',
+          'category',
+          'section',
+          'date',
+          'readTime',
+          'views',
+          'image',
+          'excerpt',
+          'content',
+          'reactions',
+          'createdBy',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'slug',
+          'title',
+          'category',
+          'section',
+          'date',
+          'readTime',
+          'views',
+          'image',
+          'excerpt',
+          'content',
+          'reactions',
+          'isDeleted',
+          'createdBy',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.id is string && data.id == articleId && isValidId(data.id)
+        && data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 200
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 220
+        && data.category is string && data.category.size() >= 2 && data.category.size() <= 80
+        && data.section is string && (
+          data.section == 'hari-ini' ||
+          data.section == 'kegiatan' ||
+          data.section == 'nasional' ||
+          data.section == 'terpopuler'
+        )
+        && data.date is string && data.date.size() >= 3 && data.date.size() <= 60
+        && data.readTime is string && data.readTime.size() >= 2 && data.readTime.size() <= 40
+        && data.views is int && data.views >= 0 && data.views <= 10000000
+        && data.image is string && data.image.size() >= 1 && data.image.size() <= 500
+        && data.excerpt is string && data.excerpt.size() >= 5 && data.excerpt.size() <= 600
+        && data.content is list && data.content.size() >= 1 && data.content.size() <= 40
+        && data.reactions is map
+        && data.reactions.keys().hasAll(['bermanfaat', 'informatif', 'inspiratif'])
+        && data.reactions.keys().hasOnly(['bermanfaat', 'informatif', 'inspiratif'])
+        && data.reactions.bermanfaat is int && data.reactions.bermanfaat >= 0
+        && data.reactions.informatif is int && data.reactions.informatif >= 0
+        && data.reactions.inspiratif is int && data.reactions.inspiratif >= 0
+        && (!('isDeleted' in data) || data.isDeleted is bool)
+        && data.createdBy is string && data.createdBy.size() >= 3 && data.createdBy.size() <= 160
+        && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
@@ -314,7 +418,7 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if false;
+      allow delete: if isValidId(userId) && isAdmin();
     }
 
     match /verifiedEmployees/{userId} {
@@ -342,6 +446,9 @@ service cloud.firestore {
           'jabatan',
           'unitKerja',
           'unitCategory',
+          'operatorRole',
+          'assignedUnitId',
+          'assignedUnitTitle',
           'status',
           'verifiedBy',
           'updatedAt'
@@ -351,8 +458,12 @@ service cloud.firestore {
     }
 
     match /ptspTickets/{ticketId} {
-      allow get: if isValidId(ticketId) && isVerifiedUser() && (existing().userId == request.auth.uid || isAdmin());
-      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isValidId(ticketId) && isVerifiedUser() && (
+        existing().userId == request.auth.uid || canManageTicketUnit(existing().unitId)
+      );
+      allow list: if isVerifiedUser() && (
+        resource.data.userId == request.auth.uid || canManageTicketUnit(resource.data.unitId)
+      );
 
       allow create: if isValidId(ticketId)
         && isVerifiedUser()
@@ -372,7 +483,7 @@ service cloud.firestore {
         );
 
       allow update: if isValidId(ticketId)
-        && isAdmin()
+        && canManageTicketUnit(existing().unitId)
         && isValidPtspTicket(incoming(), ticketId)
         && incoming().id == existing().id
         && incoming().ticketNo == existing().ticketNo
@@ -391,6 +502,42 @@ service cloud.firestore {
         && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
 
       allow delete: if false;
+    }
+
+    match /newsArticles/{articleId} {
+      allow get, list: if true;
+
+      allow create: if isValidId(articleId)
+        && isAdmin()
+        && isValidNewsArticle(incoming(), articleId)
+        && incoming().createdBy == request.auth.token.email
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(articleId)
+        && isAdmin()
+        && isValidNewsArticle(incoming(), articleId)
+        && incoming().id == existing().id
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'slug',
+          'title',
+          'category',
+          'section',
+          'date',
+          'readTime',
+          'views',
+          'image',
+          'excerpt',
+          'content',
+          'reactions',
+          'isDeleted',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidId(articleId) && isAdmin();
     }
   }
 }

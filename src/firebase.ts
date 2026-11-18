@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocFromServer,
@@ -27,6 +28,7 @@ import {
   type Timestamp,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
+import type { NewsArticle } from '@/src/types';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -103,6 +105,17 @@ export type AccountTier = 'masyarakat' | 'pegawai' | 'admin';
 
 export type EmployeeUnitCategory = 'kankemenag' | 'kua_kecamatan' | 'madrasah';
 
+export type EmployeeOperatorRole = 'pegawai' | 'operator_ptsp' | 'operator_seksi';
+
+export type OperatorUnitAssignment =
+  | 'all'
+  | 'sekretariat'
+  | 'bimas-islam'
+  | 'pendis'
+  | 'bimas-hindu'
+  | 'bimas-kristen'
+  | 'kepegawaian';
+
 export interface UserProfileRecord {
   uid: string;
   displayName: string;
@@ -147,9 +160,19 @@ export interface VerifiedEmployeeRecord {
   jabatan: string;
   unitKerja: string;
   unitCategory: EmployeeUnitCategory;
+  operatorRole: EmployeeOperatorRole;
+  assignedUnitId?: OperatorUnitAssignment;
+  assignedUnitTitle?: string;
   status: 'active' | 'revoked';
   verifiedBy: string;
   verifiedAt?: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}
+
+export interface CloudNewsArticleRecord extends NewsArticle {
+  isDeleted?: boolean;
+  createdBy: string;
+  createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
 }
 
@@ -285,6 +308,7 @@ export async function signInSuperAdminWithEmail(email: string, password: string)
       `Email ${ADMIN_EMAIL} belum terverifikasi satu kali. Tautan verifikasi telah dikirim ke kotak masuk ${ADMIN_EMAIL} — klik tautan di email tersebut lalu login kembali.`
     );
   }
+  await credential.user.getIdToken(true);
   await upsertGoogleUserProfile(credential.user);
   return credential.user;
 }
@@ -365,8 +389,22 @@ export async function provisionEmployeeAccountByAdmin(params: {
   jabatan: string;
   unitKerja: string;
   unitCategory: EmployeeUnitCategory;
+  operatorRole?: EmployeeOperatorRole;
+  assignedUnitId?: OperatorUnitAssignment;
+  assignedUnitTitle?: string;
 }): Promise<{ uid: string; email: string }> {
-  const { adminUser, fullName, nip, password, jabatan, unitKerja, unitCategory } = params;
+  const {
+    adminUser,
+    fullName,
+    nip,
+    password,
+    jabatan,
+    unitKerja,
+    unitCategory,
+    operatorRole = 'pegawai',
+    assignedUnitId,
+    assignedUnitTitle,
+  } = params;
   const digits = sanitizeNipDigits(nip);
   const email = nipToEmployeeEmail(digits);
   const cleanFullName = clampStr(fullName, 120);
@@ -396,7 +434,10 @@ export async function provisionEmployeeAccountByAdmin(params: {
       jabatan,
       unitKerja,
       unitCategory,
-      adminNote: 'Akun pegawai NIP didaftarkan dan diverifikasi langsung oleh Admin PTSP.',
+      operatorRole,
+      assignedUnitId,
+      assignedUnitTitle,
+      adminNote: 'Akun didaftarkan dan diaktifkan langsung oleh Super Admin.',
     });
 
     return { uid, email };
@@ -411,49 +452,70 @@ export async function signOutGoogle(): Promise<void> {
   await signOut(auth);
 }
 
+const inFlightProfileUpserts = new Map<string, Promise<void>>();
+
 export async function upsertGoogleUserProfile(
   user: User,
   preferredDisplayName?: string
 ): Promise<void> {
-  const path = `users/${user.uid}`;
-  const userRef = doc(db, 'users', user.uid);
-  const displayName = clampStr(
-    preferredDisplayName || user.displayName || user.email?.split('@')[0],
-    120,
-    'Pengguna Portal'
-  );
-  const email = clampStr(user.email, 160);
-  const photoURL = clampStr(user.photoURL, 500);
-
-  if (!email) return;
-
-  try {
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) {
-      const payload: Record<string, unknown> = {
-        uid: user.uid,
-        displayName,
-        email,
-        createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
-      };
-      if (photoURL) {
-        payload.photoURL = photoURL;
-      }
-      await setDoc(userRef, payload);
-    } else {
-      const updatePayload: Record<string, unknown> = {
-        displayName,
-        lastLoginAt: serverTimestamp(),
-      };
-      if (photoURL) {
-        updatePayload.photoURL = photoURL;
-      }
-      await updateDoc(userRef, updatePayload);
-    }
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+  const existingTask = inFlightProfileUpserts.get(user.uid);
+  if (existingTask) {
+    return existingTask;
   }
+
+  const task = (async () => {
+    const path = `users/${user.uid}`;
+    const userRef = doc(db, 'users', user.uid);
+    const displayName = clampStr(
+      preferredDisplayName || user.displayName || user.email?.split('@')[0],
+      120,
+      'Pengguna Portal'
+    );
+    const email = clampStr(user.email, 160);
+    const photoURL = clampStr(user.photoURL, 500);
+
+    if (!email) return;
+
+    try {
+      await user.getIdToken();
+      let snap;
+      try {
+        snap = await getDocFromServer(userRef);
+      } catch {
+        snap = await getDoc(userRef);
+      }
+
+      if (!snap.exists()) {
+        const payload: Record<string, unknown> = {
+          uid: user.uid,
+          displayName,
+          email,
+          createdAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+        };
+        if (photoURL) {
+          payload.photoURL = photoURL;
+        }
+        await setDoc(userRef, payload);
+      } else {
+        const updatePayload: Record<string, unknown> = {
+          displayName,
+          lastLoginAt: serverTimestamp(),
+        };
+        if (photoURL) {
+          updatePayload.photoURL = photoURL;
+        }
+        await updateDoc(userRef, updatePayload);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  })().finally(() => {
+    inFlightProfileUpserts.delete(user.uid);
+  });
+
+  inFlightProfileUpserts.set(user.uid, task);
+  return task;
 }
 
 export async function recordDocumentDownload(params: {
@@ -595,6 +657,26 @@ function mapEmployeeRequest(uid: string, data: Record<string, unknown>): Employe
   };
 }
 
+function normalizeOperatorRole(raw: unknown): EmployeeOperatorRole {
+  if (raw === 'operator_ptsp' || raw === 'operator_seksi') return raw;
+  return 'pegawai';
+}
+
+function normalizeAssignedUnitId(raw: unknown): OperatorUnitAssignment | undefined {
+  if (
+    raw === 'all' ||
+    raw === 'sekretariat' ||
+    raw === 'bimas-islam' ||
+    raw === 'pendis' ||
+    raw === 'bimas-hindu' ||
+    raw === 'bimas-kristen' ||
+    raw === 'kepegawaian'
+  ) {
+    return raw;
+  }
+  return undefined;
+}
+
 function mapVerifiedEmployee(uid: string, data: Record<string, unknown>): VerifiedEmployeeRecord {
   return {
     uid: String(data.uid ?? uid),
@@ -604,6 +686,9 @@ function mapVerifiedEmployee(uid: string, data: Record<string, unknown>): Verifi
     jabatan: String(data.jabatan ?? ''),
     unitKerja: String(data.unitKerja ?? ''),
     unitCategory: normalizeUnitCategory(data.unitCategory),
+    operatorRole: normalizeOperatorRole(data.operatorRole),
+    assignedUnitId: normalizeAssignedUnitId(data.assignedUnitId),
+    assignedUnitTitle: data.assignedUnitTitle ? String(data.assignedUnitTitle) : undefined,
     status: data.status === 'revoked' ? 'revoked' : 'active',
     verifiedBy: String(data.verifiedBy ?? ''),
     verifiedAt: (data.verifiedAt as Timestamp | null) ?? null,
@@ -760,15 +845,44 @@ export async function approveEmployeeVerification(params: {
   jabatan: string;
   unitKerja: string;
   unitCategory: EmployeeUnitCategory;
+  operatorRole?: EmployeeOperatorRole;
+  assignedUnitId?: OperatorUnitAssignment;
+  assignedUnitTitle?: string;
   adminNote?: string;
 }): Promise<void> {
-  const { adminUser, targetUid, email, fullName, nip, jabatan, unitKerja, unitCategory, adminNote } =
-    params;
+  const {
+    adminUser,
+    targetUid,
+    email,
+    fullName,
+    nip,
+    jabatan,
+    unitKerja,
+    unitCategory,
+    operatorRole = 'pegawai',
+    assignedUnitId,
+    assignedUnitTitle,
+    adminNote,
+  } = params;
   const adminEmail = clampStr(adminUser.email, 160);
   const empPath = `verifiedEmployees/${targetUid}`;
   const empRef = doc(db, 'verifiedEmployees', targetUid);
   const reqRef = doc(db, 'employeeRequests', targetUid);
   const cleanNip = clampStr(nip.replace(/[^0-9A-Za-z\-\s]/g, ''), 30);
+
+  const resolvedUnitId: OperatorUnitAssignment =
+    operatorRole === 'operator_ptsp'
+      ? 'all'
+      : operatorRole === 'operator_seksi'
+      ? assignedUnitId || 'sekretariat'
+      : 'all';
+
+  const resolvedUnitTitle =
+    operatorRole === 'operator_ptsp'
+      ? 'Semua Layanan PTSP'
+      : operatorRole === 'operator_seksi'
+      ? clampStr(assignedUnitTitle || resolvedUnitId, 100)
+      : 'Pegawai Kemenag Mura';
 
   try {
     const existingEmp = await getDoc(empRef);
@@ -781,6 +895,9 @@ export async function approveEmployeeVerification(params: {
         jabatan: clampStr(jabatan, 120),
         unitKerja: clampStr(unitKerja, 150),
         unitCategory,
+        operatorRole,
+        assignedUnitId: resolvedUnitId,
+        assignedUnitTitle: resolvedUnitTitle,
         status: 'active',
         verifiedBy: adminEmail,
         verifiedAt: serverTimestamp(),
@@ -793,6 +910,9 @@ export async function approveEmployeeVerification(params: {
         jabatan: clampStr(jabatan, 120),
         unitKerja: clampStr(unitKerja, 150),
         unitCategory,
+        operatorRole,
+        assignedUnitId: resolvedUnitId,
+        assignedUnitTitle: resolvedUnitTitle,
         status: 'active',
         verifiedBy: adminEmail,
         updatedAt: serverTimestamp(),
@@ -801,7 +921,7 @@ export async function approveEmployeeVerification(params: {
 
     const reqSnap = await getDoc(reqRef);
     if (reqSnap.exists()) {
-      const note = clampStr(adminNote, 300, 'Disetujui Admin PTSP Kemenag Kab. Murung Raya.');
+      const note = clampStr(adminNote, 300, 'Disetujui Super Admin Kemenag Kab. Murung Raya.');
       await updateDoc(reqRef, {
         status: 'approved',
         unitCategory,
@@ -832,6 +952,83 @@ export async function updateVerifiedEmployeeCategory(params: {
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function updateVerifiedEmployeeDetails(params: {
+  adminUser: User;
+  targetUid: string;
+  fullName: string;
+  nip: string;
+  jabatan: string;
+  unitKerja: string;
+  unitCategory: EmployeeUnitCategory;
+  operatorRole: EmployeeOperatorRole;
+  assignedUnitId?: OperatorUnitAssignment;
+  assignedUnitTitle?: string;
+  status: 'active' | 'revoked';
+}): Promise<void> {
+  const {
+    adminUser,
+    targetUid,
+    fullName,
+    nip,
+    jabatan,
+    unitKerja,
+    unitCategory,
+    operatorRole,
+    assignedUnitId,
+    assignedUnitTitle,
+    status,
+  } = params;
+  const path = `verifiedEmployees/${targetUid}`;
+  const adminEmail = clampStr(adminUser.email, 160);
+  const cleanNip = clampStr(nip.replace(/[^0-9A-Za-z\-\s]/g, ''), 30);
+
+  const resolvedUnitId: OperatorUnitAssignment =
+    operatorRole === 'operator_ptsp'
+      ? 'all'
+      : operatorRole === 'operator_seksi'
+      ? assignedUnitId || 'sekretariat'
+      : 'all';
+
+  const resolvedUnitTitle =
+    operatorRole === 'operator_ptsp'
+      ? 'Semua Layanan PTSP'
+      : operatorRole === 'operator_seksi'
+      ? clampStr(assignedUnitTitle || resolvedUnitId, 100)
+      : 'Pegawai Kemenag Mura';
+
+  try {
+    await updateDoc(doc(db, 'verifiedEmployees', targetUid), {
+      fullName: clampStr(fullName, 120),
+      nip: cleanNip,
+      jabatan: clampStr(jabatan, 120),
+      unitKerja: clampStr(unitKerja, 150),
+      unitCategory,
+      operatorRole,
+      assignedUnitId: resolvedUnitId,
+      assignedUnitTitle: resolvedUnitTitle,
+      status,
+      verifiedBy: adminEmail,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function deleteVerifiedEmployeeAccount(targetUid: string): Promise<void> {
+  const path = `verifiedEmployees/${targetUid}`;
+  try {
+    await deleteDoc(doc(db, 'verifiedEmployees', targetUid));
+    const reqRef = doc(db, 'employeeRequests', targetUid);
+    const reqSnap = await getDoc(reqRef).catch(() => null);
+    if (reqSnap?.exists()) {
+      await deleteDoc(reqRef).catch(() => {});
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 
@@ -977,17 +1174,32 @@ export async function createCloudPtspTicket(params: {
   };
 }
 
+export type TicketSubscriptionScope =
+  | boolean
+  | {
+      mode: 'all' | 'unit' | 'mine';
+      unitId?: string;
+    };
+
 export function subscribePtspTickets(
   user: User,
-  isAdmin: boolean,
+  scope: TicketSubscriptionScope,
   onData: (tickets: CloudPtspTicketRecord[]) => void,
   onError: (err: unknown) => void
 ): () => void {
   const path = 'ptspTickets';
   const colRef = collection(db, path);
-  const q = isAdmin
-    ? query(colRef, limit(100))
-    : query(colRef, where('userId', '==', user.uid), limit(100));
+  const resolved =
+    typeof scope === 'boolean'
+      ? { mode: scope ? ('all' as const) : ('mine' as const) }
+      : scope;
+
+  const q =
+    resolved.mode === 'all'
+      ? query(colRef, limit(100))
+      : resolved.mode === 'unit' && resolved.unitId && resolved.unitId !== 'all'
+      ? query(colRef, where('unitId', '==', resolved.unitId), limit(100))
+      : query(colRef, where('userId', '==', user.uid), limit(100));
 
   return onSnapshot(
     q,
@@ -1059,3 +1271,278 @@ export async function updateCloudTicketStatus(params: {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* NEWS ARTICLES CRUD (SUPER ADMIN CMS)                                       */
+/* -------------------------------------------------------------------------- */
+
+function titleToSlug(title: string): string {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .slice(0, 180) || `berita-${Date.now()}`
+  );
+}
+
+export function subscribeNewsArticles(
+  onData: (rows: CloudNewsArticleRecord[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = 'newsArticles';
+  const q = query(collection(db, path), limit(100));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const rows: CloudNewsArticleRecord[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        const sectionRaw = String(data.section ?? 'kegiatan');
+        const section: NewsArticle['section'] =
+          sectionRaw === 'hari-ini' ||
+          sectionRaw === 'nasional' ||
+          sectionRaw === 'terpopuler'
+            ? sectionRaw
+            : 'kegiatan';
+
+        const reactionsRaw =
+          data.reactions && typeof data.reactions === 'object'
+            ? (data.reactions as Record<string, unknown>)
+            : {};
+
+        return {
+          id: String(data.id ?? d.id),
+          slug: String(data.slug ?? d.id),
+          title: String(data.title ?? ''),
+          category: String(data.category ?? 'Kegiatan'),
+          section,
+          date: String(data.date ?? formatTodayLabel()),
+          readTime: String(data.readTime ?? '3 menit baca'),
+          views: Number(data.views ?? 0),
+          image: String(data.image ?? ''),
+          excerpt: String(data.excerpt ?? ''),
+          content: Array.isArray(data.content)
+            ? data.content.map((c) => String(c)).filter(Boolean)
+            : [],
+          reactions: {
+            bermanfaat: Number(reactionsRaw.bermanfaat ?? 0),
+            informatif: Number(reactionsRaw.informatif ?? 0),
+            inspiratif: Number(reactionsRaw.inspiratif ?? 0),
+          },
+          isDeleted: Boolean(data.isDeleted),
+          createdBy: String(data.createdBy ?? ADMIN_EMAIL),
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+          updatedAt: (data.updatedAt as Timestamp | null) ?? null,
+        };
+      });
+
+      rows.sort((a, b) => {
+        const ta = a.updatedAt?.toMillis?.() ?? a.createdAt?.toMillis?.() ?? 0;
+        const tb = b.updatedAt?.toMillis?.() ?? b.createdAt?.toMillis?.() ?? 0;
+        return tb - ta;
+      });
+      onData(rows);
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function saveNewsArticle(params: {
+  adminUser: User;
+  id?: string;
+  title: string;
+  category: string;
+  section: NewsArticle['section'];
+  date?: string;
+  readTime?: string;
+  views?: number;
+  image: string;
+  excerpt: string;
+  content: string[];
+  reactions?: NewsArticle['reactions'];
+}): Promise<string> {
+  const {
+    adminUser,
+    id,
+    title,
+    category,
+    section,
+    date,
+    readTime,
+    views = 1,
+    image,
+    excerpt,
+    content,
+    reactions,
+  } = params;
+
+  const cleanTitle = clampStr(title, 220);
+  const cleanCategory = clampStr(category, 80, 'Kegiatan');
+  const cleanExcerpt = clampStr(excerpt, 600);
+  const cleanImage = clampStr(image, 500);
+  const cleanContent = content.map((p) => p.trim()).filter(Boolean).slice(0, 40);
+
+  if (cleanTitle.length < 3 || cleanExcerpt.length < 5 || cleanContent.length === 0 || !cleanImage) {
+    throw new Error('Judul, ringkasan, gambar, dan minimal 1 paragraf isi berita wajib diisi.');
+  }
+
+  const articleId =
+    id && /^[a-zA-Z0-9_\-]+$/.test(id)
+      ? id
+      : `news_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const docRef = doc(db, 'newsArticles', articleId);
+  const path = `newsArticles/${articleId}`;
+  const adminEmail = clampStr(adminUser.email, 160, ADMIN_EMAIL);
+
+  const estimatedMinutes = Math.max(2, Math.ceil(cleanContent.join(' ').split(/\s+/).length / 160));
+  const cleanReadTime = clampStr(readTime, 40, `${estimatedMinutes} menit baca`);
+  const cleanDate = clampStr(date, 60, formatTodayLabel());
+  const safeViews = Math.max(0, Math.min(10000000, Math.round(views)));
+  const safeReactions = {
+    bermanfaat: Math.max(0, Math.round(reactions?.bermanfaat ?? 0)),
+    informatif: Math.max(0, Math.round(reactions?.informatif ?? 0)),
+    inspiratif: Math.max(0, Math.round(reactions?.inspiratif ?? 0)),
+  };
+
+  try {
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) {
+      await setDoc(docRef, {
+        id: articleId,
+        slug: titleToSlug(cleanTitle),
+        title: cleanTitle,
+        category: cleanCategory,
+        section,
+        date: cleanDate,
+        readTime: cleanReadTime,
+        views: safeViews,
+        image: cleanImage,
+        excerpt: cleanExcerpt,
+        content: cleanContent,
+        reactions: safeReactions,
+        isDeleted: false,
+        createdBy: adminEmail,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await updateDoc(docRef, {
+        slug: titleToSlug(cleanTitle),
+        title: cleanTitle,
+        category: cleanCategory,
+        section,
+        date: cleanDate,
+        readTime: cleanReadTime,
+        views: safeViews,
+        image: cleanImage,
+        excerpt: cleanExcerpt,
+        content: cleanContent,
+        reactions: safeReactions,
+        isDeleted: false,
+        updatedAt: serverTimestamp(),
+      });
+    }
+    return articleId;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteNewsArticle(params: {
+  adminUser: User;
+  article: NewsArticle;
+  isBuiltIn: boolean;
+}): Promise<void> {
+  const { adminUser, article, isBuiltIn } = params;
+  const path = `newsArticles/${article.id}`;
+  const docRef = doc(db, 'newsArticles', article.id);
+
+  try {
+    if (!isBuiltIn) {
+      await deleteDoc(docRef);
+      return;
+    }
+
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) {
+      await setDoc(docRef, {
+        id: article.id,
+        slug: clampStr(article.slug, 200, titleToSlug(article.title)),
+        title: clampStr(article.title, 220),
+        category: clampStr(article.category, 80, 'Kegiatan'),
+        section: article.section,
+        date: clampStr(article.date, 60, formatTodayLabel()),
+        readTime: clampStr(article.readTime, 40, '3 menit baca'),
+        views: Math.max(0, Math.round(article.views ?? 0)),
+        image: clampStr(article.image, 500),
+        excerpt: clampStr(article.excerpt, 600),
+        content: article.content.length > 0 ? article.content.slice(0, 40) : ['-'],
+        reactions: article.reactions || { bermanfaat: 0, informatif: 0, inspiratif: 0 },
+        isDeleted: true,
+        createdBy: clampStr(adminUser.email, 160, ADMIN_EMAIL),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await updateDoc(docRef, {
+        isDeleted: true,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export async function restoreBuiltInNewsArticle(articleId: string): Promise<void> {
+  const path = `newsArticles/${articleId}`;
+  try {
+    await deleteDoc(doc(db, 'newsArticles', articleId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export function mergeNewsArticles(
+  staticArticles: NewsArticle[],
+  cloudArticles: CloudNewsArticleRecord[]
+): NewsArticle[] {
+  const staticIds = new Set(staticArticles.map((a) => a.id));
+  const cloudById = new Map(cloudArticles.map((c) => [c.id, c]));
+
+  const customCloud = cloudArticles.filter(
+    (c) => !staticIds.has(c.id) && !c.isDeleted
+  );
+
+  const mergedStatic: NewsArticle[] = [];
+  for (const s of staticArticles) {
+    const override = cloudById.get(s.id);
+    if (override) {
+      if (override.isDeleted) continue;
+      mergedStatic.push({
+        id: override.id,
+        slug: override.slug,
+        title: override.title,
+        category: override.category,
+        section: override.section,
+        date: override.date,
+        readTime: override.readTime,
+        views: override.views,
+        image: override.image || s.image,
+        excerpt: override.excerpt,
+        content: override.content.length > 0 ? override.content : s.content,
+        reactions: override.reactions || s.reactions,
+      });
+    } else {
+      mergedStatic.push(s);
+    }
+  }
+
+  return [...customCloud, ...mergedStatic];
+}
+

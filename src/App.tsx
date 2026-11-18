@@ -61,6 +61,32 @@ function SuperAdminNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
   return null;
 }
 
+function LiveGlobalSearchModal({
+  open,
+  services,
+  onClose,
+  onSelectService,
+  onSelectArticle,
+}: {
+  open: boolean;
+  services: ServiceUnit[];
+  onClose: () => void;
+  onSelectService: (u: ServiceUnit) => void;
+  onSelectArticle: (a: NewsArticle) => void;
+}) {
+  const { newsArticles } = useAuthRole();
+  return (
+    <GlobalSearchModal
+      open={open}
+      services={services}
+      articles={newsArticles}
+      onClose={onClose}
+      onSelectService={onSelectService}
+      onSelectArticle={onSelectArticle}
+    />
+  );
+}
+
 export default function App() {
   const [activeView, setActiveView] = useState<PageView>('beranda');
   const [lang, setLang] = useState<'id' | 'en'>('id');
@@ -411,10 +437,9 @@ export default function App() {
         item={selectedGallery}
         onClose={() => setSelectedGallery(null)}
       />
-      <GlobalSearchModal
+      <LiveGlobalSearchModal
         open={searchOpen}
         services={SERVICE_UNITS}
-        articles={NEWS_ARTICLES}
         onClose={() => setSearchOpen(false)}
         onSelectService={handleOpenServiceFromBeranda}
         onSelectArticle={setSelectedArticle}

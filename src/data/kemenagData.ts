@@ -40,6 +40,23 @@ export const OFFICE_INFO = {
   heroImage: heroBuildingImg,
 };
 
+export const OFFICIAL_NEWS_IMAGE_PRESETS = [
+  { id: 'ceremony', label: 'Apel & Kegiatan Kantor ASN', src: ceremonyImg },
+  { id: 'hero', label: 'Gedung Kankemenag Murung Raya', src: heroBuildingImg },
+  { id: 'fkub', label: 'Dialog Kerukunan Lintas Umat', src: fkubHarmonyImg },
+  { id: 'madrasah', label: 'Pendidikan Madrasah & Siswa', src: madrasahEduImg },
+  { id: 'wakaf', label: 'Pelayanan KUA, Wakaf & PTSP', src: wakafKuaImg },
+] as const;
+
+export const PTSP_UNIT_OPTIONS = [
+  { id: 'sekretariat', title: 'Sekretariat / Subbag TU' },
+  { id: 'bimas-islam', title: 'Seksi Bimas Islam' },
+  { id: 'pendis', title: 'Seksi Pendidikan Islam (Pendis)' },
+  { id: 'bimas-hindu', title: 'Penyelenggara Bimas Hindu' },
+  { id: 'bimas-kristen', title: 'Penyelenggara Bimas Kristen' },
+  { id: 'kepegawaian', title: 'Kepegawaian' },
+] as const;
+
 const RAW_SERVICE_UNITS: ServiceUnit[] = [
   {
     id: 'sekretariat',

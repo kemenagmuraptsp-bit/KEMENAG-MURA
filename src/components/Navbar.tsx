@@ -28,6 +28,7 @@ interface NavbarProps {
 interface NavDropdownItem {
   label: string;
   view: PageView;
+  sectionId?: string;
 }
 
 interface NavItemConfig {
@@ -79,8 +80,8 @@ const NAV_ITEMS: NavItemConfig[] = [
     labelEn: 'INTEGRITY',
     view: 'zona-integritas',
     children: [
-      { label: '6 Pilar WBK / WBBM', view: 'zona-integritas' },
-      { label: 'Maklumat Pelayanan', view: 'zona-integritas' },
+      { label: '6 Pilar WBK / WBBM', view: 'zona-integritas', sectionId: 'pilar-zi' },
+      { label: 'Maklumat Pelayanan', view: 'zona-integritas', sectionId: 'maklumat-pelayanan' },
     ],
   },
   { id: 'pengaduan', labelId: 'E-PENGADUAN', labelEn: 'COMPLAINTS', view: 'e-pengaduan' },
@@ -114,10 +115,15 @@ export function Navbar({
 
   const isTransparentHeroHeader = activeView === 'beranda' && !scrolled && !mobileOpen;
 
-  const handleSelect = (view: PageView) => {
+  const handleSelect = (view: PageView, sectionId?: string) => {
     onNavigate(view);
     setMobileOpen(false);
     setOpenDropdown(null);
+    if (sectionId) {
+      window.setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   return (
@@ -400,7 +406,7 @@ export function Navbar({
                           <button
                             key={sub.label}
                             type="button"
-                            onClick={() => handleSelect(sub.view)}
+                            onClick={() => handleSelect(sub.view, sub.sectionId)}
                             className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-slate-800 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
                           >
                             {sub.label}
@@ -464,18 +470,33 @@ export function Navbar({
           </div>
 
           {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => item.view && handleSelect(item.view)}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                item.view === activeView
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900'
-              }`}
-            >
-              {lang === 'en' ? item.labelEn : item.labelId}
-            </button>
+            <div key={item.id} className="space-y-1">
+              <button
+                type="button"
+                onClick={() => item.view && handleSelect(item.view)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                  item.view === activeView
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900'
+                }`}
+              >
+                {lang === 'en' ? item.labelEn : item.labelId}
+              </button>
+              {item.id === 'zi' && item.children && (
+                <div className="pl-4 space-y-1">
+                  {item.children.map((sub) => (
+                    <button
+                      key={sub.label}
+                      type="button"
+                      onClick={() => handleSelect(sub.view, sub.sectionId)}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-900"
+                    >
+                      · {sub.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

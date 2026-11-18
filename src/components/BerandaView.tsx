@@ -18,7 +18,6 @@ import {
   OFFICE_INFO,
   SERVICE_UNITS,
   LEADERSHIP_QUOTES,
-  NEWS_ARTICLES,
   GALLERY_ITEMS,
   INFOGRAFIS_TABS,
   VIDEO_ITEMS,
@@ -139,7 +138,7 @@ export function BerandaView({
   onSelectArticle,
   onSelectGallery,
 }: BerandaViewProps) {
-  const { isVerifiedEmployee } = useAuthRole();
+  const { isVerifiedEmployee, newsArticles } = useAuthRole();
   const [activeInfografis, setActiveInfografis] = useState<InfografisCategory>('utama');
   const [activeVideoId, setActiveVideoId] = useState<string>(VIDEO_ITEMS[0].id);
 
@@ -174,9 +173,9 @@ export function BerandaView({
   const [typedLine1, typedLine2 = ''] = typedText.split('\n');
   const onSecondLine = typedText.includes('\n');
 
-  const leadArticle = NEWS_ARTICLES[0];
-  const secondaryToday = NEWS_ARTICLES.slice(1, 3);
-  const nasionalArticles = NEWS_ARTICLES.filter(
+  const leadArticle = newsArticles[0];
+  const secondaryToday = newsArticles.slice(1, 3);
+  const nasionalArticles = newsArticles.filter(
     (a) => a.section === 'nasional' || a.section === 'terpopuler'
   ).slice(0, 4);
 
@@ -189,7 +188,7 @@ export function BerandaView({
     'Kegiatan',
   ].map((catName) => ({
     name: catName,
-    items: NEWS_ARTICLES.filter((a) => a.category === catName),
+    items: newsArticles.filter((a) => a.category === catName),
   }));
 
   const currentInfografis =
@@ -469,48 +468,54 @@ export function BerandaView({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-              <div className="aspect-[16/10] w-full overflow-hidden">
-                <SafeImage
-                  src={leadArticle.image}
-                  alt={leadArticle.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="p-6 space-y-3">
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                    Berita Hari Ini
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>{leadArticle.category}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{leadArticle.date}</span>
+            {leadArticle ? (
+              <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                <div className="aspect-[16/10] w-full overflow-hidden">
+                  <SafeImage
+                    src={leadArticle.image}
+                    alt={leadArticle.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-snug">
-                  <button
-                    type="button"
-                    onClick={() => onSelectArticle(leadArticle)}
-                    className="text-left hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
-                  >
-                    {leadArticle.title}
-                  </button>
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {leadArticle.excerpt}
-                </p>
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => onSelectArticle(leadArticle)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-400 hover:underline underline-offset-4"
-                  >
-                    <span>Selengkapnya</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                <div className="p-6 space-y-3">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                      Berita Hari Ini
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>{leadArticle.category}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{leadArticle.date}</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-snug">
+                    <button
+                      type="button"
+                      onClick={() => onSelectArticle(leadArticle)}
+                      className="text-left hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors"
+                    >
+                      {leadArticle.title}
+                    </button>
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {leadArticle.excerpt}
+                  </p>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => onSelectArticle(leadArticle)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-400 hover:underline underline-offset-4"
+                    >
+                      <span>Selengkapnya</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center text-sm text-slate-500">
+                Belum ada berita yang dipublikasikan.
+              </div>
+            )}
 
             <div className="lg:col-span-5 space-y-5">
               {secondaryToday.map((item) => (

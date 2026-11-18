@@ -224,6 +224,29 @@
           "type": "string",
           "enum": ["kankemenag", "kua_kecamatan", "madrasah"]
         },
+        "operatorRole": {
+          "type": "string",
+          "enum": ["pegawai", "operator_ptsp", "operator_seksi"],
+          "description": "Peran akses operasional akun pegawai/operator."
+        },
+        "assignedUnitId": {
+          "type": "string",
+          "enum": [
+            "all",
+            "sekretariat",
+            "bimas-islam",
+            "pendis",
+            "bimas-hindu",
+            "bimas-kristen",
+            "kepegawaian"
+          ],
+          "description": "ID unit seksi yang ditangani oleh Operator Seksi atau 'all' untuk Operator PTSP."
+        },
+        "assignedUnitTitle": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Label nama unit/seksi penugasan operator."
+        },
         "status": {
           "type": "string",
           "enum": ["active", "revoked"]
@@ -252,6 +275,108 @@
         "status",
         "verifiedBy",
         "verifiedAt",
+        "updatedAt"
+      ]
+    },
+    "NewsArticle": {
+      "title": "NewsArticle",
+      "description": "Artikel berita resmi portal Kemenag Kab. Murung Raya yang dikelola oleh Super Admin.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 220
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "section": {
+          "type": "string",
+          "enum": ["hari-ini", "kegiatan", "nasional", "terpopuler"]
+        },
+        "date": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 60
+        },
+        "readTime": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "views": {
+          "type": "number"
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 600
+        },
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reactions": {
+          "type": "object",
+          "properties": {
+            "bermanfaat": { "type": "number" },
+            "informatif": { "type": "number" },
+            "inspiratif": { "type": "number" }
+          }
+        },
+        "isDeleted": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "slug",
+        "title",
+        "category",
+        "section",
+        "date",
+        "readTime",
+        "views",
+        "image",
+        "excerpt",
+        "content",
+        "reactions",
+        "createdBy",
+        "createdAt",
         "updatedAt"
       ]
     },
@@ -393,6 +518,10 @@
     "/ptspTickets/{ticketId}": {
       "schema": { "$ref": "#/entities/PtspTicket" },
       "description": "Riwayat tiket permohonan PTSP yang tersimpan di akun Google masyarakat atau pegawai."
+    },
+    "/newsArticles/{articleId}": {
+      "schema": { "$ref": "#/entities/NewsArticle" },
+      "description": "Berita resmi dan publikasi portal Kemenag Kab. Murung Raya yang dikelola Super Admin."
     }
   }
 }

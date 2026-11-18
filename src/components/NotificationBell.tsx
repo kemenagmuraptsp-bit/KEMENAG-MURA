@@ -33,6 +33,9 @@ export function HeaderAccountControls({
   const {
     user,
     isAdmin,
+    isOperatorPtsp,
+    isOperatorSeksi,
+    assignedUnitTitle,
     isVerifiedEmployee,
     isVerifiedKuaEmployee,
     myVerifiedEmployee,
@@ -82,7 +85,11 @@ export function HeaderAccountControls({
 
   const shortName = displayName.split(' ').slice(0, 2).join(' ');
   const tierLabel = isAdmin
-    ? 'Admin PTSP'
+    ? 'Super Admin'
+    : isOperatorPtsp
+    ? 'Operator PTSP'
+    : isOperatorSeksi
+    ? 'Operator Seksi'
     : isVerifiedKuaEmployee
     ? 'Pegawai KUA'
     : isVerifiedEmployee
@@ -281,6 +288,13 @@ export function HeaderAccountControls({
               {myVerifiedEmployee?.unitKerja && (
                 <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 truncate">
                   {myVerifiedEmployee.unitKerja}
+                </p>
+              )}
+              {(isOperatorPtsp || isOperatorSeksi) && (
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 truncate">
+                  {isOperatorPtsp
+                    ? 'Peran: Operator PTSP (Semua Unit)'
+                    : `Peran: Operator ${assignedUnitTitle || 'Seksi'}`}
                 </p>
               )}
             </div>

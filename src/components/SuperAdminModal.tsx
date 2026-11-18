@@ -266,7 +266,7 @@ export function SuperAdminModal() {
                 </span>
               </div>
               <h2 id="superadmin-modal-title" className="text-sm font-extrabold text-white truncate">
-                Portal Login Super Admin PTSP
+                Login Super Admin Portal
               </h2>
             </div>
           </div>
@@ -282,11 +282,12 @@ export function SuperAdminModal() {
 
         {/* Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-100 space-y-1 leading-relaxed">
-            <p className="font-bold text-amber-300">Otoritas Administrator Utama</p>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-100 space-y-1.5 leading-relaxed">
+            <p className="font-bold text-amber-300">Kewenangan Super Admin Portal</p>
             <p className="text-[11px] text-slate-300">
-              Masuk langsung menggunakan Email & Kata Sandi Super Admin resmi (
-              <strong className="text-white">{ADMIN_EMAIL}</strong>) tanpa pop-up akun Google.
+              Masuk dengan akun resmi (<strong className="text-white">{ADMIN_EMAIL}</strong>) untuk
+              menambah, mengedit, dan menghapus <strong>data berita</strong>, mengelola akun{' '}
+              <strong>Operator PTSP & Operator Seksi</strong>, verifikasi pegawai, dan tiket masuk.
             </p>
             {user && (
               <p className="text-[11px] text-amber-200 pt-1">

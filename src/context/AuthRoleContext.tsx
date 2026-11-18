@@ -6,6 +6,7 @@ import {
   isEligibleSessionUser,
   isNipEmployeeEmail,
   mapFirebaseAuthError,
+  mergeNewsArticles,
   registerEmployeeNipRequest,
   signInEmployeeWithNip,
   signInSuperAdminWithEmail,
@@ -14,14 +15,21 @@ import {
   subscribeAllEmployeeRequests,
   subscribeMyEmployeeRequest,
   subscribeMyVerifiedEmployee,
+  subscribeNewsArticles,
   subscribePtspTickets,
   upsertGoogleUserProfile,
   type AccountTier,
+  type CloudNewsArticleRecord,
   type CloudPtspTicketRecord,
+  type EmployeeOperatorRole,
   type EmployeeRequestRecord,
   type EmployeeUnitCategory,
+  type OperatorUnitAssignment,
+  type TicketSubscriptionScope,
   type VerifiedEmployeeRecord,
 } from '@/src/firebase';
+import { NEWS_ARTICLES } from '@/src/data/kemenagData';
+import type { NewsArticle } from '@/src/types';
 
 export interface PortalNotification {
   id: string;
@@ -45,11 +53,18 @@ interface AuthRoleContextValue {
   authLoading: boolean;
   authError: string;
   isAdmin: boolean;
+  operatorRole: EmployeeOperatorRole;
+  isOperatorPtsp: boolean;
+  isOperatorSeksi: boolean;
+  assignedUnitId?: OperatorUnitAssignment;
+  assignedUnitTitle?: string;
   myEmployeeRequest: EmployeeRequestRecord | null;
   myVerifiedEmployee: VerifiedEmployeeRecord | null;
   isVerifiedEmployee: boolean;
   isVerifiedKuaEmployee: boolean;
   accountTier: AccountTier | 'tamu';
+  newsArticles: NewsArticle[];
+  cloudNewsArticles: CloudNewsArticleRecord[];
   loginModalOpen: boolean;
   loginModalTab: 'google' | 'pegawai';
   openLoginModal: (tab?: 'google' | 'pegawai') => void;
@@ -122,6 +137,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const [myVerifiedEmployee, setMyVerifiedEmployee] = useState<VerifiedEmployeeRecord | null>(null);
   const [myOrAllTickets, setMyOrAllTickets] = useState<CloudPtspTicketRecord[]>([]);
   const [adminPendingRequests, setAdminPendingRequests] = useState<EmployeeRequestRecord[]>([]);
+  const [cloudNewsArticles, setCloudNewsArticles] = useState<CloudNewsArticleRecord[]>([]);
   const [readMap, setReadMap] = useState<Record<string, true>>({});
 
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
@@ -143,6 +159,16 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         myVerifiedEmployee.unitCategory === 'kua_kecamatan')
   );
 
+  const operatorRole: EmployeeOperatorRole =
+    !isAdmin && isEligibleUser && myVerifiedEmployee?.status === 'active'
+      ? myVerifiedEmployee.operatorRole || 'pegawai'
+      : 'pegawai';
+
+  const isOperatorPtsp = operatorRole === 'operator_ptsp';
+  const isOperatorSeksi = operatorRole === 'operator_seksi';
+  const assignedUnitId = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitId : undefined;
+  const assignedUnitTitle = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitTitle : undefined;
+
   const accountTier: AccountTier | 'tamu' = !user
     ? 'tamu'
     : isAdmin
@@ -150,6 +176,21 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     : isVerifiedEmployee
     ? 'pegawai'
     : 'masyarakat';
+
+  const newsArticles = useMemo(
+    () => mergeNewsArticles(NEWS_ARTICLES, cloudNewsArticles),
+    [cloudNewsArticles]
+  );
+
+  useEffect(() => {
+    const unsubNews = subscribeNewsArticles(
+      (rows) => setCloudNewsArticles(rows),
+      () => {
+        // Fallback smoothly to static NEWS_ARTICLES on transient connectivity failure
+      }
+    );
+    return () => unsubNews();
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
@@ -194,9 +235,16 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    const ticketScope: TicketSubscriptionScope =
+      isAdmin || isOperatorPtsp
+        ? { mode: 'all' }
+        : isOperatorSeksi && assignedUnitId && assignedUnitId !== 'all'
+        ? { mode: 'unit', unitId: assignedUnitId }
+        : { mode: 'mine' };
+
     const unsubTickets = subscribePtspTickets(
       user,
-      isAdmin,
+      ticketScope,
       (rows) => setMyOrAllTickets(rows),
       () => {
         // handled inside firebase.ts
@@ -221,7 +269,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       unsubTickets();
       if (unsubAdminReqs) unsubAdminReqs();
     };
-  }, [user, isEligibleUser, isAdmin]);
+  }, [user, isEligibleUser, isAdmin, isOperatorPtsp, isOperatorSeksi, assignedUnitId]);
 
   const requestOpenAdminConsole = () => {
     setAdminConsoleTriggerCount((c) => c + 1);
@@ -347,13 +395,15 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
     const items: PortalNotification[] = [];
 
+    const isTicketOperator = isAdmin || isOperatorPtsp || isOperatorSeksi;
+
     // 1. Ticket notifications
     myOrAllTickets.forEach((t) => {
       const ts = t.updatedAt?.toMillis?.() ?? t.createdAt?.toMillis?.() ?? Date.now();
       const timeLabel = formatRelativeTimeId(ts) || t.submittedAtLabel;
       const isMine = t.userId === user.uid;
 
-      if (isAdmin && !isMine) {
+      if (isTicketOperator && !isMine) {
         if (t.status === 'Diproses Verifikasi') {
           const sig = `adm_tk_${t.id}_${t.status}_${t.updatedAt?.toMillis?.() ?? 0}`;
           items.push({
@@ -363,7 +413,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
             badge: 'Tiket Masuk Baru',
             tone: 'sky',
             title: `${t.ticketNo} · ${t.serviceTitle}`,
-            message: `Pemohon: ${t.applicantName} (${t.unitTitle}). Segera tinjau di Panel Admin.`,
+            message: `Pemohon: ${t.applicantName} (${t.unitTitle}). Segera tinjau di ${
+              isAdmin ? 'Konsol Super Admin' : 'Konsol Operator'
+            }.`,
             timestampMs: ts,
             timeLabel,
             read: Boolean(readMap[sig]),
@@ -405,23 +457,39 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     if (!isAdmin && myVerifiedEmployee) {
       const ts = myVerifiedEmployee.updatedAt?.toMillis?.() ?? myVerifiedEmployee.verifiedAt?.toMillis?.() ?? Date.now();
       const isActive = myVerifiedEmployee.status === 'active';
-      const sig = `emp_ver_${myVerifiedEmployee.uid}_${myVerifiedEmployee.status}_${myVerifiedEmployee.unitCategory}_${ts}`;
+      const sig = `emp_ver_${myVerifiedEmployee.uid}_${myVerifiedEmployee.status}_${myVerifiedEmployee.unitCategory}_${myVerifiedEmployee.operatorRole}_${ts}`;
       items.push({
         id: `emp-ver-${myVerifiedEmployee.uid}`,
         signature: sig,
         kind: 'employee',
-        badge: isActive ? 'Akun Pegawai Aktif' : 'Akses Pegawai Nonaktif',
+        badge: isActive
+          ? isOperatorPtsp
+            ? 'Operator PTSP Aktif'
+            : isOperatorSeksi
+            ? 'Operator Seksi Aktif'
+            : 'Akun Pegawai Aktif'
+          : 'Akses Pegawai Nonaktif',
         tone: isActive ? 'indigo' : 'rose',
         title: isActive
-          ? 'Verifikasi Pegawai Disetujui Admin'
+          ? isOperatorPtsp
+            ? 'Akun Operator PTSP Aktif'
+            : isOperatorSeksi
+            ? `Akun Operator ${myVerifiedEmployee.assignedUnitTitle || 'Seksi'} Aktif`
+            : 'Verifikasi Pegawai Disetujui Super Admin'
           : 'Status Akses Kepegawaian Dicabut',
         message: isActive
           ? `NIP ${myVerifiedEmployee.nip} (${myVerifiedEmployee.unitKerja}) aktif. Akses menu Kepegawaian${
               myVerifiedEmployee.unitCategory === 'kua_kecamatan'
                 ? ' & Tauliyah Wali Hakim KUA'
                 : ''
+            }${
+              isOperatorPtsp
+                ? ' & Konsol Operator PTSP'
+                : isOperatorSeksi
+                ? ` & Konsol Operator ${myVerifiedEmployee.assignedUnitTitle || 'Seksi'}`
+                : ''
             } terbuka.`
-          : 'Akses kepegawaian Anda dinonaktifkan sementara oleh Admin PTSP.',
+          : 'Akses kepegawaian Anda dinonaktifkan sementara oleh Super Admin.',
         timestampMs: ts,
         timeLabel: formatRelativeTimeId(ts),
         read: Boolean(readMap[sig]),
@@ -445,11 +513,11 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         tone: myEmployeeRequest.status === 'rejected' ? 'rose' : 'amber',
         title:
           myEmployeeRequest.status === 'rejected'
-            ? 'Pengajuan Verifikasi Pegawai Ditolak Admin'
+            ? 'Pengajuan Verifikasi Pegawai Ditolak Super Admin'
             : 'Pengajuan Verifikasi Pegawai Sedang Ditinjau',
         message:
           myEmployeeRequest.adminNote ||
-          `Permohonan NIP ${myEmployeeRequest.nip} (${myEmployeeRequest.unitKerja}) sedang diperiksa oleh Admin PTSP.`,
+          `Permohonan NIP ${myEmployeeRequest.nip} (${myEmployeeRequest.unitKerja}) sedang diperiksa oleh Super Admin.`,
         timestampMs: ts,
         timeLabel: formatRelativeTimeId(ts),
         read: Boolean(readMap[sig]),
@@ -458,7 +526,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // 3. Admin notifications for pending employee requests
+    // 3. Super Admin notifications for pending employee requests
     if (isAdmin) {
       adminPendingRequests
         .filter((req) => req.status === 'pending')
@@ -472,7 +540,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
             badge: 'Verifikasi Pegawai',
             tone: 'amber',
             title: `Permintaan Pegawai: ${req.fullName}`,
-            message: `NIP ${req.nip} · ${req.unitKerja} menunggu persetujuan di Konsol Admin.`,
+            message: `NIP ${req.nip} · ${req.unitKerja} menunggu persetujuan di Konsol Super Admin.`,
             timestampMs: ts,
             timeLabel: formatRelativeTimeId(ts),
             read: Boolean(readMap[sig]),
@@ -488,6 +556,8 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     user,
     isEligibleUser,
     isAdmin,
+    isOperatorPtsp,
+    isOperatorSeksi,
     myOrAllTickets,
     myVerifiedEmployee,
     myEmployeeRequest,
@@ -531,11 +601,18 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         authLoading,
         authError,
         isAdmin,
+        operatorRole,
+        isOperatorPtsp,
+        isOperatorSeksi,
+        assignedUnitId,
+        assignedUnitTitle,
         myEmployeeRequest,
         myVerifiedEmployee,
         isVerifiedEmployee,
         isVerifiedKuaEmployee,
         accountTier,
+        newsArticles,
+        cloudNewsArticles,
         loginModalOpen,
         loginModalTab,
         openLoginModal,

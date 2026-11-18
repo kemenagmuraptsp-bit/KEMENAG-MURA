@@ -140,7 +140,14 @@ export function Footer({ onNavigate }: FooterProps) {
             <span aria-hidden="true">·</span>
             <button
               type="button"
-              onClick={() => onNavigate('zona-integritas')}
+              onClick={() => {
+                onNavigate('zona-integritas');
+                window.setTimeout(() => {
+                  document
+                    .getElementById('maklumat-pelayanan')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
               className="hover:text-white transition-colors"
             >
               Maklumat Pelayanan
