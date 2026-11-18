@@ -1,0 +1,398 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Data profil pengguna yang mengakses layanan menggunakan akun Google.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "UID autentikasi Firebase milik pengguna.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Nama lengkap pengguna dari akun Google.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Alamat email Google terverifikasi pengguna.",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL foto profil Google pengguna.",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu pertama kali pengguna tercatat."
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Waktu akses terakhir pengguna."
+        }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "lastLoginAt"]
+    },
+    "DownloadLog": {
+      "title": "DownloadLog",
+      "description": "Catatan riwayat pengunduhan dokumen jadwal imsakiyah, sholat, atau panduan zakat oleh pengguna Google.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID pengguna pengunduh dokumen.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Nama pengguna dari akun Google.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Email Google pengguna pengunduh.",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "documentId": {
+          "type": "string",
+          "description": "Identifier unik dokumen yang diunduh.",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "documentTitle": {
+          "type": "string",
+          "description": "Judul dokumen yang diunduh.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": ["zakat", "imsakiyah"],
+          "description": "Kategori informasi layanan."
+        },
+        "year": {
+          "type": "number",
+          "description": "Tahun dokumen atau tampilan jadwal/zakat."
+        },
+        "downloadedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp server saat pengunduhan dicatat."
+        }
+      },
+      "required": [
+        "userId",
+        "userName",
+        "userEmail",
+        "documentId",
+        "documentTitle",
+        "category",
+        "year",
+        "downloadedAt"
+      ]
+    },
+    "EmployeeRequest": {
+      "title": "EmployeeRequest",
+      "description": "Permohonan verifikasi akun pegawai Kemenag Kab. Murung Raya yang harus ditinjau dan disetujui Admin.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "nip": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 30,
+          "pattern": "^[0-9A-Za-z\\-\\s]+$"
+        },
+        "jabatan": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "unitKerja": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 150
+        },
+        "unitCategory": {
+          "type": "string",
+          "enum": ["kankemenag", "kua_kecamatan", "madrasah"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"]
+        },
+        "adminNote": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "reviewedBy": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "fullName",
+        "nip",
+        "jabatan",
+        "unitKerja",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VerifiedEmployee": {
+      "title": "VerifiedEmployee",
+      "description": "Daftar pegawai resmi lingkup Kemenag Murung Raya yang telah diverifikasi Admin untuk mengakses layanan Kepegawaian.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "nip": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 30,
+          "pattern": "^[0-9A-Za-z\\-\\s]+$"
+        },
+        "jabatan": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "unitKerja": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 150
+        },
+        "unitCategory": {
+          "type": "string",
+          "enum": ["kankemenag", "kua_kecamatan", "madrasah"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "revoked"]
+        },
+        "verifiedBy": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "fullName",
+        "nip",
+        "jabatan",
+        "unitKerja",
+        "status",
+        "verifiedBy",
+        "verifiedAt",
+        "updatedAt"
+      ]
+    },
+    "PtspTicket": {
+      "title": "PtspTicket",
+      "description": "Tiket permohonan PTSP yang tersimpan di akun Google masyarakat atau pegawai terverifikasi.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticketNo": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "accountTier": {
+          "type": "string",
+          "enum": ["masyarakat", "pegawai", "admin"]
+        },
+        "unitId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "unitTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "subServiceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "serviceTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "applicantName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 30
+        },
+        "institution": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "nip": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Diproses Verifikasi", "Menunggu Berkas", "Selesai"]
+        },
+        "adminNote": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "submittedAtLabel": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ticketNo",
+        "userId",
+        "userEmail",
+        "accountTier",
+        "unitId",
+        "unitTitle",
+        "subServiceId",
+        "serviceTitle",
+        "applicantName",
+        "phone",
+        "status",
+        "submittedAtLabel",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Profil pengguna akun Google yang mengakses informasi dan layanan PTSP."
+    },
+    "/downloadLogs/{logId}": {
+      "schema": { "$ref": "#/entities/DownloadLog" },
+      "description": "Log riwayat pengunduhan dokumen Zakat dan Jadwal Imsakiyah/Sholat."
+    },
+    "/employeeRequests/{userId}": {
+      "schema": { "$ref": "#/entities/EmployeeRequest" },
+      "description": "Permohonan verifikasi pegawai untuk membuka akses layanan Kepegawaian."
+    },
+    "/verifiedEmployees/{userId}": {
+      "schema": { "$ref": "#/entities/VerifiedEmployee" },
+      "description": "Daftar pegawai lingkup Kemenag Murung Raya yang disetujui secara ketat oleh Admin."
+    },
+    "/ptspTickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/PtspTicket" },
+      "description": "Riwayat tiket permohonan PTSP yang tersimpan di akun Google masyarakat atau pegawai."
+    }
+  }
+}

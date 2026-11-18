@@ -1,0 +1,6 @@
+{
+  "name": "Kemenag Murung Raya",
+  "description": "Portal Resmi Kantor Kementerian Agama Kabupaten Murung Raya — Pelayanan Terpadu Satu Pintu (PTSP), Informasi Keagamaan, Pendidikan Madrasah, dan Berita Terkini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

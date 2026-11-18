@@ -1,0 +1,396 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default deny all reads and writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isNipEmployeeAccount() {
+      return isSignedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email.matches('^[0-9]{8,20}@pegawai\\.kemenagmura\\.id$');
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true
+        || isNipEmployeeAccount()
+      );
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'kemenagmuraptsp@gmail.com';
+    }
+
+    function isVerifiedEmployee() {
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
+        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function isVerifiedKuaEmployee() {
+      return isVerifiedEmployee()
+        && 'unitCategory' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.unitCategory == 'kua_kecamatan';
+    }
+
+    function isValidUnitCategory(val) {
+      return val is string && (val == 'kankemenag' || val == 'kua_kecamatan' || val == 'madrasah');
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'lastLoginAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'createdAt', 'lastLoginAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && data.createdAt is timestamp
+        && data.lastLoginAt is timestamp;
+    }
+
+    function isValidDownloadLog(data) {
+      return data.keys().hasAll([
+          'userId',
+          'userName',
+          'userEmail',
+          'documentId',
+          'documentTitle',
+          'category',
+          'year',
+          'downloadedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId',
+          'userName',
+          'userEmail',
+          'documentId',
+          'documentTitle',
+          'category',
+          'year',
+          'downloadedAt'
+        ])
+        && data.userId is string && isValidId(data.userId)
+        && data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 120
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 160
+        && data.documentId is string && data.documentId.size() >= 1 && data.documentId.size() <= 80 && data.documentId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.documentTitle is string && data.documentTitle.size() >= 1 && data.documentTitle.size() <= 200
+        && data.category is string && (data.category == 'zakat' || data.category == 'imsakiyah')
+        && data.year is int && data.year >= 2020 && data.year <= 2035
+        && data.downloadedAt is timestamp;
+    }
+
+    function isValidEmployeeRequest(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'email',
+          'fullName',
+          'nip',
+          'jabatan',
+          'unitKerja',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'email',
+          'fullName',
+          'nip',
+          'jabatan',
+          'unitKerja',
+          'unitCategory',
+          'status',
+          'adminNote',
+          'reviewedBy',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.nip is string && data.nip.size() >= 8 && data.nip.size() <= 30 && data.nip.matches('^[0-9A-Za-z\\-\\s]+$')
+        && data.jabatan is string && data.jabatan.size() >= 2 && data.jabatan.size() <= 120
+        && data.unitKerja is string && data.unitKerja.size() >= 2 && data.unitKerja.size() <= 150
+        && (!('unitCategory' in data) || isValidUnitCategory(data.unitCategory))
+        && data.status is string && (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected')
+        && (!('adminNote' in data) || (data.adminNote is string && data.adminNote.size() <= 300))
+        && (!('reviewedBy' in data) || (data.reviewedBy is string && data.reviewedBy.size() <= 160))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVerifiedEmployee(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'email',
+          'fullName',
+          'nip',
+          'jabatan',
+          'unitKerja',
+          'status',
+          'verifiedBy',
+          'verifiedAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'email',
+          'fullName',
+          'nip',
+          'jabatan',
+          'unitKerja',
+          'unitCategory',
+          'status',
+          'verifiedBy',
+          'verifiedAt',
+          'updatedAt'
+        ])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.nip is string && data.nip.size() >= 8 && data.nip.size() <= 30 && data.nip.matches('^[0-9A-Za-z\\-\\s]+$')
+        && data.jabatan is string && data.jabatan.size() >= 2 && data.jabatan.size() <= 120
+        && data.unitKerja is string && data.unitKerja.size() >= 2 && data.unitKerja.size() <= 150
+        && (!('unitCategory' in data) || isValidUnitCategory(data.unitCategory))
+        && data.status is string && (data.status == 'active' || data.status == 'revoked')
+        && data.verifiedBy is string && data.verifiedBy.size() >= 3 && data.verifiedBy.size() <= 160
+        && data.verifiedAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPtspTicket(data, ticketId) {
+      return data.keys().hasAll([
+          'id',
+          'ticketNo',
+          'userId',
+          'userEmail',
+          'accountTier',
+          'unitId',
+          'unitTitle',
+          'subServiceId',
+          'serviceTitle',
+          'applicantName',
+          'phone',
+          'status',
+          'submittedAtLabel',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'ticketNo',
+          'userId',
+          'userEmail',
+          'accountTier',
+          'unitId',
+          'unitTitle',
+          'subServiceId',
+          'serviceTitle',
+          'applicantName',
+          'phone',
+          'institution',
+          'nip',
+          'notes',
+          'status',
+          'adminNote',
+          'submittedAtLabel',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.id is string && data.id == ticketId && isValidId(data.id)
+        && data.ticketNo is string && data.ticketNo.size() >= 6 && data.ticketNo.size() <= 40 && data.ticketNo.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 160
+        && data.accountTier is string && (data.accountTier == 'masyarakat' || data.accountTier == 'pegawai' || data.accountTier == 'admin')
+        && data.unitId is string && data.unitId.size() >= 1 && data.unitId.size() <= 40 && data.unitId.matches('^[a-z0-9\\-]+$')
+        && data.unitTitle is string && data.unitTitle.size() >= 2 && data.unitTitle.size() <= 100
+        && data.subServiceId is string && data.subServiceId.size() >= 1 && data.subServiceId.size() <= 60 && data.subServiceId.matches('^[a-z0-9\\-]+$')
+        && data.serviceTitle is string && data.serviceTitle.size() >= 2 && data.serviceTitle.size() <= 200
+        && data.applicantName is string && data.applicantName.size() >= 2 && data.applicantName.size() <= 120
+        && data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 30
+        && (!('institution' in data) || (data.institution is string && data.institution.size() <= 160))
+        && (!('nip' in data) || (data.nip is string && data.nip.size() <= 30))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && data.status is string && (data.status == 'Diproses Verifikasi' || data.status == 'Menunggu Berkas' || data.status == 'Selesai')
+        && (!('adminNote' in data) || (data.adminNote is string && data.adminNote.size() <= 300))
+        && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId)
+        && incoming().email == request.auth.token.email
+        && incoming().createdAt == request.time
+        && incoming().lastLoginAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().lastLoginAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastLoginAt']);
+
+      allow delete: if false;
+    }
+
+    match /downloadLogs/{logId} {
+      allow get: if isValidId(logId) && isVerifiedUser() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(logId)
+        && isVerifiedUser()
+        && isValidDownloadLog(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().userEmail == request.auth.token.email
+        && incoming().downloadedAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    match /employeeRequests/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && request.auth.uid == userId
+        && isValidEmployeeRequest(incoming(), userId)
+        && incoming().email == request.auth.token.email
+        && incoming().status == 'pending'
+        && !('adminNote' in incoming())
+        && !('reviewedBy' in incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && isValidEmployeeRequest(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (
+            isAdmin()
+            && incoming().reviewedBy == request.auth.token.email
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'unitCategory', 'adminNote', 'reviewedBy', 'updatedAt'])
+          )
+          ||
+          (
+            request.auth.uid == userId
+            && existing().status == 'rejected'
+            && incoming().status == 'pending'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'nip', 'jabatan', 'unitKerja', 'unitCategory', 'status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    match /verifiedEmployees/{userId} {
+      allow get: if isValidId(userId) && isVerifiedUser() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isValidId(userId)
+        && isAdmin()
+        && isValidVerifiedEmployee(incoming(), userId)
+        && incoming().verifiedBy == request.auth.token.email
+        && incoming().verifiedAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isAdmin()
+        && isValidVerifiedEmployee(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().verifiedAt == existing().verifiedAt
+        && incoming().updatedAt == request.time
+        && incoming().verifiedBy == request.auth.token.email
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'fullName',
+          'nip',
+          'jabatan',
+          'unitKerja',
+          'unitCategory',
+          'status',
+          'verifiedBy',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    match /ptspTickets/{ticketId} {
+      allow get: if isValidId(ticketId) && isVerifiedUser() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(ticketId)
+        && isVerifiedUser()
+        && isValidPtspTicket(incoming(), ticketId)
+        && incoming().userId == request.auth.uid
+        && incoming().userEmail == request.auth.token.email
+        && incoming().status == 'Diproses Verifikasi'
+        && !('adminNote' in incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().unitId != 'kepegawaian' || isAdmin() || isVerifiedEmployee())
+        && (incoming().subServiceId != 'bi-tauliyah-wali-hakim' || isAdmin() || isVerifiedKuaEmployee())
+        && (
+          incoming().accountTier == 'masyarakat'
+          || (incoming().accountTier == 'pegawai' && (isVerifiedEmployee() || isAdmin()))
+          || (incoming().accountTier == 'admin' && isAdmin())
+        );
+
+      allow update: if isValidId(ticketId)
+        && isAdmin()
+        && isValidPtspTicket(incoming(), ticketId)
+        && incoming().id == existing().id
+        && incoming().ticketNo == existing().ticketNo
+        && incoming().userId == existing().userId
+        && incoming().userEmail == existing().userEmail
+        && incoming().accountTier == existing().accountTier
+        && incoming().unitId == existing().unitId
+        && incoming().unitTitle == existing().unitTitle
+        && incoming().subServiceId == existing().subServiceId
+        && incoming().serviceTitle == existing().serviceTitle
+        && incoming().applicantName == existing().applicantName
+        && incoming().phone == existing().phone
+        && incoming().submittedAtLabel == existing().submittedAtLabel
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+
+      allow delete: if false;
+    }
+  }
+}
