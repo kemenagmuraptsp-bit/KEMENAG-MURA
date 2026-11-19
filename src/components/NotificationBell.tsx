@@ -39,7 +39,6 @@ export function HeaderAccountControls({
     isVerifiedEmployee,
     isVerifiedKuaEmployee,
     myVerifiedEmployee,
-    accountTier,
     isNipSession,
     notifications,
     unreadCount,
@@ -331,7 +330,7 @@ export function HeaderAccountControls({
                 </button>
               )}
 
-              {accountTier === 'masyarakat' && (
+              {!isAdmin && isNipSession && !isVerifiedEmployee && (
                 <button
                   type="button"
                   onClick={() => {
@@ -341,7 +340,7 @@ export function HeaderAccountControls({
                   className="w-full text-left px-3 py-2 rounded-lg font-semibold text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800 flex items-center gap-2"
                 >
                   <BadgeCheck className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400" />
-                  <span>Verifikasi Akun Pegawai</span>
+                  <span>Status Verifikasi Pegawai</span>
                 </button>
               )}
 

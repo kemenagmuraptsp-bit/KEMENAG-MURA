@@ -135,19 +135,23 @@ export function ServiceSidebar({
   onSelect,
   onSelectUnit,
 }: ServiceSidebarProps) {
-  const { isVerifiedEmployee, isVerifiedKuaEmployee } = useAuthRole();
+  const { isVerifiedEmployee, isVerifiedKuaEmployee, isMasyarakatLogin } = useAuthRole();
+  const availableUnits = isMasyarakatLogin
+    ? SERVICE_UNITS.filter((u) => u.id !== 'kepegawaian')
+    : SERVICE_UNITS;
+
   const [filterText, setFilterText] = useState('');
   const [expandedUnitIds, setExpandedUnitIds] = useState<string[]>([
-    selectedUnitId || SERVICE_UNITS[0].id,
+    selectedUnitId || availableUnits[0].id,
   ]);
 
   useEffect(() => {
-    if (selectedUnitId) {
+    if (selectedUnitId && availableUnits.some((u) => u.id === selectedUnitId)) {
       setExpandedUnitIds((prev) =>
         prev.includes(selectedUnitId) ? prev : [...prev, selectedUnitId]
       );
     }
-  }, [selectedUnitId]);
+  }, [selectedUnitId, isMasyarakatLogin]);
 
   const toggleExpand = (unitId: string) => {
     setExpandedUnitIds((prev) =>
@@ -155,15 +159,15 @@ export function ServiceSidebar({
     );
   };
 
-  const allExpanded = expandedUnitIds.length === SERVICE_UNITS.length;
+  const allExpanded = expandedUnitIds.length === availableUnits.length;
 
   const toggleExpandAll = () => {
-    setExpandedUnitIds(allExpanded ? [] : SERVICE_UNITS.map((u) => u.id));
+    setExpandedUnitIds(allExpanded ? [] : availableUnits.map((u) => u.id));
   };
 
   const q = filterText.trim().toLowerCase();
 
-  const visibleUnits = SERVICE_UNITS.map((unit) => {
+  const visibleUnits = availableUnits.map((unit) => {
     const unitMatches = unit.title.toLowerCase().includes(q);
     const matchingSubs = q
       ? unit.subServices.filter((s) => s.title.toLowerCase().includes(q))

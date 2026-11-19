@@ -77,6 +77,11 @@ function PageHeader({
 /* 1. PROFIL VIEW                                                             */
 /* -------------------------------------------------------------------------- */
 export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }) {
+  const { isMasyarakatLogin } = useAuthRole();
+  const visibleUnits = isMasyarakatLogin
+    ? SERVICE_UNITS.filter((u) => u.id !== 'kepegawaian')
+    : SERVICE_UNITS;
+
   return (
     <div className="bg-white">
       <PageHeader
@@ -109,7 +114,7 @@ export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }
               {[
                 { label: 'Kecamatan Binaan', value: '10' },
                 { label: 'KUA Kecamatan', value: '10' },
-                { label: 'Bidang PTSP', value: String(SERVICE_UNITS.length) },
+                { label: 'Bidang PTSP', value: String(visibleUnits.length) },
                 { label: 'Tarif Layanan', value: 'Rp 0' },
               ].map((stat) => (
                 <div
@@ -205,7 +210,7 @@ export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {SERVICE_UNITS.map((u) => (
+            {visibleUnits.map((u) => (
               <div key={u.id} className="border border-slate-200 rounded-xl p-4 space-y-1.5 bg-white">
                 <p className="text-xs font-mono-tabular text-emerald-700 font-semibold">{u.code}</p>
                 <h4 className="text-sm font-bold text-slate-900">{u.title}</h4>
@@ -242,6 +247,7 @@ export function LayananView({
     isOperatorPtsp,
     isOperatorSeksi,
     isNipSession,
+    isMasyarakatLogin,
     myVerifiedEmployee,
     adminConsoleTriggerCount,
   } = useAuthRole();
@@ -273,8 +279,11 @@ export function LayananView({
     return () => unsub();
   }, [user, isEligibleUser, isAdmin]);
 
+  const availableUnits = isMasyarakatLogin
+    ? SERVICE_UNITS.filter((u) => u.id !== 'kepegawaian')
+    : SERVICE_UNITS;
   const activeUnit =
-    SERVICE_UNITS.find((u) => u.id === selectedUnitId) || SERVICE_UNITS[0];
+    availableUnits.find((u) => u.id === selectedUnitId) || availableUnits[0];
   const activeSub =
     activeUnit.subServices.find((s) => s.id === selectedSubId) ||
     activeUnit.subServices[0];

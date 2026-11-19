@@ -62,6 +62,7 @@ interface AuthRoleContextValue {
   myVerifiedEmployee: VerifiedEmployeeRecord | null;
   isVerifiedEmployee: boolean;
   isVerifiedKuaEmployee: boolean;
+  isMasyarakatLogin: boolean;
   accountTier: AccountTier | 'tamu';
   newsArticles: NewsArticle[];
   cloudNewsArticles: CloudNewsArticleRecord[];
@@ -74,6 +75,7 @@ interface AuthRoleContextValue {
   closeSuperAdminModal: () => void;
   adminConsoleTriggerCount: number;
   requestOpenAdminConsole: () => void;
+  serviceCatalogRedirectCount: number;
   signInWithGoogle: () => Promise<User | null>;
   signInSuperAdminWithEmail: (email: string, password: string) => Promise<User | null>;
   signInWithNip: (nip: string, password: string) => Promise<User | null>;
@@ -144,6 +146,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const [loginModalTab, setLoginModalTab] = useState<'google' | 'pegawai'>('google');
   const [superAdminModalOpen, setSuperAdminModalOpen] = useState<boolean>(false);
   const [adminConsoleTriggerCount, setAdminConsoleTriggerCount] = useState<number>(0);
+  const [serviceCatalogRedirectCount, setServiceCatalogRedirectCount] = useState<number>(0);
 
   const isEligibleUser = isEligibleSessionUser(user);
   const isNipSession = isNipEmployeeEmail(user?.email);
@@ -168,6 +171,10 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const isOperatorSeksi = operatorRole === 'operator_seksi';
   const assignedUnitId = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitId : undefined;
   const assignedUnitTitle = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitTitle : undefined;
+
+  const isMasyarakatLogin = Boolean(
+    user && !isAdmin && !isVerifiedEmployee && !isNipSession
+  );
 
   const accountTier: AccountTier | 'tamu' = !user
     ? 'tamu'
@@ -325,6 +332,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     try {
       const loggedIn = await signInWithGoogleAndRecord();
       setLoginModalOpen(false);
+      if (loggedIn && loggedIn.email !== ADMIN_EMAIL) {
+        setServiceCatalogRedirectCount((c) => c + 1);
+      }
       return loggedIn;
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
@@ -357,6 +367,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     try {
       const loggedIn = await signInEmployeeWithNip(nip, password);
       setLoginModalOpen(false);
+      if (loggedIn) {
+        setServiceCatalogRedirectCount((c) => c + 1);
+      }
       return loggedIn;
     } catch (err) {
       const friendly = mapFirebaseAuthError(err);
@@ -377,6 +390,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     try {
       const created = await registerEmployeeNipRequest(params);
       setLoginModalOpen(false);
+      if (created) {
+        setServiceCatalogRedirectCount((c) => c + 1);
+      }
       return created;
     } catch (err) {
       const friendly = mapFirebaseAuthError(err);
@@ -610,6 +626,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         myVerifiedEmployee,
         isVerifiedEmployee,
         isVerifiedKuaEmployee,
+        isMasyarakatLogin,
         accountTier,
         newsArticles,
         cloudNewsArticles,
@@ -622,6 +639,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         closeSuperAdminModal,
         adminConsoleTriggerCount,
         requestOpenAdminConsole,
+        serviceCatalogRedirectCount,
         signInWithGoogle,
         signInSuperAdminWithEmail: handleSignInSuperAdminWithEmail,
         signInWithNip,

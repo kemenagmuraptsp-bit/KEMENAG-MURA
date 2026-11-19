@@ -138,7 +138,10 @@ export function BerandaView({
   onSelectArticle,
   onSelectGallery,
 }: BerandaViewProps) {
-  const { isVerifiedEmployee, newsArticles } = useAuthRole();
+  const { isVerifiedEmployee, isMasyarakatLogin, newsArticles } = useAuthRole();
+  const visibleServiceUnits = isMasyarakatLogin
+    ? SERVICE_UNITS.filter((unit) => unit.id !== 'kepegawaian')
+    : SERVICE_UNITS;
   const [activeInfografis, setActiveInfografis] = useState<InfografisCategory>('utama');
   const [activeVideoId, setActiveVideoId] = useState<string>(VIDEO_ITEMS[0].id);
 
@@ -276,7 +279,7 @@ export function BerandaView({
       {/* SECTION 1: Katalog Layanan PTSP */}
       <section
         id="katalog-ptsp"
-        className="py-12 lg:py-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 relative overflow-hidden"
+        className="scroll-mt-20 py-12 lg:py-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 relative overflow-hidden"
       >
         <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-14">
           <div className="text-center max-w-3xl mx-auto">
@@ -296,8 +299,12 @@ export function BerandaView({
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-            {SERVICE_UNITS.map((unit) => {
+          <div
+            className={`mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
+              visibleServiceUnits.length === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-6'
+            } gap-4`}
+          >
+            {visibleServiceUnits.map((unit) => {
               const Icon = SERVICE_ICONS[unit.id] || Building2;
               const cartoonSrc = SERVICE_CARTOONS[unit.id];
               const theme = SERVICE_PASTEL_THEMES[unit.id] || SERVICE_PASTEL_THEMES.sekretariat;
@@ -365,7 +372,7 @@ export function BerandaView({
             >
               <span>
                 Buka Menu Sidebar Layanan (
-                {SERVICE_UNITS.reduce((sum, u) => sum + u.subServices.length, 0)} Sub-Menu)
+                {visibleServiceUnits.reduce((sum, u) => sum + u.subServices.length, 0)} Sub-Menu)
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>

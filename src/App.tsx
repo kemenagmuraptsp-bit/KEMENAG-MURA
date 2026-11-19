@@ -61,6 +61,29 @@ function SuperAdminNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
   return null;
 }
 
+function ServiceCatalogRedirectWatcher({
+  onRedirect,
+  onResetKepegawaianSelection,
+}: {
+  onRedirect: () => void;
+  onResetKepegawaianSelection: () => void;
+}) {
+  const { serviceCatalogRedirectCount, isMasyarakatLogin } = useAuthRole();
+  useEffect(() => {
+    if (serviceCatalogRedirectCount > 0) {
+      onRedirect();
+    }
+  }, [serviceCatalogRedirectCount]);
+
+  useEffect(() => {
+    if (isMasyarakatLogin) {
+      onResetKepegawaianSelection();
+    }
+  }, [isMasyarakatLogin]);
+
+  return null;
+}
+
 function LiveGlobalSearchModal({
   open,
   services,
@@ -74,11 +97,14 @@ function LiveGlobalSearchModal({
   onSelectService: (u: ServiceUnit) => void;
   onSelectArticle: (a: NewsArticle) => void;
 }) {
-  const { newsArticles } = useAuthRole();
+  const { newsArticles, isMasyarakatLogin } = useAuthRole();
+  const visibleServices = isMasyarakatLogin
+    ? services.filter((u) => u.id !== 'kepegawaian')
+    : services;
   return (
     <GlobalSearchModal
       open={open}
-      services={services}
+      services={visibleServices}
       articles={newsArticles}
       onClose={onClose}
       onSelectService={onSelectService}
@@ -447,6 +473,16 @@ export default function App() {
       <LoginModal />
       <SuperAdminModal />
       <SuperAdminNavigationWatcher onTrigger={handleOpenAdminConsole} />
+      <ServiceCatalogRedirectWatcher
+        onRedirect={handleBackToKatalogLayanan}
+        onResetKepegawaianSelection={() => {
+          if (activeServiceUnitId === 'kepegawaian') {
+            setActiveServiceUnitId(SERVICE_UNITS[0].id);
+            setActiveSubServiceId(SERVICE_UNITS[0].subServices[0].id);
+          }
+          setSelectedService((prev) => (prev?.id === 'kepegawaian' ? null : prev));
+        }}
+      />
       </div>
     </AuthRoleProvider>
   );
