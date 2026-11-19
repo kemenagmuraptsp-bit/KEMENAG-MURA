@@ -236,7 +236,7 @@ export function isEligibleSessionUser(user: User | null): boolean {
 
 export function mapFirebaseAuthError(
   error: unknown,
-  context: 'nip' | 'admin' | 'google' = 'nip'
+  context: 'nip' | 'admin' | 'google' | 'masyarakat' = 'nip'
 ): string {
   const code =
     typeof error === 'object' && error !== null && 'code' in error
@@ -245,18 +245,27 @@ export function mapFirebaseAuthError(
   const msg = error instanceof Error ? error.message : String(error ?? '');
 
   if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
-    const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'domain aplikasi ini';
-    return `Domain "${host}" belum masuk daftar Authorized Domains di Firebase Auth. Tambahkan "${host}" pada Firebase Console > Authentication > Settings > Authorized domains.`;
+    const host =
+      typeof window !== 'undefined' && window.location.hostname
+        ? window.location.hostname
+        : 'domain aplikasi ini';
+    return `Login pop-up Google belum diotorisasi untuk domain "${host}". Silakan masuk atau daftar menggunakan Email & Kata Sandi di bawah ini (langsung aktif di semua domain).`;
   }
   if (code === 'auth/popup-blocked' || msg.includes('popup-blocked')) {
-    return 'Jendela pop-up login Google diblokir browser. Harap izinkan pop-up untuk situs ini lalu coba lagi.';
+    return 'Jendela pop-up login Google diblokir browser. Harap izinkan pop-up untuk situs ini atau gunakan Email & Kata Sandi di bawah.';
   }
   if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
     return 'Metode login Email/Password belum diaktifkan di Firebase Console (Authentication > Sign-in method). Silakan aktifkan terlebih dahulu.';
   }
+  if (code === 'auth/invalid-email') {
+    return 'Format alamat email tidak valid. Pastikan penulisan email sudah benar.';
+  }
   if (code === 'auth/user-not-found') {
     if (context === 'admin') {
       return `Akun Super Admin (${ADMIN_EMAIL}) belum terdaftar di Firebase Auth. Klik "Aktivasi Akun Pertama Kali" atau tambahkan di Firebase Console.`;
+    }
+    if (context === 'masyarakat') {
+      return 'Email ini belum terdaftar. Silakan pilih "Daftar Akun Baru" untuk membuat akun masyarakat.';
     }
     return 'NIP belum terdaftar atau tidak ditemukan.';
   }
@@ -264,11 +273,17 @@ export function mapFirebaseAuthError(
     if (context === 'admin') {
       return `Kata sandi Super Admin salah, atau akun ${ADMIN_EMAIL} belum disetel kata sandinya di Firebase Auth.`;
     }
+    if (context === 'masyarakat') {
+      return 'Email atau kata sandi salah, atau akun tersebut belum terdaftar.';
+    }
     return 'NIP atau Password yang Anda masukkan salah, atau NIP belum terdaftar.';
   }
   if (code === 'auth/email-already-in-use') {
     if (context === 'admin') {
       return `Akun ${ADMIN_EMAIL} sudah terdaftar di Firebase Auth. Gunakan "Kirim Tautan Atur/Reset Sandi" untuk menyetel ulang kata sandi.`;
+    }
+    if (context === 'masyarakat') {
+      return 'Alamat email ini sudah terdaftar. Silakan langsung masuk menggunakan email dan kata sandi Anda.';
     }
     return 'NIP ini sudah terdaftar. Silakan langsung masuk menggunakan NIP dan Password Anda.';
   }
@@ -286,6 +301,89 @@ export async function signInWithGoogleAndRecord(): Promise<User> {
   const user = credential.user;
   await upsertGoogleUserProfile(user);
   return user;
+}
+
+export async function signInPublicWithEmail(
+  email: string,
+  password: string
+): Promise<User> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Masukkan alamat email yang valid.');
+  }
+  if (cleanEmail === ADMIN_EMAIL) {
+    throw new Error('Akun Super Admin menggunakan panel khusus (tekan Ctrl+Alt+A).');
+  }
+  if (isNipEmployeeEmail(cleanEmail)) {
+    throw new Error('Akun pegawai NIP silakan masuk melalui tab "Login Pegawai (NIP)".');
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Kata sandi wajib diisi minimal 6 karakter.');
+  }
+
+  const credential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+  await credential.user.reload();
+
+  if (!credential.user.emailVerified) {
+    try {
+      await sendEmailVerification(credential.user);
+    } catch {
+      // Ignore Firebase rate-limit error if verification email was recently sent
+    }
+    await signOut(auth);
+    throw new Error(
+      `Email ${cleanEmail} belum diverifikasi. Tautan verifikasi baru telah dikirim ke kotak masuk/spam ${cleanEmail}. Klik tautan tersebut lalu login kembali.`
+    );
+  }
+
+  await credential.user.getIdToken(true);
+  await upsertGoogleUserProfile(credential.user);
+  return credential.user;
+}
+
+export async function registerPublicWithEmail(params: {
+  fullName: string;
+  email: string;
+  password: string;
+}): Promise<void> {
+  const cleanName = clampStr(params.fullName, 120);
+  const cleanEmail = params.email.trim().toLowerCase();
+  const password = params.password;
+
+  if (cleanName.length < 2) {
+    throw new Error('Nama lengkap wajib diisi minimal 2 huruf.');
+  }
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Masukkan alamat email yang valid.');
+  }
+  if (cleanEmail === ADMIN_EMAIL) {
+    throw new Error('Email ini khusus untuk Super Admin.');
+  }
+  if (isNipEmployeeEmail(cleanEmail)) {
+    throw new Error('Email domain pegawai silakan mendaftar melalui tab "Login Pegawai (NIP)".');
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Kata sandi wajib diisi minimal 6 karakter.');
+  }
+
+  const credential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+  try {
+    await updateProfile(credential.user, { displayName: cleanName });
+    await sendEmailVerification(credential.user);
+  } finally {
+    await signOut(auth);
+  }
+}
+
+export async function sendPublicPasswordResetEmail(email: string): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Isi alamat email Anda terlebih dahulu untuk mengirim tautan atur ulang kata sandi.');
+  }
+  if (cleanEmail === ADMIN_EMAIL) {
+    throw new Error('Gunakan panel Super Admin (Ctrl+Alt+A) untuk atur ulang kata sandi Super Admin.');
+  }
+  await sendPasswordResetEmail(auth, cleanEmail);
 }
 
 export async function signInSuperAdminWithEmail(email: string, password: string): Promise<User> {

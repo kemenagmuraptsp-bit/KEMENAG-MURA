@@ -8,7 +8,9 @@ import {
   mapFirebaseAuthError,
   mergeNewsArticles,
   registerEmployeeNipRequest,
+  registerPublicWithEmail,
   signInEmployeeWithNip,
+  signInPublicWithEmail,
   signInSuperAdminWithEmail,
   signInWithGoogleAndRecord,
   signOutGoogle,
@@ -77,6 +79,12 @@ interface AuthRoleContextValue {
   requestOpenAdminConsole: () => void;
   serviceCatalogRedirectCount: number;
   signInWithGoogle: () => Promise<User | null>;
+  signInPublicWithEmail: (email: string, password: string) => Promise<User | null>;
+  registerPublicWithEmail: (params: {
+    fullName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
   signInSuperAdminWithEmail: (email: string, password: string) => Promise<User | null>;
   signInWithNip: (nip: string, password: string) => Promise<User | null>;
   registerWithNip: (params: {
@@ -342,6 +350,40 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         setAuthError(mapFirebaseAuthError(err, 'google'));
       }
       return null;
+    }
+  };
+
+  const handleSignInPublicWithEmail = async (
+    email: string,
+    password: string
+  ): Promise<User | null> => {
+    setAuthError('');
+    try {
+      const loggedIn = await signInPublicWithEmail(email, password);
+      setLoginModalOpen(false);
+      if (loggedIn && loggedIn.email !== ADMIN_EMAIL) {
+        setServiceCatalogRedirectCount((c) => c + 1);
+      }
+      return loggedIn;
+    } catch (err) {
+      const friendly = mapFirebaseAuthError(err, 'masyarakat');
+      setAuthError(friendly);
+      throw new Error(friendly);
+    }
+  };
+
+  const handleRegisterPublicWithEmail = async (params: {
+    fullName: string;
+    email: string;
+    password: string;
+  }): Promise<void> => {
+    setAuthError('');
+    try {
+      await registerPublicWithEmail(params);
+    } catch (err) {
+      const friendly = mapFirebaseAuthError(err, 'masyarakat');
+      setAuthError(friendly);
+      throw new Error(friendly);
     }
   };
 
@@ -641,6 +683,8 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         requestOpenAdminConsole,
         serviceCatalogRedirectCount,
         signInWithGoogle,
+        signInPublicWithEmail: handleSignInPublicWithEmail,
+        registerPublicWithEmail: handleRegisterPublicWithEmail,
         signInSuperAdminWithEmail: handleSignInSuperAdminWithEmail,
         signInWithNip,
         registerWithNip,
