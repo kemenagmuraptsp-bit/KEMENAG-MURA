@@ -439,6 +439,12 @@ service cloud.firestore {
           'checkedDocsPattern',
           'verifiedDocsCount',
           'totalDocsCount',
+          'uploadedDocsCount',
+          'tteDocNumber',
+          'tteSignerName',
+          'tteSignerTitle',
+          'tteSignerNip',
+          'tteSignedAtLabel',
           'submittedAtLabel',
           'createdAt',
           'updatedAt'
@@ -469,9 +475,64 @@ service cloud.firestore {
         && (!('checkedDocsPattern' in data) || (data.checkedDocsPattern is string && data.checkedDocsPattern.size() <= 40 && data.checkedDocsPattern.matches('^[01]{0,40}$')))
         && (!('verifiedDocsCount' in data) || (data.verifiedDocsCount is number && data.verifiedDocsCount >= 0 && data.verifiedDocsCount <= 40))
         && (!('totalDocsCount' in data) || (data.totalDocsCount is number && data.totalDocsCount >= 0 && data.totalDocsCount <= 40))
+        && (!('uploadedDocsCount' in data) || (data.uploadedDocsCount is number && data.uploadedDocsCount >= 0 && data.uploadedDocsCount <= 40))
+        && (!('tteDocNumber' in data) || (data.tteDocNumber is string && data.tteDocNumber.size() <= 100))
+        && (!('tteSignerName' in data) || (data.tteSignerName is string && data.tteSignerName.size() <= 120))
+        && (!('tteSignerTitle' in data) || (data.tteSignerTitle is string && data.tteSignerTitle.size() <= 120))
+        && (!('tteSignerNip' in data) || (data.tteSignerNip is string && data.tteSignerNip.size() <= 30))
+        && (!('tteSignedAtLabel' in data) || (data.tteSignedAtLabel is string && data.tteSignedAtLabel.size() <= 50))
         && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
+    }
+
+    function isValidAttachmentMime(val) {
+      return val is string && (
+        val == 'application/pdf' ||
+        val == 'image/jpeg' ||
+        val == 'image/png' ||
+        val == 'image/webp'
+      );
+    }
+
+    function isValidTicketAttachment(data, ticketId, attachmentId) {
+      return data.keys().hasAll([
+          'id',
+          'ticketId',
+          'userId',
+          'requirementIndex',
+          'requirementLabel',
+          'fileName',
+          'mimeType',
+          'fileSize',
+          'dataUrl',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'ticketId',
+          'userId',
+          'requirementIndex',
+          'requirementLabel',
+          'fileName',
+          'mimeType',
+          'fileSize',
+          'dataUrl',
+          'createdAt'
+        ])
+        && data.id is string && data.id == attachmentId && isValidId(data.id)
+        && data.ticketId is string && data.ticketId == ticketId && isValidId(data.ticketId)
+        && data.userId is string && isValidId(data.userId)
+        && data.requirementIndex is int && data.requirementIndex >= 0 && data.requirementIndex <= 40
+        && data.requirementLabel is string && data.requirementLabel.size() >= 1 && data.requirementLabel.size() <= 300
+        && data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 180
+        && isValidAttachmentMime(data.mimeType)
+        && data.fileSize is int && data.fileSize >= 1 && data.fileSize <= 10485760
+        && data.dataUrl is string
+        && data.dataUrl.size() >= 20
+        && data.dataUrl.size() <= 800000
+        && data.dataUrl.matches('^data:(application/pdf|image/jpeg|image/png|image/webp);base64,[A-Za-z0-9+/=]+$')
+        && data.createdAt is timestamp;
     }
 
     match /users/{userId} {
@@ -611,6 +672,11 @@ service cloud.firestore {
         && !('seksiReviewer' in incoming())
         && !('tteSentToLeader' in incoming())
         && !('tteLeaderNote' in incoming())
+        && !('tteDocNumber' in incoming())
+        && !('tteSignerName' in incoming())
+        && !('tteSignerTitle' in incoming())
+        && !('tteSignerNip' in incoming())
+        && !('tteSignedAtLabel' in incoming())
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time
         && (incoming().unitId != 'kepegawaian' || isAdmin() || isVerifiedEmployee())
@@ -640,6 +706,11 @@ service cloud.firestore {
               'seksiReviewer',
               'tteSentToLeader',
               'tteLeaderNote',
+              'tteDocNumber',
+              'tteSignerName',
+              'tteSignerTitle',
+              'tteSignerNip',
+              'tteSignedAtLabel',
               'checkedDocsPattern',
               'verifiedDocsCount',
               'totalDocsCount',
@@ -686,6 +757,11 @@ service cloud.firestore {
               'status',
               'adminNote',
               'tteLeaderNote',
+              'tteDocNumber',
+              'tteSignerName',
+              'tteSignerTitle',
+              'tteSignerNip',
+              'tteSignedAtLabel',
               'updatedAt'
             ])
             && isPimpinan()
@@ -693,6 +769,45 @@ service cloud.firestore {
         );
 
       allow delete: if false;
+
+      match /attachments/{attachmentId} {
+        allow get: if isValidId(ticketId)
+          && isValidId(attachmentId)
+          && isVerifiedUser()
+          && (
+            existing().userId == request.auth.uid
+            || (
+              exists(/databases/$(database)/documents/ptspTickets/$(ticketId))
+              && canReadTicket(get(/databases/$(database)/documents/ptspTickets/$(ticketId)).data)
+            )
+          );
+
+        allow list: if isVerifiedUser()
+          && (
+            resource.data.userId == request.auth.uid
+            || isAdmin()
+            || isOperatorPtsp()
+            || isPimpinan()
+            || (
+              exists(/databases/$(database)/documents/ptspTickets/$(ticketId))
+              && (
+                get(/databases/$(database)/documents/ptspTickets/$(ticketId)).data.userId == request.auth.uid
+                || canReadTicket(get(/databases/$(database)/documents/ptspTickets/$(ticketId)).data)
+              )
+            )
+          );
+
+        allow create: if isValidId(ticketId)
+          && isValidId(attachmentId)
+          && isVerifiedUser()
+          && isValidTicketAttachment(incoming(), ticketId, attachmentId)
+          && incoming().userId == request.auth.uid
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/ptspTickets/$(ticketId))
+          && get(/databases/$(database)/documents/ptspTickets/$(ticketId)).data.userId == request.auth.uid;
+
+        allow update, delete: if false;
+      }
     }
 
     match /newsArticles/{articleId} {

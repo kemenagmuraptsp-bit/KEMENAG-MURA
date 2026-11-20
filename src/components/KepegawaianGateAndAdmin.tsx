@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CheckSquare,
   Clock,
+  Download,
   Edit3,
   Eye,
   FileCheck2,
@@ -14,6 +15,7 @@ import {
   LogIn,
   LogOut,
   Newspaper,
+  Paperclip,
   Phone,
   PlusCircle,
   Printer,
@@ -43,10 +45,17 @@ import {
 } from '@/src/data/kemenagData';
 import type { NewsArticle } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
+import { TicketAttachmentPreviewModal } from '@/src/components/RequirementUploadSection';
+import { OfficialTteDocumentModal } from '@/src/components/OfficialTteDocumentModal';
+import {
+  formatAttachmentBytes,
+  generateSuggestedTteDocNumber,
+} from '@/src/utils/serviceDocumentTemplates';
 import {
   approveEmployeeVerification,
   deleteNewsArticle,
   deleteVerifiedEmployeeAccount,
+  fetchTicketAttachments,
   mapFirebaseAuthError,
   pimpinanEndorseTteTicket,
   provisionEmployeeAccountByAdmin,
@@ -65,6 +74,7 @@ import {
   updateCloudTicketStatus,
   updateVerifiedEmployeeCategory,
   updateVerifiedEmployeeDetails,
+  type CloudPtspTicketAttachment,
   type CloudPtspTicketRecord,
   type EmployeeOperatorRole,
   type EmployeeRequestRecord,
@@ -489,6 +499,12 @@ export function OperatorTicketConsole() {
   const [errorMsg, setErrorMsg] = useState('');
   const [listErrorMsg, setListErrorMsg] = useState('');
 
+  const [modalAttachments, setModalAttachments] = useState<CloudPtspTicketAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [attachmentsError, setAttachmentsError] = useState('');
+  const [previewAttachment, setPreviewAttachment] = useState<CloudPtspTicketAttachment | null>(null);
+  const [tteDocNumberInput, setTteDocNumberInput] = useState('');
+
   useEffect(() => {
     if (!user || isAdmin || (!isOperatorPtsp && !isOperatorSeksi && !isPimpinan)) return;
     setListErrorMsg('');
@@ -504,6 +520,32 @@ export function OperatorTicketConsole() {
     );
     return () => unsub();
   }, [user, isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, assignedUnitId]);
+
+  useEffect(() => {
+    if (!activeTicket) {
+      setModalAttachments([]);
+      setAttachmentsLoading(false);
+      setAttachmentsError('');
+      return;
+    }
+    let cancelled = false;
+    setAttachmentsLoading(true);
+    setAttachmentsError('');
+    setModalAttachments([]);
+    fetchTicketAttachments(activeTicket.id)
+      .then((rows) => {
+        if (!cancelled) setModalAttachments(rows);
+      })
+      .catch((err) => {
+        if (!cancelled) setAttachmentsError(formatTicketActionError(err));
+      })
+      .finally(() => {
+        if (!cancelled) setAttachmentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTicket?.id]);
 
   const operatorDisplayName =
     myVerifiedEmployee?.fullName ||
@@ -562,6 +604,7 @@ export function OperatorTicketConsole() {
     setCheckedFlags(parseCheckedPattern(ticket.checkedDocsPattern, reqs.length));
     setModalNote(ticket.adminNote || '');
     setTargetSeksiId(ticket.dispatchedUnitId || resolveDefaultSeksiUnit(ticket.unitId));
+    setTteDocNumberInput(ticket.tteDocNumber || generateSuggestedTteDocNumber(ticket));
     setErrorMsg('');
     setModalFeedback('');
   };
@@ -719,15 +762,30 @@ export function OperatorTicketConsole() {
       const resolvedNote =
         modalNote.trim() ||
         `Disahkan melalui Tanda Tangan Elektronik (TTE) oleh ${operatorDisplayName}.`;
+      const resolvedDocNumber =
+        tteDocNumberInput.trim() || generateSuggestedTteDocNumber(activeTicket);
+      const resolvedSignerTitle = myVerifiedEmployee?.jabatan
+        ? `${myVerifiedEmployee.jabatan}\n${myVerifiedEmployee.unitKerja}`
+        : 'Kepala Kantor Kementerian Agama\nKabupaten Murung Raya';
+
       await pimpinanEndorseTteTicket({
         ticketId: activeTicket.id,
         status: nextStatus,
         adminNote: resolvedNote,
         tteLeaderNote: resolvedNote,
+        ...(nextStatus === 'TTE Sah (Selesai)'
+          ? {
+              tteDocNumber: resolvedDocNumber,
+              tteSignerName: operatorDisplayName,
+              tteSignerTitle: resolvedSignerTitle,
+              tteSignerNip: myVerifiedEmployee?.nip || '197005121998031004',
+              tteSignedAtLabel: getTodayIndonesianDate(),
+            }
+          : {}),
       });
       setFeedback(
         nextStatus === 'TTE Sah (Selesai)'
-          ? `Tiket ${activeTicket.ticketNo} berhasil disahkan TTE (Selesai) oleh ${operatorDisplayName}.`
+          ? `Tiket ${activeTicket.ticketNo} berhasil disahkan TTE (${resolvedDocNumber}) oleh ${operatorDisplayName}.`
           : `Tiket ${activeTicket.ticketNo} dikembalikan untuk revisi berkas.`
       );
       setActiveTicket(null);
@@ -968,6 +1026,9 @@ export function OperatorTicketConsole() {
                       </span>
                       <p className="text-[11px] text-slate-500 mt-1.5">
                         {validDocs} dari {totalDocs} dokumen valid
+                        {typeof t.uploadedDocsCount === 'number'
+                          ? ` · ${t.uploadedDocsCount} berkas terunggah`
+                          : ''}
                       </p>
                     </td>
 
@@ -983,11 +1044,13 @@ export function OperatorTicketConsole() {
                           <Printer className="w-4 h-4" />
                         </button>
 
-                        {hasTteDocument && (
+                        {(hasTteDocument || isPimpinan || t.status === 'Siap TTE') && (
                           <button
                             type="button"
                             onClick={() => setPreviewTicket({ ticket: t, mode: 'tte' })}
-                            title="Dokumen Sah TTE"
+                            title={
+                              hasTteDocument ? 'Dokumen Sah TTE' : 'Pratinjau Draf Dokumen TTE'
+                            }
                             className="p-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
                           >
                             <FileCheck2 className="w-4 h-4" />
@@ -1091,7 +1154,7 @@ export function OperatorTicketConsole() {
                 )}
               </div>
 
-              {/* Checklist Kelengkapan Berkas Persyaratan */}
+              {/* Checklist Kelengkapan Berkas Persyaratan & Unggahan Pemohon */}
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -1100,7 +1163,10 @@ export function OperatorTicketConsole() {
                     </h5>
                     <p className="text-[11px] text-slate-500">
                       {checkedFlags.filter(Boolean).length} dari {checkedFlags.length} dokumen
-                      persyaratan dinyatakan valid.
+                      persyaratan dinyatakan valid ·{' '}
+                      {attachmentsLoading
+                        ? 'Memuat berkas unggahan...'
+                        : `${modalAttachments.length} berkas diunggah pemohon`}
                     </p>
                   </div>
                   <button
@@ -1116,29 +1182,145 @@ export function OperatorTicketConsole() {
                   </button>
                 </div>
 
+                {attachmentsError && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 px-3.5 py-2 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="break-words">{attachmentsError}</span>
+                  </div>
+                )}
+
+                {!attachmentsLoading && modalAttachments.length === 0 && !attachmentsError && (
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/40 px-3.5 py-2.5 text-[11px] text-slate-500 flex items-center gap-2">
+                    <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Belum ada berkas digital yang dilampirkan pada tiket ini (pemohon membawa fisik atau tiket lama).
+                    </span>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  {resolveTicketRequirements(activeTicket).map((reqText, idx) => {
-                    const isChecked = Boolean(checkedFlags[idx]);
-                    return (
-                      <button
-                        key={reqText}
-                        type="button"
-                        onClick={() => toggleCheckIndex(idx)}
-                        className={`w-full text-left flex items-start gap-2.5 p-3 rounded-xl border transition-colors ${
-                          isChecked
-                            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
-                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        ) : (
-                          <Square className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                        )}
-                        <span className="leading-relaxed font-medium">{reqText}</span>
-                      </button>
+                  {(() => {
+                    const reqs = resolveTicketRequirements(activeTicket);
+                    const matchedAtts = modalAttachments.filter(
+                      (a) => a.requirementIndex >= 0 && a.requirementIndex < reqs.length
                     );
-                  })}
+                    const extraAtts = modalAttachments.filter(
+                      (a) => a.requirementIndex < 0 || a.requirementIndex >= reqs.length
+                    );
+                    return (
+                      <>
+                        {reqs.map((reqText, idx) => {
+                          const isChecked = Boolean(checkedFlags[idx]);
+                          const rowAtts = matchedAtts.filter((a) => a.requirementIndex === idx);
+                          return (
+                            <div
+                              key={`${reqText}-${idx}`}
+                              className={`rounded-xl border p-3 transition-colors space-y-2 ${
+                                isChecked
+                                  ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
+                                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleCheckIndex(idx)}
+                                className="w-full text-left flex items-start gap-2.5"
+                              >
+                                {isChecked ? (
+                                  <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                                )}
+                                <span className="leading-relaxed font-medium">{reqText}</span>
+                              </button>
+
+                              {rowAtts.length > 0 && (
+                                <div className="pl-6 space-y-1.5">
+                                  {rowAtts.map((att) => (
+                                    <div
+                                      key={att.id}
+                                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-[11px]"
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <Paperclip className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400 shrink-0" />
+                                        <span className="font-semibold text-slate-800 dark:text-slate-100 truncate max-w-[230px]">
+                                          {att.fileName}
+                                        </span>
+                                        <span className="font-mono-tabular text-[10px] text-slate-500 shrink-0">
+                                          {att.mimeType === 'application/pdf' ? 'PDF' : 'IMG'} ·{' '}
+                                          {formatAttachmentBytes(att.fileSize)}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewAttachment(att)}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-300 font-bold"
+                                        >
+                                          <Eye className="w-3 h-3" />
+                                          <span>Lihat Berkas</span>
+                                        </button>
+                                        <a
+                                          href={att.dataUrl}
+                                          download={att.fileName}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-semibold"
+                                        >
+                                          <Download className="w-3 h-3" />
+                                          <span>Unduh</span>
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {extraAtts.length > 0 && (
+                          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 p-3 space-y-2">
+                            <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                              Berkas Tambahan Lainnya
+                            </p>
+                            {extraAtts.map((att) => (
+                              <div
+                                key={att.id}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-[11px]"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Paperclip className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                                  <span className="font-semibold truncate max-w-[230px]">
+                                    {att.fileName}
+                                  </span>
+                                  <span className="font-mono-tabular text-[10px] text-slate-500">
+                                    {formatAttachmentBytes(att.fileSize)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewAttachment(att)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-teal-50 text-teal-800 font-bold"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>Lihat Berkas</span>
+                                  </button>
+                                  <a
+                                    href={att.dataUrl}
+                                    download={att.fileName}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 text-slate-700 font-semibold"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span>Unduh</span>
+                                  </a>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1283,7 +1465,42 @@ export function OperatorTicketConsole() {
 
               {/* AKSI PIMPINAN (PENGESAHAN TTE) */}
               {isPimpinan && (
-                <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <div className="space-y-3.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                      Nomor Surat / Dokumen Resmi TTE (Otomatis Sesuai Layanan)
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={tteDocNumberInput}
+                        onChange={(e) => setTteDocNumberInput(e.target.value)}
+                        placeholder="Nomor dokumen TTE resmi..."
+                        className="flex-1 px-3 py-2 text-xs font-mono-tabular font-semibold rounded-xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewTicket({
+                            ticket: {
+                              ...activeTicket,
+                              tteDocNumber:
+                                tteDocNumberInput.trim() ||
+                                activeTicket.tteDocNumber ||
+                                generateSuggestedTteDocNumber(activeTicket),
+                              tteSignerName: activeTicket.tteSignerName || operatorDisplayName,
+                            },
+                            mode: 'tte',
+                          })
+                        }
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-600 bg-white dark:bg-slate-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 font-bold text-xs shrink-0"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Pratinjau Dokumen TTE</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <button
                       type="button"
@@ -1320,114 +1537,18 @@ export function OperatorTicketConsole() {
         </div>
       )}
 
-      {/* IN-APP MODAL CETAK RESI / PRATINJAU DOKUMEN TTE (TANPA window.open) */}
-      {previewTicket && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                {previewTicket.mode === 'tte'
-                  ? 'Pratinjau Dokumen Layanan — TTE Sah'
-                  : 'Tanda Terima / Resi Layanan PTSP'}
-              </h4>
-              <button
-                type="button"
-                onClick={() => setPreviewTicket(null)}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4 text-xs">
-              <div className="border-2 border-slate-800 dark:border-slate-600 rounded-xl p-5 space-y-3 bg-white dark:bg-slate-950">
-                <div className="border-b border-slate-300 dark:border-slate-700 pb-3 text-center">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-800 dark:text-emerald-400">
-                    Kementerian Agama Republik Indonesia
-                  </p>
-                  <p className="text-sm font-extrabold text-slate-900 dark:text-white">
-                    Kantor Kementerian Agama Kab. Murung Raya
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Pelayanan Terpadu Satu Pintu (PTSP) · Puruk Cahu
-                  </p>
-                </div>
+      {/* IN-APP MODAL PRATINJAU LAMPIRAN BERKAS PEMOHON */}
+      <TicketAttachmentPreviewModal
+        attachment={previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+      />
 
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
-                  <div>
-                    <span className="text-slate-500 block">Nomor Resi</span>
-                    <span className="font-mono-tabular font-extrabold text-slate-900 dark:text-white">
-                      {previewTicket.ticket.ticketNo}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Tanggal Masuk</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">
-                      {previewTicket.ticket.submittedAtLabel}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Jenis Layanan</span>
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {previewTicket.ticket.serviceTitle}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Pemohon</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">
-                      {previewTicket.ticket.applicantName}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Instansi / Kontak</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">
-                      {previewTicket.ticket.institution || previewTicket.ticket.phone}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500 block">Status Terakhir</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                      {getTicketDisplayStatus(previewTicket.ticket.status)}
-                    </span>
-                  </div>
-                </div>
-
-                {previewTicket.mode === 'tte' && (
-                  <div className="mt-3 pt-3 border-t border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-bold text-emerald-800 dark:text-emerald-300">
-                        Ditandatangani Secara Elektronik (TTE)
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Kepala Kankemenag Kab. Murung Raya · Pemeriksa Seksi:{' '}
-                        {previewTicket.ticket.seksiReviewer || 'Operator Seksi'}
-                      </p>
-                    </div>
-                    <BadgeCheck className="w-8 h-8 text-emerald-600 shrink-0" />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTicket(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 dark:bg-emerald-700 text-white font-bold"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Cetak Sekarang</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* IN-APP MODAL DOKUMEN RESI / TTE RESMI SESUAI LAYANAN (TANPA window.open) */}
+      <OfficialTteDocumentModal
+        ticket={previewTicket?.ticket ?? null}
+        mode={previewTicket?.mode || 'resi'}
+        onClose={() => setPreviewTicket(null)}
+      />
     </div>
   );
 }
@@ -1896,6 +2017,17 @@ export function AdminVerificationPanel() {
   // Ticket notes draft per id
   const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
 
+  // Admin ticket attachment inspection & TTE document preview
+  const [adminInspectTicket, setAdminInspectTicket] = useState<CloudPtspTicketRecord | null>(null);
+  const [adminAttachments, setAdminAttachments] = useState<CloudPtspTicketAttachment[]>([]);
+  const [adminAttLoading, setAdminAttLoading] = useState(false);
+  const [adminAttError, setAdminAttError] = useState('');
+  const [adminPreviewAtt, setAdminPreviewAtt] = useState<CloudPtspTicketAttachment | null>(null);
+  const [adminDocPreview, setAdminDocPreview] = useState<{
+    ticket: CloudPtspTicketRecord;
+    mode: 'resi' | 'tte';
+  } | null>(null);
+
   useEffect(() => {
     if (!user || !isAdmin) return;
     const u1 = subscribeAllEmployeeRequests(setRequests, () => {});
@@ -1909,6 +2041,32 @@ export function AdminVerificationPanel() {
       u4();
     };
   }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (!adminInspectTicket) {
+      setAdminAttachments([]);
+      setAdminAttLoading(false);
+      setAdminAttError('');
+      return;
+    }
+    let cancelled = false;
+    setAdminAttLoading(true);
+    setAdminAttError('');
+    setAdminAttachments([]);
+    fetchTicketAttachments(adminInspectTicket.id)
+      .then((rows) => {
+        if (!cancelled) setAdminAttachments(rows);
+      })
+      .catch((err) => {
+        if (!cancelled) setAdminAttError(formatTicketActionError(err));
+      })
+      .finally(() => {
+        if (!cancelled) setAdminAttLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adminInspectTicket?.id]);
 
   if (!user || !isAdmin) return null;
 
@@ -2346,13 +2504,33 @@ export function AdminVerificationPanel() {
   ) => {
     setBusyId(ticket.id);
     setStatusFeedback('');
+    setErrorFeedback('');
     try {
+      const activeLead =
+        pimpinanAccounts.find((p) => p.status === 'active') || pimpinanAccounts[0];
+      const signerName = activeLead?.fullName || 'H. Maslan, S.Ag., M.Pd.';
+      const signerTitle = activeLead?.jabatan
+        ? `${activeLead.jabatan}\n${activeLead.unitKerja}`
+        : 'Kepala Kantor Kementerian Agama\nKabupaten Murung Raya';
+      const signerNip = activeLead?.nip || '197005121998031004';
+
       await updateCloudTicketStatus({
         ticketId: ticket.id,
         status: nextStatus,
         adminNote: ticketNotes[ticket.id] ?? ticket.adminNote ?? '',
+        ...(nextStatus === 'TTE Sah (Selesai)'
+          ? {
+              tteDocNumber: ticket.tteDocNumber || generateSuggestedTteDocNumber(ticket),
+              tteSignerName: ticket.tteSignerName || signerName,
+              tteSignerTitle: ticket.tteSignerTitle || signerTitle,
+              tteSignerNip: ticket.tteSignerNip || signerNip,
+              tteSignedAtLabel: ticket.tteSignedAtLabel || getTodayIndonesianDate(),
+            }
+          : {}),
       });
       setStatusFeedback(`Status tiket ${ticket.ticketNo} diperbarui menjadi "${nextStatus}".`);
+    } catch (err) {
+      setErrorFeedback(formatTicketActionError(err));
     } finally {
       setBusyId(null);
     }
@@ -4150,6 +4328,7 @@ export function AdminVerificationPanel() {
                 const reqs = resolveTicketRequirements(t);
                 const totalDocs = t.totalDocsCount ?? reqs.length;
                 const validDocs = t.verifiedDocsCount ?? 0;
+                const isTteSah = t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai';
 
                 return (
                   <div
@@ -4180,7 +4359,11 @@ export function AdminVerificationPanel() {
                             </span>
                           )}
                           <span className="text-[11px] text-slate-500">
-                            ({validDocs}/{totalDocs} dokumen valid)
+                            ({validDocs}/{totalDocs} dokumen valid
+                            {typeof t.uploadedDocsCount === 'number'
+                              ? ` · ${t.uploadedDocsCount} berkas terunggah`
+                              : ''}
+                            )
                           </span>
                         </div>
                         <p className="text-sm font-bold text-slate-900 dark:text-white">
@@ -4196,13 +4379,43 @@ export function AdminVerificationPanel() {
                           </p>
                         )}
                       </div>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 w-fit ${getTicketStatusBadgeClass(
-                          t.status
-                        )}`}
-                      >
-                        {getTicketDisplayStatus(t.status)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setAdminInspectTicket(t)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 text-[11px] font-bold text-slate-700 dark:text-slate-200"
+                        >
+                          <Paperclip className="w-3 h-3 text-teal-700" />
+                          <span>Lihat Berkas</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminDocPreview({ ticket: t, mode: 'resi' })}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 text-[11px] font-bold text-slate-700 dark:text-slate-200"
+                        >
+                          <Printer className="w-3 h-3" />
+                          <span>Resi</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminDocPreview({ ticket: t, mode: 'tte' })}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold ${
+                            isTteSah
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
+                              : 'border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-800 dark:text-indigo-300'
+                          }`}
+                        >
+                          <FileCheck2 className="w-3 h-3" />
+                          <span>{isTteSah ? 'Dokumen TTE' : 'Draf TTE'}</span>
+                        </button>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${getTicketStatusBadgeClass(
+                            t.status
+                          )}`}
+                        >
+                          {getTicketDisplayStatus(t.status)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -4249,6 +4462,98 @@ export function AdminVerificationPanel() {
           </div>
         )}
       </div>
+
+      {/* MODAL INSPEKSI BERKAS UNGGAHAN UNTUK SUPER ADMIN */}
+      {adminInspectTicket && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6">
+            <div className="px-5 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono-tabular text-xs font-extrabold text-emerald-800 dark:text-emerald-400">
+                  {adminInspectTicket.ticketNo}
+                </p>
+                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white mt-0.5">
+                  Berkas Persyaratan — {adminInspectTicket.serviceTitle}
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Pemohon: {adminInspectTicket.applicantName} ({adminInspectTicket.unitTitle})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdminInspectTicket(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto text-xs">
+              {adminAttLoading ? (
+                <p className="text-slate-500 py-6 text-center">
+                  Memuat berkas persyaratan yang diunggah pemohon...
+                </p>
+              ) : adminAttError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-900 px-3.5 py-2.5 text-red-700 dark:text-red-300">
+                  {adminAttError}
+                </div>
+              ) : adminAttachments.length === 0 ? (
+                <p className="text-slate-500 py-6 text-center">
+                  Tidak ada berkas digital yang diunggah pada tiket ini.
+                </p>
+              ) : (
+                adminAttachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        {att.requirementIndex + 1}. {att.requirementLabel}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                        {att.fileName}{' '}
+                        <span className="font-mono-tabular text-[11px] text-slate-500 font-normal">
+                          ({att.mimeType === 'application/pdf' ? 'PDF' : 'Gambar'} ·{' '}
+                          {formatAttachmentBytes(att.fileSize)})
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setAdminPreviewAtt(att)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-bold text-[11px]"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Lihat Berkas</span>
+                      </button>
+                      <a
+                        href={att.dataUrl}
+                        download={att.fileName}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Unduh</span>
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TicketAttachmentPreviewModal
+        attachment={adminPreviewAtt}
+        onClose={() => setAdminPreviewAtt(null)}
+      />
+
+      <OfficialTteDocumentModal
+        ticket={adminDocPreview?.ticket ?? null}
+        mode={adminDocPreview?.mode || 'resi'}
+        onClose={() => setAdminDocPreview(null)}
+      />
     </div>
   );
 }

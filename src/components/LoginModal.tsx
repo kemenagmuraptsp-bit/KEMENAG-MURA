@@ -414,14 +414,13 @@ export function LoginModal() {
                 <span className="leading-relaxed">{activeError}</span>
               </div>
               {isUnauthorizedDomainError && (
-                <details className="pl-6 pt-1.5 border-t border-red-200 dark:border-red-900/60">
+                <details open className="pl-6 pt-2 border-t border-red-200 dark:border-red-900/60">
                   <summary className="cursor-pointer font-bold text-[11px] text-red-800 dark:text-red-200 hover:underline">
-                    Catatan Pengelola Website (Otorisasi Pop-up Google)
+                    Langkah Pengelola Website untuk Mengaktifkan Login Google:
                   </summary>
                   <div className="mt-2 space-y-2">
                     <p className="text-[11px] leading-relaxed">
-                      Tambahkan domain ini pada Firebase Console &gt; Authentication &gt; Settings
-                      &gt; Authorized domains agar tombol Google Pop-up aktif:
+                      1. Buka <strong>Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains</strong>, lalu klik <strong>Add domain</strong> untuk menambahkan domain di bawah:
                     </p>
                     {currentHost && (
                       <div className="flex items-center justify-between gap-2 rounded-lg bg-white dark:bg-slate-950 border border-red-200 dark:border-red-900 px-2.5 py-1.5">
@@ -447,6 +446,9 @@ export function LoginModal() {
                         </button>
                       </div>
                     )}
+                    <p className="text-[11px] leading-relaxed">
+                      2. Pastikan provider <strong>Google</strong> sudah aktif pada tab <strong>Sign-in method</strong>.
+                    </p>
                     <a
                       href={FIREBASE_AUTH_SETTINGS_URL}
                       target="_blank"

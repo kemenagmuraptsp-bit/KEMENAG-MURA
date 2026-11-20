@@ -18,9 +18,10 @@ import {
 } from 'lucide-react';
 import { PTSPTicket, ServiceTemplate, ServiceUnit, SubService } from '@/src/types';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
-import { createCloudPtspTicket } from '@/src/firebase';
+import { createCloudPtspTicket, type TicketAttachmentDraft } from '@/src/firebase';
 import { SelfServiceInfoWorkspace } from '@/src/components/SelfServiceInfoWorkspace';
 import { KepegawaianAccessGate } from '@/src/components/KepegawaianGateAndAdmin';
+import { RequirementUploadSection } from '@/src/components/RequirementUploadSection';
 
 interface UnitServicesCatalogProps {
   unit: ServiceUnit;
@@ -75,6 +76,9 @@ export function UnitServicesCatalog({
   const [phone, setPhone] = useState('');
   const [institution, setInstitution] = useState('');
   const [notes, setNotes] = useState('');
+  const [attachmentsByReq, setAttachmentsByReq] = useState<
+    Record<number, TicketAttachmentDraft>
+  >({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [createdTicket, setCreatedTicket] = useState<{
@@ -82,6 +86,7 @@ export function UnitServicesCatalog({
     status: string;
     applicantName: string;
     serviceTitle: string;
+    uploadedCount: number;
     savedToCloud: boolean;
   } | null>(null);
 
@@ -99,6 +104,7 @@ export function UnitServicesCatalog({
     setCreatedTicket(null);
     setFormError('');
     setPreviewTemplateId(null);
+    setAttachmentsByReq({});
   }, [unit.id, highlightedSubId]);
 
   useEffect(() => {
@@ -132,6 +138,7 @@ export function UnitServicesCatalog({
     setCreatedTicket(null);
     setFormError('');
     setPreviewTemplateId(null);
+    setAttachmentsByReq({});
   };
 
   const handleCopyPreview = async (tpl: ServiceTemplate) => {
@@ -165,6 +172,17 @@ export function UnitServicesCatalog({
     }
     setFormError('');
 
+    const attachmentList = Object.values(attachmentsByReq).sort(
+      (a, b) => a.requirementIndex - b.requirementIndex
+    );
+
+    if ((!user || !isEligibleUser) && attachmentList.length > 0) {
+      setFormError(
+        'Anda sudah melampirkan berkas persyaratan. Silakan klik "Login Akun" di atas terlebih dahulu agar berkas terkirim ke Operator PTSP & Seksi.'
+      );
+      return;
+    }
+
     const isEmployeeService =
       unit.id === 'kepegawaian' || sub.id === 'bi-tauliyah-wali-hakim';
 
@@ -185,22 +203,26 @@ export function UnitServicesCatalog({
             (isEmployeeService ? myVerifiedEmployee?.unitKerja : undefined),
           nip: isEmployeeService ? myVerifiedEmployee?.nip : undefined,
           notes: notes.trim() || undefined,
+          totalDocsCount: sub.requirements.length,
+          attachments: attachmentList,
         });
         setCreatedTicket({
           ticketNo: cloudTicket.ticketNo,
           status: cloudTicket.status,
           applicantName: cloudTicket.applicantName,
           serviceTitle: cloudTicket.serviceTitle,
+          uploadedCount: attachmentList.length,
           savedToCloud: true,
         });
         setPhone('');
         setInstitution('');
         setNotes('');
+        setAttachmentsByReq({});
       } catch (err) {
         setFormError(
           err instanceof Error
             ? err.message
-            : 'Gagal menyimpan tiket ke akun Google Anda. Coba lagi.'
+            : 'Gagal menyimpan tiket ke akun Anda. Coba lagi.'
         );
       } finally {
         setSubmitting(false);
@@ -228,12 +250,14 @@ export function UnitServicesCatalog({
       status: ticket.status,
       applicantName: ticket.applicantName,
       serviceTitle: ticket.serviceTitle,
+      uploadedCount: 0,
       savedToCloud: false,
     });
     setApplicantName('');
     setPhone('');
     setInstitution('');
     setNotes('');
+    setAttachmentsByReq({});
   };
 
   const renderDetailContent = (sub: SubService) => {
@@ -370,6 +394,15 @@ export function UnitServicesCatalog({
                   {createdTicket.serviceTitle}
                 </dd>
               </div>
+              {createdTicket.savedToCloud && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500">Berkas Persyaratan Terkirim</dt>
+                  <dd className="font-semibold text-emerald-800 dark:text-emerald-300 mt-0.5">
+                    {createdTicket.uploadedCount} berkas dikirim ke Operator PTSP &amp; Seksi untuk
+                    verifikasi.
+                  </dd>
+                </div>
+              )}
             </dl>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -513,6 +546,24 @@ export function UnitServicesCatalog({
                 className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:outline-none focus:border-emerald-700"
               />
             </div>
+
+            <RequirementUploadSection
+              requirements={sub.requirements}
+              attachmentsByIndex={attachmentsByReq}
+              onChangeAttachment={(idx, att) =>
+                setAttachmentsByReq((prev) => {
+                  const next = { ...prev };
+                  if (att) {
+                    next[idx] = att;
+                  } else {
+                    delete next[idx];
+                  }
+                  return next;
+                })
+              }
+              isSignedIn={Boolean(user && isEligibleUser)}
+              onRequestLogin={() => openLoginModal('google')}
+            />
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

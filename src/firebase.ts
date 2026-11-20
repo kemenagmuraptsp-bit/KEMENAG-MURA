@@ -2,11 +2,13 @@ import { deleteApp, getApps, initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
   getAuth,
+  getRedirectResult,
   GoogleAuthProvider,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
   type User,
@@ -17,6 +19,7 @@ import {
   doc,
   getDoc,
   getDocFromServer,
+  getDocs,
   getFirestore,
   limit,
   onSnapshot,
@@ -223,9 +226,37 @@ export interface CloudPtspTicketRecord {
   checkedDocsPattern?: string;
   verifiedDocsCount?: number;
   totalDocsCount?: number;
+  uploadedDocsCount?: number;
+  tteDocNumber?: string;
+  tteSignerName?: string;
+  tteSignerTitle?: string;
+  tteSignerNip?: string;
+  tteSignedAtLabel?: string;
   submittedAtLabel: string;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
+}
+
+export type TicketAttachmentMimeType =
+  | 'application/pdf'
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp';
+
+export interface TicketAttachmentDraft {
+  requirementIndex: number;
+  requirementLabel: string;
+  fileName: string;
+  mimeType: TicketAttachmentMimeType;
+  fileSize: number;
+  dataUrl: string;
+}
+
+export interface CloudPtspTicketAttachment extends TicketAttachmentDraft {
+  id: string;
+  ticketId: string;
+  userId: string;
+  createdAt?: Timestamp | null;
 }
 
 function clampStr(value: string | null | undefined, max: number, fallback = ''): string {
@@ -279,7 +310,7 @@ export function mapFirebaseAuthError(
       typeof window !== 'undefined' && window.location.hostname
         ? window.location.hostname
         : 'domain aplikasi ini';
-    return `Login pop-up Google belum diotorisasi untuk domain "${host}". Silakan masuk atau daftar menggunakan Email & Kata Sandi di bawah ini (langsung aktif di semua domain).`;
+    return `Login Google belum aktif karena domain "${host}" belum ditambahkan ke Authorized Domains pada Firebase Authentication project ini. Pengelola website dapat menambahkannya pada panduan di bawah, atau sementara masuk menggunakan Email & Kata Sandi.`;
   }
   if (code === 'auth/popup-blocked' || msg.includes('popup-blocked')) {
     return 'Jendela pop-up login Google diblokir browser. Harap izinkan pop-up untuk situs ini atau gunakan Email & Kata Sandi di bawah.';
@@ -326,11 +357,36 @@ export function mapFirebaseAuthError(
   return msg || 'Terjadi kendala saat proses autentikasi. Silakan coba lagi.';
 }
 
-export async function signInWithGoogleAndRecord(): Promise<User> {
-  const credential = await signInWithPopup(auth, googleProvider);
-  const user = credential.user;
-  await upsertGoogleUserProfile(user);
-  return user;
+export async function signInWithGoogleAndRecord(): Promise<User | null> {
+  try {
+    const credential = await signInWithPopup(auth, googleProvider);
+    const user = credential.user;
+    await upsertGoogleUserProfile(user);
+    return user;
+  } catch (error) {
+    const code =
+      typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : '';
+    const isTopLevelWindow =
+      typeof window !== 'undefined' && window.self === window.top;
+    if (
+      isTopLevelWindow &&
+      (code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment')
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function completeGoogleRedirectSignIn(): Promise<User | null> {
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+  await upsertGoogleUserProfile(result.user);
+  return result.user;
 }
 
 export async function signInPublicWithEmail(
@@ -1267,6 +1323,13 @@ export async function toggleVerifiedEmployeeStatus(params: {
 /* CLOUD PTSP TICKETS (LINKED TO GOOGLE USER / VERIFIED EMPLOYEE)             */
 /* -------------------------------------------------------------------------- */
 
+const ALLOWED_ATTACHMENT_MIME_SET = new Set<TicketAttachmentMimeType>([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
 export async function createCloudPtspTicket(params: {
   user: User;
   accountTier: AccountTier;
@@ -1279,6 +1342,8 @@ export async function createCloudPtspTicket(params: {
   institution?: string;
   nip?: string;
   notes?: string;
+  totalDocsCount?: number;
+  attachments?: TicketAttachmentDraft[];
 }): Promise<CloudPtspTicketRecord> {
   const {
     user,
@@ -1292,6 +1357,8 @@ export async function createCloudPtspTicket(params: {
     institution,
     nip,
     notes,
+    totalDocsCount,
+    attachments = [],
   } = params;
 
   const year = new Date().getFullYear();
@@ -1306,6 +1373,20 @@ export async function createCloudPtspTicket(params: {
   const safeUnitId = unitId.toLowerCase().replace(/[^a-z0-9\-]/g, '-').slice(0, 40);
   const safeSubId = subServiceId.toLowerCase().replace(/[^a-z0-9\-]/g, '-').slice(0, 60);
 
+  const validAttachments = attachments
+    .filter(
+      (att) =>
+        att &&
+        ALLOWED_ATTACHMENT_MIME_SET.has(att.mimeType) &&
+        typeof att.dataUrl === 'string' &&
+        att.dataUrl.length >= 20 &&
+        att.dataUrl.length <= 800000 &&
+        /^data:(application\/pdf|image\/jpeg|image\/png|image\/webp);base64,[A-Za-z0-9+/=]+$/.test(
+          att.dataUrl
+        )
+    )
+    .slice(0, 40);
+
   const payload: Record<string, unknown> = {
     id,
     ticketNo,
@@ -1319,10 +1400,20 @@ export async function createCloudPtspTicket(params: {
     applicantName: clampStr(applicantName, 120),
     phone: clampStr(phone, 30),
     status: 'Diproses Verifikasi',
+    uploadedDocsCount: validAttachments.length,
     submittedAtLabel,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
+
+  if (
+    typeof totalDocsCount === 'number' &&
+    Number.isFinite(totalDocsCount) &&
+    totalDocsCount >= 0
+  ) {
+    payload.totalDocsCount = Math.max(0, Math.min(40, Math.trunc(totalDocsCount)));
+    payload.verifiedDocsCount = 0;
+  }
 
   const cleanInst = clampStr(institution, 160);
   const cleanNip = clampStr(nip, 30);
@@ -1332,7 +1423,30 @@ export async function createCloudPtspTicket(params: {
   if (cleanNotes) payload.notes = cleanNotes;
 
   try {
+    await user.getIdToken();
     await setDoc(doc(db, 'ptspTickets', id), payload);
+    for (let i = 0; i < validAttachments.length; i += 1) {
+      const att = validAttachments[i];
+      const safeReqIdx = Math.max(0, Math.min(40, Math.trunc(att.requirementIndex)));
+      const attId = `att_${safeReqIdx}_${Date.now()}_${i}`;
+      const attPath = `ptspTickets/${id}/attachments/${attId}`;
+      try {
+        await setDoc(doc(db, 'ptspTickets', id, 'attachments', attId), {
+          id: attId,
+          ticketId: id,
+          userId: user.uid,
+          requirementIndex: safeReqIdx,
+          requirementLabel: clampStr(att.requirementLabel, 300, `Berkas Persyaratan ${safeReqIdx + 1}`),
+          fileName: clampStr(att.fileName, 180, `berkas-${safeReqIdx + 1}`),
+          mimeType: att.mimeType,
+          fileSize: Math.max(1, Math.min(10485760, Math.trunc(att.fileSize || 1))),
+          dataUrl: att.dataUrl,
+          createdAt: serverTimestamp(),
+        });
+      } catch (attErr) {
+        handleFirestoreError(attErr, OperationType.CREATE, attPath);
+      }
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, path);
   }
@@ -1353,10 +1467,52 @@ export async function createCloudPtspTicket(params: {
     nip: cleanNip || undefined,
     notes: cleanNotes || undefined,
     status: 'Diproses Verifikasi',
+    totalDocsCount:
+      typeof totalDocsCount === 'number'
+        ? Math.max(0, Math.min(40, Math.trunc(totalDocsCount)))
+        : undefined,
+    verifiedDocsCount: typeof totalDocsCount === 'number' ? 0 : undefined,
+    uploadedDocsCount: validAttachments.length,
     submittedAtLabel,
     createdAt: null,
     updatedAt: null,
   };
+}
+
+export async function fetchTicketAttachments(
+  ticketId: string
+): Promise<CloudPtspTicketAttachment[]> {
+  const path = `ptspTickets/${ticketId}/attachments`;
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    const q = query(collection(db, 'ptspTickets', ticketId, 'attachments'), limit(45));
+    const snapshot = await getDocs(q);
+    const rows: CloudPtspTicketAttachment[] = snapshot.docs.map((d) => {
+      const data = d.data();
+      const rawMime = String(data.mimeType ?? 'application/pdf') as TicketAttachmentMimeType;
+      const mimeType: TicketAttachmentMimeType = ALLOWED_ATTACHMENT_MIME_SET.has(rawMime)
+        ? rawMime
+        : 'application/pdf';
+      return {
+        id: String(data.id ?? d.id),
+        ticketId: String(data.ticketId ?? ticketId),
+        userId: String(data.userId ?? ''),
+        requirementIndex: Number(data.requirementIndex ?? 0),
+        requirementLabel: String(data.requirementLabel ?? ''),
+        fileName: String(data.fileName ?? 'berkas'),
+        mimeType,
+        fileSize: Number(data.fileSize ?? 0),
+        dataUrl: String(data.dataUrl ?? ''),
+        createdAt: (data.createdAt as Timestamp | null) ?? null,
+      };
+    });
+    rows.sort((a, b) => a.requirementIndex - b.requirementIndex);
+    return rows;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
 }
 
 export type TicketSubscriptionScope =
@@ -1466,6 +1622,13 @@ export function subscribePtspTickets(
             typeof data.verifiedDocsCount === 'number' ? data.verifiedDocsCount : undefined,
           totalDocsCount:
             typeof data.totalDocsCount === 'number' ? data.totalDocsCount : undefined,
+          uploadedDocsCount:
+            typeof data.uploadedDocsCount === 'number' ? data.uploadedDocsCount : undefined,
+          tteDocNumber: data.tteDocNumber ? String(data.tteDocNumber) : undefined,
+          tteSignerName: data.tteSignerName ? String(data.tteSignerName) : undefined,
+          tteSignerTitle: data.tteSignerTitle ? String(data.tteSignerTitle) : undefined,
+          tteSignerNip: data.tteSignerNip ? String(data.tteSignerNip) : undefined,
+          tteSignedAtLabel: data.tteSignedAtLabel ? String(data.tteSignedAtLabel) : undefined,
           submittedAtLabel: String(data.submittedAtLabel ?? ''),
           createdAt: (data.createdAt as Timestamp | null) ?? null,
           updatedAt: (data.updatedAt as Timestamp | null) ?? null,
@@ -1490,20 +1653,47 @@ export async function updateCloudTicketStatus(params: {
   ticketId: string;
   status: PtspTicketStatus;
   adminNote: string;
+  tteLeaderNote?: string;
+  tteDocNumber?: string;
+  tteSignerName?: string;
+  tteSignerTitle?: string;
+  tteSignerNip?: string;
+  tteSignedAtLabel?: string;
 }): Promise<void> {
-  const { ticketId, status, adminNote } = params;
+  const {
+    ticketId,
+    status,
+    adminNote,
+    tteLeaderNote,
+    tteDocNumber,
+    tteSignerName,
+    tteSignerTitle,
+    tteSignerNip,
+    tteSignedAtLabel,
+  } = params;
   const path = `ptspTickets/${ticketId}`;
   const cleanNote = clampStr(adminNote, 300);
+
+  const payload: Record<string, unknown> = {
+    status,
+    adminNote: cleanNote,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (tteLeaderNote) payload.tteLeaderNote = clampStr(tteLeaderNote, 300);
+  if (status === 'TTE Sah (Selesai)') {
+    if (tteDocNumber) payload.tteDocNumber = clampStr(tteDocNumber, 100);
+    if (tteSignerName) payload.tteSignerName = clampStr(tteSignerName, 120);
+    if (tteSignerTitle) payload.tteSignerTitle = clampStr(tteSignerTitle, 120);
+    if (tteSignerNip) payload.tteSignerNip = clampStr(tteSignerNip, 30);
+    payload.tteSignedAtLabel = clampStr(tteSignedAtLabel, 50, formatTodayLabel());
+  }
 
   try {
     if (auth.currentUser) {
       await auth.currentUser.getIdToken();
     }
-    await updateDoc(doc(db, 'ptspTickets', ticketId), {
-      status,
-      adminNote: cleanNote,
-      updatedAt: serverTimestamp(),
-    });
+    await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
@@ -1528,7 +1718,8 @@ async function buildPtspTicketUpdateDiag(
       'notes', 'status', 'adminNote', 'dispatchedToSeksi', 'dispatchedUnitId',
       'dispatchedUnitTitle', 'dispatchedBy', 'seksiReviewer', 'tteSentToLeader',
       'tteLeaderNote', 'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount',
-      'submittedAtLabel', 'createdAt', 'updatedAt',
+      'uploadedDocsCount', 'tteDocNumber', 'tteSignerName', 'tteSignerTitle',
+      'tteSignerNip', 'tteSignedAtLabel', 'submittedAtLabel', 'createdAt', 'updatedAt',
     ]);
     const requiredKeys = [
       'id', 'ticketNo', 'userId', 'userEmail', 'accountTier', 'unitId', 'unitTitle',
@@ -1845,8 +2036,23 @@ export async function pimpinanEndorseTteTicket(params: {
   status: 'TTE Sah (Selesai)' | 'Perlu Revisi' | 'Siap TTE';
   adminNote: string;
   tteLeaderNote?: string;
+  tteDocNumber?: string;
+  tteSignerName?: string;
+  tteSignerTitle?: string;
+  tteSignerNip?: string;
+  tteSignedAtLabel?: string;
 }): Promise<void> {
-  const { ticketId, status, adminNote, tteLeaderNote } = params;
+  const {
+    ticketId,
+    status,
+    adminNote,
+    tteLeaderNote,
+    tteDocNumber,
+    tteSignerName,
+    tteSignerTitle,
+    tteSignerNip,
+    tteSignedAtLabel,
+  } = params;
   const path = `ptspTickets/${ticketId}`;
   const payload: Record<string, unknown> = {
     status,
@@ -1860,6 +2066,14 @@ export async function pimpinanEndorseTteTicket(params: {
     ),
     updatedAt: serverTimestamp(),
   };
+
+  if (status === 'TTE Sah (Selesai)') {
+    if (tteDocNumber) payload.tteDocNumber = clampStr(tteDocNumber, 100);
+    if (tteSignerName) payload.tteSignerName = clampStr(tteSignerName, 120);
+    if (tteSignerTitle) payload.tteSignerTitle = clampStr(tteSignerTitle, 120);
+    if (tteSignerNip) payload.tteSignerNip = clampStr(tteSignerNip, 30);
+    payload.tteSignedAtLabel = clampStr(tteSignedAtLabel, 50, formatTodayLabel());
+  }
 
   try {
     if (auth.currentUser) {

@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, CheckCircle2, Clock, FileCheck2, MapPin, ThumbsUp, Lightbulb, Sparkles, Eye } from 'lucide-react';
 import { ServiceUnit, NewsArticle, GalleryItem, PTSPTicket } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
+import { createCloudPtspTicket, type TicketAttachmentDraft } from '@/src/firebase';
+import { RequirementUploadSection } from '@/src/components/RequirementUploadSection';
 
 interface ServiceModalProps {
   unit: ServiceUnit | null;
@@ -11,22 +13,44 @@ interface ServiceModalProps {
 }
 
 export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceModalProps) {
-  const { isVerifiedEmployee, isVerifiedKuaEmployee } = useAuthRole();
+  const {
+    user,
+    isEligibleUser,
+    isVerifiedEmployee,
+    isVerifiedKuaEmployee,
+    myVerifiedEmployee,
+    accountTier,
+    openLoginModal,
+  } = useAuthRole();
   const [selectedSubId, setSelectedSubId] = useState<string>('');
   const [mode, setMode] = useState<'info' | 'request'>('info');
   const [applicantName, setApplicantName] = useState('');
   const [nikOrNip, setNikOrNip] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [submittedTicket, setSubmittedTicket] = useState<PTSPTicket | null>(null);
+  const [attachmentsByReq, setAttachmentsByReq] = useState<
+    Record<number, TicketAttachmentDraft>
+  >({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedTicket, setSubmittedTicket] = useState<
+    (PTSPTicket & { savedToCloud?: boolean; uploadedCount?: number }) | null
+  >(null);
   const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (myVerifiedEmployee?.fullName && !applicantName) {
+      setApplicantName(myVerifiedEmployee.fullName);
+    } else if (user?.displayName && !applicantName) {
+      setApplicantName(user.displayName);
+    }
+  }, [myVerifiedEmployee?.fullName, user?.displayName]);
 
   if (!unit) return null;
 
   const activeSub =
     unit.subServices.find((s) => s.id === selectedSubId) || unit.subServices[0];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (unit.id === 'kepegawaian' && !isVerifiedEmployee) {
       setFormError('Menu Kepegawaian hanya dapat diakses melalui halaman Layanan setelah login & diverifikasi Admin.');
@@ -40,7 +64,66 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
       setFormError('Mohon lengkapi nama pemohon dan nomor WhatsApp aktif.');
       return;
     }
+
+    const attachmentList = Object.values(attachmentsByReq).sort(
+      (a, b) => a.requirementIndex - b.requirementIndex
+    );
+
+    if ((!user || !isEligibleUser) && attachmentList.length > 0) {
+      setFormError(
+        'Anda sudah melampirkan berkas persyaratan. Silakan login terlebih dahulu agar berkas dapat dikirim ke Operator PTSP & Seksi.'
+      );
+      return;
+    }
+
     setFormError('');
+
+    if (user && isEligibleUser) {
+      setSubmitting(true);
+      try {
+        const isEmployeeService =
+          unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim';
+        const cloudTicket = await createCloudPtspTicket({
+          user,
+          accountTier: accountTier === 'tamu' ? 'masyarakat' : accountTier,
+          unitId: unit.id,
+          unitTitle: unit.title,
+          subServiceId: activeSub.id,
+          serviceTitle: activeSub.title,
+          applicantName: applicantName.trim(),
+          phone: phone.trim(),
+          institution:
+            nikOrNip.trim() ||
+            (isEmployeeService ? myVerifiedEmployee?.unitKerja : undefined),
+          nip: isEmployeeService ? myVerifiedEmployee?.nip : undefined,
+          notes: notes.trim() || undefined,
+          totalDocsCount: activeSub.requirements.length,
+          attachments: attachmentList,
+        });
+        setSubmittedTicket({
+          ticketNo: cloudTicket.ticketNo,
+          unitTitle: cloudTicket.unitTitle,
+          serviceTitle: cloudTicket.serviceTitle,
+          applicantName: cloudTicket.applicantName,
+          phone: cloudTicket.phone,
+          submittedAt: cloudTicket.submittedAtLabel,
+          status: 'Diproses Verifikasi',
+          savedToCloud: true,
+          uploadedCount: attachmentList.length,
+        });
+        setAttachmentsByReq({});
+      } catch (err) {
+        setFormError(
+          err instanceof Error
+            ? err.message
+            : 'Gagal menyimpan tiket dan berkas ke akun Anda.'
+        );
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const ticket: PTSPTicket = {
       ticketNo: `PTSP-MURA-2026-${randomNum}`,
@@ -48,11 +131,16 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
       serviceTitle: activeSub.title,
       applicantName: applicantName.trim(),
       phone: phone.trim(),
-      submittedAt: '13 November 2026',
+      submittedAt: new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
       status: 'Diproses Verifikasi',
     };
     onTicketCreated(ticket);
     setSubmittedTicket(ticket);
+    setAttachmentsByReq({});
   };
 
   return (
@@ -124,7 +212,11 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                   <button
                     key={sub.id}
                     type="button"
-                    onClick={() => setSelectedSubId(sub.id)}
+                    onClick={() => {
+                      setSelectedSubId(sub.id);
+                      setAttachmentsByReq({});
+                      setSubmittedTicket(null);
+                    }}
                     className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
                       selected
                         ? 'border-emerald-700 bg-emerald-50/60 text-slate-900'
@@ -226,6 +318,14 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                   <span className="text-xs text-slate-500 block">Layanan Dipilih</span>
                   <span className="font-medium text-slate-900">{submittedTicket.serviceTitle}</span>
                 </div>
+                {submittedTicket.savedToCloud && (
+                  <div className="sm:col-span-2">
+                    <span className="text-xs text-slate-500 block">Berkas Persyaratan Terunggah</span>
+                    <span className="font-semibold text-emerald-800">
+                      {submittedTicket.uploadedCount ?? 0} berkas dikirim ke Operator PTSP &amp; Seksi.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-3">
@@ -233,10 +333,10 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                   type="button"
                   onClick={() => {
                     setSubmittedTicket(null);
-                    setApplicantName('');
                     setNikOrNip('');
                     setPhone('');
                     setNotes('');
+                    setAttachmentsByReq({});
                   }}
                   className="px-4 py-2 text-xs font-semibold text-emerald-800 border border-emerald-300 hover:bg-emerald-100 rounded-lg transition-colors"
                 >
@@ -252,7 +352,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="border border-slate-200 rounded-xl p-5 space-y-4">
+            <form onSubmit={(e) => void handleSubmit(e)} className="border border-slate-200 rounded-xl p-5 space-y-4">
               <h3 className="text-sm font-bold text-slate-900">
                 Formulir Registrasi Antrean & Permohonan PTSP
               </h3>
@@ -313,6 +413,25 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-700"
                 />
               </div>
+
+              <RequirementUploadSection
+                requirements={activeSub.requirements}
+                attachmentsByIndex={attachmentsByReq}
+                onChangeAttachment={(idx, att) =>
+                  setAttachmentsByReq((prev) => {
+                    const next = { ...prev };
+                    if (att) {
+                      next[idx] = att;
+                    } else {
+                      delete next[idx];
+                    }
+                    return next;
+                  })
+                }
+                isSignedIn={Boolean(user && isEligibleUser)}
+                onRequestLogin={() => openLoginModal('google')}
+              />
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -323,9 +442,10 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                  disabled={submitting}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors"
                 >
-                  Dapatkan Nomor Tiket PTSP
+                  {submitting ? 'Menyimpan Tiket...' : 'Dapatkan Nomor Tiket PTSP'}
                 </button>
               </div>
             </form>

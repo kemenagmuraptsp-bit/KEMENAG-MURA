@@ -3,6 +3,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
   ADMIN_EMAIL,
   auth,
+  completeGoogleRedirectSignIn,
   isEligibleSessionUser,
   isNipEmployeeEmail,
   mapFirebaseAuthError,
@@ -237,6 +238,28 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void completeGoogleRedirectSignIn()
+      .then((redirectUser) => {
+        if (cancelled || !redirectUser) return;
+        setLoginModalOpen(false);
+        if (redirectUser.email !== ADMIN_EMAIL) {
+          setServiceCatalogRedirectCount((c) => c + 1);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : '';
+        if (!msg.includes('popup-closed-by-user') && !msg.includes('cancelled-popup-request')) {
+          setAuthError(mapFirebaseAuthError(err, 'google'));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user || !isEligibleUser) {
       setMyEmployeeRequest(null);
       setMyVerifiedEmployee(null);
@@ -386,8 +409,11 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     setAuthError('');
     try {
       const loggedIn = await signInWithGoogleAndRecord();
+      if (!loggedIn) {
+        return null;
+      }
       setLoginModalOpen(false);
-      if (loggedIn && loggedIn.email !== ADMIN_EMAIL) {
+      if (loggedIn.email !== ADMIN_EMAIL) {
         setServiceCatalogRedirectCount((c) => c + 1);
       }
       return loggedIn;

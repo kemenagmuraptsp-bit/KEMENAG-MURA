@@ -13,6 +13,7 @@ import {
 import {
   ADMIN_EMAIL,
   auth,
+  mapFirebaseAuthError,
   recordDocumentDownload,
   signInWithGoogleAndRecord,
   signOutGoogle,
@@ -253,18 +254,21 @@ export function SelfServiceInfoWorkspace({
     try {
       setNotice(null);
       const signedInUser = await signInWithGoogleAndRecord();
+      if (!signedInUser) {
+        return null;
+      }
       setNotice({
         type: 'success',
         text: `Berhasil masuk sebagai ${signedInUser.displayName || signedInUser.email}. Data akses Google Anda telah dicatat.`,
       });
       return signedInUser;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Gagal masuk dengan akun Google.';
+      const msg = error instanceof Error ? error.message : '';
       setNotice({
         type: 'error',
         text: msg.includes('popup-closed-by-user')
           ? 'Login Google dibatalkan. Silakan masuk dengan akun Google untuk mengunduh dan mencatat akses dokumen.'
-          : 'Tidak dapat memproses login Google saat ini. Pastikan popup browser tidak diblokir.',
+          : mapFirebaseAuthError(error, 'google'),
       });
       return null;
     }

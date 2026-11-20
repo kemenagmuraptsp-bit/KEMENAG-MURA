@@ -520,6 +520,35 @@
         "totalDocsCount": {
           "type": "number"
         },
+        "uploadedDocsCount": {
+          "type": "number",
+          "description": "Jumlah berkas persyaratan yang diunggah pemohon saat pengajuan."
+        },
+        "tteDocNumber": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Nomor surat/dokumen resmi yang diterbitkan saat pengesahan TTE Pimpinan."
+        },
+        "tteSignerName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Nama lengkap Pimpinan penandatangan TTE."
+        },
+        "tteSignerTitle": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Jabatan Pimpinan penandatangan TTE."
+        },
+        "tteSignerNip": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "NIP Pimpinan penandatangan TTE."
+        },
+        "tteSignedAtLabel": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Tanggal pengesahan TTE Pimpinan."
+        },
         "submittedAtLabel": {
           "type": "string",
           "minLength": 4,
@@ -551,6 +580,73 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "PtspTicketAttachment": {
+      "title": "PtspTicketAttachment",
+      "description": "Berkas persyaratan yang diunggah oleh pemohon untuk diperiksa oleh Operator PTSP dan Operator Seksi.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticketId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requirementIndex": {
+          "type": "number",
+          "description": "Urutan indeks persyaratan layanan (dimulai dari 0)."
+        },
+        "requirementLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": ["application/pdf", "image/jpeg", "image/png", "image/webp"]
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "dataUrl": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 800000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ticketId",
+        "userId",
+        "requirementIndex",
+        "requirementLabel",
+        "fileName",
+        "mimeType",
+        "fileSize",
+        "dataUrl",
+        "createdAt"
+      ]
     }
   },
   "firestore": {
@@ -573,6 +669,10 @@
     "/ptspTickets/{ticketId}": {
       "schema": { "$ref": "#/entities/PtspTicket" },
       "description": "Riwayat tiket permohonan PTSP yang tersimpan di akun Google masyarakat atau pegawai."
+    },
+    "/ptspTickets/{ticketId}/attachments/{attachmentId}": {
+      "schema": { "$ref": "#/entities/PtspTicketAttachment" },
+      "description": "Subkoleksi berkas persyaratan yang diunggah pemohon untuk setiap tiket PTSP."
     },
     "/newsArticles/{articleId}": {
       "schema": { "$ref": "#/entities/NewsArticle" },
