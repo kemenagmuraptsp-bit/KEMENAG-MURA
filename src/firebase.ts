@@ -1705,9 +1705,10 @@ async function buildPtspTicketUpdateDiag(
 ): Promise<string> {
   try {
     if (!auth.currentUser) return '';
-    const [empSnap, ticketSnap] = await Promise.all([
+    const [empSnap, ticketSnap, tokenResult] = await Promise.all([
       getDocFromServer(doc(db, 'verifiedEmployees', auth.currentUser.uid)),
       getDocFromServer(doc(db, 'ptspTickets', ticketId)).catch(() => null),
+      auth.currentUser.getIdTokenResult().catch(() => null),
     ]);
     const empData = empSnap.exists() ? empSnap.data() : null;
     const tData = ticketSnap && ticketSnap.exists() ? ticketSnap.data() : null;
@@ -1726,6 +1727,13 @@ async function buildPtspTicketUpdateDiag(
       'subServiceId', 'serviceTitle', 'applicantName', 'phone', 'status',
       'submittedAtLabel', 'createdAt', 'updatedAt',
     ];
+    const seksiAllowedKeys = new Set([
+      'status', 'adminNote', 'seksiReviewer', 'tteSentToLeader', 'tteLeaderNote',
+      'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount', 'updatedAt',
+    ]);
+    const changedKeys = tData
+      ? Object.keys(payload).filter((k) => !(k in tData) || tData[k] !== payload[k])
+      : Object.keys(payload);
     const isIdStr = (v: unknown) =>
       typeof v === 'string' && v.length >= 1 && v.length <= 128 && /^[a-zA-Z0-9_\-]+$/.test(v);
     const ruleChecks = merged
@@ -1769,6 +1777,7 @@ async function buildPtspTicketUpdateDiag(
           notesOk:
             !('notes' in merged) ||
             (typeof merged.notes === 'string' && merged.notes.length <= 1000),
+          statusValid: VALID_TICKET_STATUSES.has(merged.status as PtspTicketStatus),
           adminNoteOk:
             !('adminNote' in merged) ||
             (typeof merged.adminNote === 'string' && merged.adminNote.length <= 300),
@@ -1805,6 +1814,26 @@ async function buildPtspTicketUpdateDiag(
               Number.isInteger(merged.totalDocsCount) &&
               merged.totalDocsCount >= 0 &&
               merged.totalDocsCount <= 40),
+          uploadedDocsOk:
+            !('uploadedDocsCount' in merged) ||
+            (typeof merged.uploadedDocsCount === 'number' &&
+              merged.uploadedDocsCount >= 0 &&
+              merged.uploadedDocsCount <= 40),
+          tteDocNumOk:
+            !('tteDocNumber' in merged) ||
+            (typeof merged.tteDocNumber === 'string' && merged.tteDocNumber.length <= 100),
+          tteSignerNameOk:
+            !('tteSignerName' in merged) ||
+            (typeof merged.tteSignerName === 'string' && merged.tteSignerName.length <= 120),
+          tteSignerTitleOk:
+            !('tteSignerTitle' in merged) ||
+            (typeof merged.tteSignerTitle === 'string' && merged.tteSignerTitle.length <= 120),
+          tteSignerNipOk:
+            !('tteSignerNip' in merged) ||
+            (typeof merged.tteSignerNip === 'string' && merged.tteSignerNip.length <= 30),
+          tteSignedAtOk:
+            !('tteSignedAtLabel' in merged) ||
+            (typeof merged.tteSignedAtLabel === 'string' && merged.tteSignedAtLabel.length <= 50),
           submittedAtOk:
             typeof merged.submittedAtLabel === 'string' &&
             merged.submittedAtLabel.length >= 4 &&
@@ -1831,6 +1860,7 @@ async function buildPtspTicketUpdateDiag(
             VALID_SEKSI_UNITS.has(merged.dispatchedUnitId as SeksiUnitId),
           createdAtIsTs: tData?.createdAt instanceof Timestamp,
           updatedAtIsTs: tData?.updatedAt instanceof Timestamp,
+          seksiKeysOk: changedKeys.every((k) => seksiAllowedKeys.has(k)),
         }
       : null;
     return ` | diag=${JSON.stringify({
@@ -1838,11 +1868,15 @@ async function buildPtspTicketUpdateDiag(
       empStatus: empData?.status ?? null,
       empRole: empData?.operatorRole ?? null,
       empUnit: empData?.assignedUnitId ?? null,
+      tokenEmail: tokenResult?.claims?.email ?? null,
+      tokenEmailVerified: tokenResult?.claims?.email_verified ?? null,
       payloadKeys: Object.keys(payload),
+      changedKeys,
       status: payload.status,
       dispatchedToSeksi: payload.dispatchedToSeksi ?? null,
       dispatchedUnitId: payload.dispatchedUnitId ?? null,
       ticketExists: ticketSnap ? ticketSnap.exists() : null,
+      ticketStatus: tData?.status ?? null,
       ticketDispatched: tData?.dispatchedToSeksi ?? null,
       ticketDispatchedUnit: tData?.dispatchedUnitId ?? null,
       unitMatch:
