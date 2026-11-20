@@ -226,8 +226,8 @@
         },
         "operatorRole": {
           "type": "string",
-          "enum": ["pegawai", "operator_ptsp", "operator_seksi"],
-          "description": "Peran akses operasional akun pegawai/operator."
+          "enum": ["pegawai", "operator_ptsp", "operator_seksi", "pimpinan"],
+          "description": "Peran akses operasional akun pegawai, operator, atau pimpinan TTE."
         },
         "assignedUnitId": {
           "type": "string",
@@ -459,11 +459,66 @@
         },
         "status": {
           "type": "string",
-          "enum": ["Diproses Verifikasi", "Menunggu Berkas", "Selesai"]
+          "enum": [
+            "Diproses Verifikasi",
+            "Diterima PTSP",
+            "Ditolak PTSP",
+            "Disposisi ke Seksi",
+            "Telaah Seksi",
+            "Perlu Revisi",
+            "Siap TTE",
+            "TTE Sah (Selesai)",
+            "Menunggu Berkas",
+            "Selesai"
+          ]
         },
         "adminNote": {
           "type": "string",
           "maxLength": 300
+        },
+        "dispatchedToSeksi": {
+          "type": "boolean"
+        },
+        "dispatchedUnitId": {
+          "type": "string",
+          "enum": [
+            "sekretariat",
+            "bimas-islam",
+            "pendis",
+            "bimas-hindu",
+            "bimas-kristen",
+            "kepegawaian"
+          ]
+        },
+        "dispatchedUnitTitle": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "dispatchedBy": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "seksiReviewer": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "tteSentToLeader": {
+          "type": "boolean"
+        },
+        "tteLeaderNote": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "checkedDocsPattern": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[01]{0,40}$"
+        },
+        "verifiedDocsCount": {
+          "type": "number"
+        },
+        "totalDocsCount": {
+          "type": "number"
         },
         "submittedAtLabel": {
           "type": "string",

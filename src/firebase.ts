@@ -25,7 +25,7 @@ import {
   setDoc,
   updateDoc,
   where,
-  type Timestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import type { NewsArticle } from '@/src/types';
@@ -105,7 +105,7 @@ export type AccountTier = 'masyarakat' | 'pegawai' | 'admin';
 
 export type EmployeeUnitCategory = 'kankemenag' | 'kua_kecamatan' | 'madrasah';
 
-export type EmployeeOperatorRole = 'pegawai' | 'operator_ptsp' | 'operator_seksi';
+export type EmployeeOperatorRole = 'pegawai' | 'operator_ptsp' | 'operator_seksi' | 'pimpinan';
 
 export type OperatorUnitAssignment =
   | 'all'
@@ -176,6 +176,26 @@ export interface CloudNewsArticleRecord extends NewsArticle {
   updatedAt?: Timestamp | null;
 }
 
+export type SeksiUnitId =
+  | 'sekretariat'
+  | 'bimas-islam'
+  | 'pendis'
+  | 'bimas-hindu'
+  | 'bimas-kristen'
+  | 'kepegawaian';
+
+export type PtspTicketStatus =
+  | 'Diproses Verifikasi'
+  | 'Diterima PTSP'
+  | 'Ditolak PTSP'
+  | 'Disposisi ke Seksi'
+  | 'Telaah Seksi'
+  | 'Perlu Revisi'
+  | 'Siap TTE'
+  | 'TTE Sah (Selesai)'
+  | 'Menunggu Berkas'
+  | 'Selesai';
+
 export interface CloudPtspTicketRecord {
   id: string;
   ticketNo: string;
@@ -191,8 +211,18 @@ export interface CloudPtspTicketRecord {
   institution?: string;
   nip?: string;
   notes?: string;
-  status: 'Diproses Verifikasi' | 'Menunggu Berkas' | 'Selesai';
+  status: PtspTicketStatus;
   adminNote?: string;
+  dispatchedToSeksi?: boolean;
+  dispatchedUnitId?: SeksiUnitId;
+  dispatchedUnitTitle?: string;
+  dispatchedBy?: string;
+  seksiReviewer?: string;
+  tteSentToLeader?: boolean;
+  tteLeaderNote?: string;
+  checkedDocsPattern?: string;
+  verifiedDocsCount?: number;
+  totalDocsCount?: number;
   submittedAtLabel: string;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
@@ -442,6 +472,63 @@ export async function signInEmployeeWithNip(nip: string, password: string): Prom
   const credential = await signInWithEmailAndPassword(auth, email, password);
   await upsertGoogleUserProfile(credential.user);
   return credential.user;
+}
+
+export async function signInOperatorWithNip(
+  nip: string,
+  password: string
+): Promise<{
+  user: User;
+  operatorRole: 'operator_ptsp' | 'operator_seksi' | 'pimpinan';
+  assignedUnitTitle?: string;
+}> {
+  const email = nipToEmployeeEmail(nip);
+  if (!password || password.length < 6) {
+    throw new Error('Password wajib diisi minimal 6 karakter.');
+  }
+  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const loggedInUser = credential.user;
+  await loggedInUser.getIdToken(true);
+
+  const empRef = doc(db, 'verifiedEmployees', loggedInUser.uid);
+  let empSnap;
+  try {
+    empSnap = await getDocFromServer(empRef);
+  } catch {
+    empSnap = await getDoc(empRef);
+  }
+
+  if (!empSnap.exists()) {
+    await signOut(auth);
+    throw new Error(
+      'Akun NIP ini belum aktif sebagai Operator PTSP, Operator Seksi, atau Pimpinan. Hubungi Super Admin atau masuk melalui menu Login Pegawai (NIP).'
+    );
+  }
+
+  const data = empSnap.data();
+  const status = String(data.status ?? '');
+  const role = String(data.operatorRole ?? 'pegawai');
+
+  if (status !== 'active') {
+    await signOut(auth);
+    throw new Error(
+      'Status kepegawaian akun ini sedang nonaktif atau dicabut oleh Super Admin.'
+    );
+  }
+
+  if (role !== 'operator_ptsp' && role !== 'operator_seksi' && role !== 'pimpinan') {
+    await signOut(auth);
+    throw new Error(
+      'NIP ini berstatus Pegawai biasa (bukan Operator PTSP / Operator Seksi / Pimpinan). Silakan masuk melalui tombol Login > Login Pegawai (NIP).'
+    );
+  }
+
+  await upsertGoogleUserProfile(loggedInUser);
+  return {
+    user: loggedInUser,
+    operatorRole: role,
+    assignedUnitTitle: data.assignedUnitTitle ? String(data.assignedUnitTitle) : undefined,
+  };
 }
 
 export async function registerEmployeeNipRequest(params: {
@@ -756,7 +843,7 @@ function mapEmployeeRequest(uid: string, data: Record<string, unknown>): Employe
 }
 
 function normalizeOperatorRole(raw: unknown): EmployeeOperatorRole {
-  if (raw === 'operator_ptsp' || raw === 'operator_seksi') return raw;
+  if (raw === 'operator_ptsp' || raw === 'operator_seksi' || raw === 'pimpinan') return raw;
   return 'pegawai';
 }
 
@@ -969,15 +1056,15 @@ export async function approveEmployeeVerification(params: {
   const cleanNip = clampStr(nip.replace(/[^0-9A-Za-z\-\s]/g, ''), 30);
 
   const resolvedUnitId: OperatorUnitAssignment =
-    operatorRole === 'operator_ptsp'
-      ? 'all'
-      : operatorRole === 'operator_seksi'
+    operatorRole === 'operator_seksi'
       ? assignedUnitId || 'sekretariat'
       : 'all';
 
   const resolvedUnitTitle =
     operatorRole === 'operator_ptsp'
       ? 'Semua Layanan PTSP'
+      : operatorRole === 'pimpinan'
+      ? 'Pimpinan (Pengesahan TTE)'
       : operatorRole === 'operator_seksi'
       ? clampStr(assignedUnitTitle || resolvedUnitId, 100)
       : 'Pegawai Kemenag Mura';
@@ -1084,15 +1171,15 @@ export async function updateVerifiedEmployeeDetails(params: {
   const cleanNip = clampStr(nip.replace(/[^0-9A-Za-z\-\s]/g, ''), 30);
 
   const resolvedUnitId: OperatorUnitAssignment =
-    operatorRole === 'operator_ptsp'
-      ? 'all'
-      : operatorRole === 'operator_seksi'
+    operatorRole === 'operator_seksi'
       ? assignedUnitId || 'sekretariat'
       : 'all';
 
   const resolvedUnitTitle =
     operatorRole === 'operator_ptsp'
       ? 'Semua Layanan PTSP'
+      : operatorRole === 'pimpinan'
+      ? 'Pimpinan (Pengesahan TTE)'
       : operatorRole === 'operator_seksi'
       ? clampStr(assignedUnitTitle || resolvedUnitId, 100)
       : 'Pegawai Kemenag Mura';
@@ -1279,6 +1366,38 @@ export type TicketSubscriptionScope =
       unitId?: string;
     };
 
+const VALID_TICKET_STATUSES = new Set<PtspTicketStatus>([
+  'Diproses Verifikasi',
+  'Diterima PTSP',
+  'Ditolak PTSP',
+  'Disposisi ke Seksi',
+  'Telaah Seksi',
+  'Perlu Revisi',
+  'Siap TTE',
+  'TTE Sah (Selesai)',
+  'Menunggu Berkas',
+  'Selesai',
+]);
+
+const VALID_SEKSI_UNITS = new Set<SeksiUnitId>([
+  'sekretariat',
+  'bimas-islam',
+  'pendis',
+  'bimas-hindu',
+  'bimas-kristen',
+  'kepegawaian',
+]);
+
+function normalizeTicketStatus(raw: unknown): PtspTicketStatus {
+  const str = String(raw ?? 'Diproses Verifikasi') as PtspTicketStatus;
+  return VALID_TICKET_STATUSES.has(str) ? str : 'Diproses Verifikasi';
+}
+
+function normalizeSeksiUnitId(raw: unknown): SeksiUnitId | undefined {
+  const str = String(raw ?? '') as SeksiUnitId;
+  return VALID_SEKSI_UNITS.has(str) ? str : undefined;
+}
+
 export function subscribePtspTickets(
   user: User,
   scope: TicketSubscriptionScope,
@@ -1295,8 +1414,13 @@ export function subscribePtspTickets(
   const q =
     resolved.mode === 'all'
       ? query(colRef, limit(100))
-      : resolved.mode === 'unit' && resolved.unitId && resolved.unitId !== 'all'
-      ? query(colRef, where('unitId', '==', resolved.unitId), limit(100))
+      : resolved.mode === 'unit' && resolved.unitId && VALID_SEKSI_UNITS.has(resolved.unitId as SeksiUnitId)
+      ? query(
+          colRef,
+          where('dispatchedToSeksi', '==', true),
+          where('dispatchedUnitId', '==', resolved.unitId),
+          limit(100)
+        )
       : query(colRef, where('userId', '==', user.uid), limit(100));
 
   return onSnapshot(
@@ -1304,11 +1428,7 @@ export function subscribePtspTickets(
     (snapshot) => {
       const rows: CloudPtspTicketRecord[] = snapshot.docs.map((d) => {
         const data = d.data();
-        const statusRaw = String(data.status ?? 'Diproses Verifikasi');
-        const status: CloudPtspTicketRecord['status'] =
-          statusRaw === 'Menunggu Berkas' || statusRaw === 'Selesai'
-            ? statusRaw
-            : 'Diproses Verifikasi';
+        const status = normalizeTicketStatus(data.status);
         const tierRaw = String(data.accountTier ?? 'masyarakat');
         const accountTier: AccountTier =
           tierRaw === 'pegawai' || tierRaw === 'admin' ? tierRaw : 'masyarakat';
@@ -1330,6 +1450,22 @@ export function subscribePtspTickets(
           notes: data.notes ? String(data.notes) : undefined,
           status,
           adminNote: data.adminNote ? String(data.adminNote) : undefined,
+          dispatchedToSeksi: Boolean(data.dispatchedToSeksi),
+          dispatchedUnitId: normalizeSeksiUnitId(data.dispatchedUnitId),
+          dispatchedUnitTitle: data.dispatchedUnitTitle
+            ? String(data.dispatchedUnitTitle)
+            : undefined,
+          dispatchedBy: data.dispatchedBy ? String(data.dispatchedBy) : undefined,
+          seksiReviewer: data.seksiReviewer ? String(data.seksiReviewer) : undefined,
+          tteSentToLeader: Boolean(data.tteSentToLeader),
+          tteLeaderNote: data.tteLeaderNote ? String(data.tteLeaderNote) : undefined,
+          checkedDocsPattern: data.checkedDocsPattern
+            ? String(data.checkedDocsPattern)
+            : undefined,
+          verifiedDocsCount:
+            typeof data.verifiedDocsCount === 'number' ? data.verifiedDocsCount : undefined,
+          totalDocsCount:
+            typeof data.totalDocsCount === 'number' ? data.totalDocsCount : undefined,
           submittedAtLabel: String(data.submittedAtLabel ?? ''),
           createdAt: (data.createdAt as Timestamp | null) ?? null,
           updatedAt: (data.updatedAt as Timestamp | null) ?? null,
@@ -1352,7 +1488,7 @@ export function subscribePtspTickets(
 
 export async function updateCloudTicketStatus(params: {
   ticketId: string;
-  status: 'Diproses Verifikasi' | 'Menunggu Berkas' | 'Selesai';
+  status: PtspTicketStatus;
   adminNote: string;
 }): Promise<void> {
   const { ticketId, status, adminNote } = params;
@@ -1360,6 +1496,9 @@ export async function updateCloudTicketStatus(params: {
   const cleanNote = clampStr(adminNote, 300);
 
   try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
     await updateDoc(doc(db, 'ptspTickets', ticketId), {
       status,
       adminNote: cleanNote,
@@ -1367,6 +1506,373 @@ export async function updateCloudTicketStatus(params: {
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+async function buildPtspTicketUpdateDiag(
+  ticketId: string,
+  payload: Record<string, unknown>
+): Promise<string> {
+  try {
+    if (!auth.currentUser) return '';
+    const [empSnap, ticketSnap] = await Promise.all([
+      getDocFromServer(doc(db, 'verifiedEmployees', auth.currentUser.uid)),
+      getDocFromServer(doc(db, 'ptspTickets', ticketId)).catch(() => null),
+    ]);
+    const empData = empSnap.exists() ? empSnap.data() : null;
+    const tData = ticketSnap && ticketSnap.exists() ? ticketSnap.data() : null;
+    const merged: Record<string, unknown> | null = tData ? { ...tData, ...payload } : null;
+    const allowedKeys = new Set([
+      'id', 'ticketNo', 'userId', 'userEmail', 'accountTier', 'unitId', 'unitTitle',
+      'subServiceId', 'serviceTitle', 'applicantName', 'phone', 'institution', 'nip',
+      'notes', 'status', 'adminNote', 'dispatchedToSeksi', 'dispatchedUnitId',
+      'dispatchedUnitTitle', 'dispatchedBy', 'seksiReviewer', 'tteSentToLeader',
+      'tteLeaderNote', 'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount',
+      'submittedAtLabel', 'createdAt', 'updatedAt',
+    ]);
+    const requiredKeys = [
+      'id', 'ticketNo', 'userId', 'userEmail', 'accountTier', 'unitId', 'unitTitle',
+      'subServiceId', 'serviceTitle', 'applicantName', 'phone', 'status',
+      'submittedAtLabel', 'createdAt', 'updatedAt',
+    ];
+    const isIdStr = (v: unknown) =>
+      typeof v === 'string' && v.length >= 1 && v.length <= 128 && /^[a-zA-Z0-9_\-]+$/.test(v);
+    const ruleChecks = merged
+      ? {
+          ownerMatch: merged.userId === auth.currentUser.uid,
+          missingReq: requiredKeys.filter((k) => !(k in merged)),
+          extraKeys: Object.keys(merged).filter((k) => !allowedKeys.has(k)),
+          idOk: merged.id === ticketId && isIdStr(merged.id),
+          ticketNoOk:
+            typeof merged.ticketNo === 'string' &&
+            merged.ticketNo.length >= 6 &&
+            merged.ticketNo.length <= 40 &&
+            /^[a-zA-Z0-9_\-]+$/.test(merged.ticketNo),
+          userIdOk: isIdStr(merged.userId),
+          userEmailOk:
+            typeof merged.userEmail === 'string' &&
+            merged.userEmail.length >= 3 &&
+            merged.userEmail.length <= 160,
+          unitTitleOk:
+            typeof merged.unitTitle === 'string' &&
+            merged.unitTitle.length >= 2 &&
+            merged.unitTitle.length <= 100,
+          serviceTitleOk:
+            typeof merged.serviceTitle === 'string' &&
+            merged.serviceTitle.length >= 2 &&
+            merged.serviceTitle.length <= 200,
+          applicantNameOk:
+            typeof merged.applicantName === 'string' &&
+            merged.applicantName.length >= 2 &&
+            merged.applicantName.length <= 120,
+          phoneOk:
+            typeof merged.phone === 'string' &&
+            merged.phone.length >= 6 &&
+            merged.phone.length <= 30,
+          instOk:
+            !('institution' in merged) ||
+            (typeof merged.institution === 'string' && merged.institution.length <= 160),
+          nipOk:
+            !('nip' in merged) ||
+            (typeof merged.nip === 'string' && merged.nip.length <= 30),
+          notesOk:
+            !('notes' in merged) ||
+            (typeof merged.notes === 'string' && merged.notes.length <= 1000),
+          adminNoteOk:
+            !('adminNote' in merged) ||
+            (typeof merged.adminNote === 'string' && merged.adminNote.length <= 300),
+          dispTitleOk:
+            !('dispatchedUnitTitle' in merged) ||
+            (typeof merged.dispatchedUnitTitle === 'string' &&
+              merged.dispatchedUnitTitle.length <= 100),
+          dispByOk:
+            !('dispatchedBy' in merged) ||
+            (typeof merged.dispatchedBy === 'string' && merged.dispatchedBy.length <= 160),
+          seksiRevOk:
+            !('seksiReviewer' in merged) ||
+            (typeof merged.seksiReviewer === 'string' && merged.seksiReviewer.length <= 160),
+          tteBoolOk:
+            !('tteSentToLeader' in merged) ||
+            typeof merged.tteSentToLeader === 'boolean',
+          tteNoteOk:
+            !('tteLeaderNote' in merged) ||
+            (typeof merged.tteLeaderNote === 'string' && merged.tteLeaderNote.length <= 300),
+          patternOk:
+            !('checkedDocsPattern' in merged) ||
+            (typeof merged.checkedDocsPattern === 'string' &&
+              merged.checkedDocsPattern.length <= 40 &&
+              /^[01]{0,40}$/.test(merged.checkedDocsPattern)),
+          verifiedIntOk:
+            !('verifiedDocsCount' in merged) ||
+            (typeof merged.verifiedDocsCount === 'number' &&
+              Number.isInteger(merged.verifiedDocsCount) &&
+              merged.verifiedDocsCount >= 0 &&
+              merged.verifiedDocsCount <= 40),
+          totalIntOk:
+            !('totalDocsCount' in merged) ||
+            (typeof merged.totalDocsCount === 'number' &&
+              Number.isInteger(merged.totalDocsCount) &&
+              merged.totalDocsCount >= 0 &&
+              merged.totalDocsCount <= 40),
+          submittedAtOk:
+            typeof merged.submittedAtLabel === 'string' &&
+            merged.submittedAtLabel.length >= 4 &&
+            merged.submittedAtLabel.length <= 50,
+          accountTierOk:
+            merged.accountTier === 'masyarakat' ||
+            merged.accountTier === 'pegawai' ||
+            merged.accountTier === 'admin',
+          unitIdOk:
+            typeof merged.unitId === 'string' &&
+            merged.unitId.length >= 1 &&
+            merged.unitId.length <= 40 &&
+            /^[a-z0-9\-]+$/.test(merged.unitId),
+          subServiceIdOk:
+            typeof merged.subServiceId === 'string' &&
+            merged.subServiceId.length >= 1 &&
+            merged.subServiceId.length <= 60 &&
+            /^[a-z0-9\-]+$/.test(merged.subServiceId),
+          dispBoolOk:
+            !('dispatchedToSeksi' in merged) ||
+            typeof merged.dispatchedToSeksi === 'boolean',
+          dispUnitOk:
+            !('dispatchedUnitId' in merged) ||
+            VALID_SEKSI_UNITS.has(merged.dispatchedUnitId as SeksiUnitId),
+          createdAtIsTs: tData?.createdAt instanceof Timestamp,
+          updatedAtIsTs: tData?.updatedAt instanceof Timestamp,
+        }
+      : null;
+    return ` | diag=${JSON.stringify({
+      empExists: empSnap.exists(),
+      empStatus: empData?.status ?? null,
+      empRole: empData?.operatorRole ?? null,
+      empUnit: empData?.assignedUnitId ?? null,
+      payloadKeys: Object.keys(payload),
+      status: payload.status,
+      dispatchedToSeksi: payload.dispatchedToSeksi ?? null,
+      dispatchedUnitId: payload.dispatchedUnitId ?? null,
+      ticketExists: ticketSnap ? ticketSnap.exists() : null,
+      ticketDispatched: tData?.dispatchedToSeksi ?? null,
+      ticketDispatchedUnit: tData?.dispatchedUnitId ?? null,
+      unitMatch:
+        empData?.assignedUnitId && tData?.dispatchedUnitId
+          ? empData.assignedUnitId === tData.dispatchedUnitId
+          : null,
+      ruleChecks,
+    })}`;
+  } catch {
+    return '';
+  }
+}
+
+export async function ptspVerifyAndDispatchTicket(params: {
+  ticketId: string;
+  status:
+    | 'Diproses Verifikasi'
+    | 'Diterima PTSP'
+    | 'Ditolak PTSP'
+    | 'Disposisi ke Seksi'
+    | 'Menunggu Berkas'
+    | 'Perlu Revisi';
+  adminNote: string;
+  operatorName: string;
+  dispatchedToSeksi?: boolean;
+  dispatchedUnitId?: SeksiUnitId;
+  dispatchedUnitTitle?: string;
+  checkedDocsPattern?: string;
+  verifiedDocsCount?: number;
+  totalDocsCount?: number;
+}): Promise<void> {
+  const {
+    ticketId,
+    status,
+    adminNote,
+    operatorName,
+    dispatchedToSeksi,
+    dispatchedUnitId,
+    dispatchedUnitTitle,
+    checkedDocsPattern,
+    verifiedDocsCount,
+    totalDocsCount,
+  } = params;
+  const path = `ptspTickets/${ticketId}`;
+  const payload: Record<string, unknown> = {
+    status,
+    adminNote: clampStr(adminNote, 300),
+    updatedAt: serverTimestamp(),
+  };
+
+  if (status === 'Disposisi ke Seksi' || (dispatchedToSeksi && dispatchedUnitId)) {
+    const safeUnitId: SeksiUnitId =
+      dispatchedUnitId && VALID_SEKSI_UNITS.has(dispatchedUnitId)
+        ? dispatchedUnitId
+        : 'sekretariat';
+    payload.dispatchedToSeksi = true;
+    payload.dispatchedUnitId = safeUnitId;
+    payload.dispatchedUnitTitle = clampStr(dispatchedUnitTitle || safeUnitId, 100, safeUnitId);
+    payload.dispatchedBy = clampStr(operatorName, 160, 'Operator PTSP');
+  } else if (status === 'Ditolak PTSP') {
+    payload.dispatchedToSeksi = false;
+  }
+
+  if (typeof checkedDocsPattern === 'string' && /^[01]{0,40}$/.test(checkedDocsPattern)) {
+    payload.checkedDocsPattern = checkedDocsPattern;
+  }
+  if (
+    typeof totalDocsCount === 'number' &&
+    Number.isFinite(totalDocsCount) &&
+    totalDocsCount >= 0
+  ) {
+    const safeTotal = Math.max(0, Math.min(40, Math.trunc(totalDocsCount)));
+    payload.totalDocsCount = safeTotal;
+    if (
+      typeof verifiedDocsCount === 'number' &&
+      Number.isFinite(verifiedDocsCount) &&
+      verifiedDocsCount >= 0
+    ) {
+      payload.verifiedDocsCount = Math.max(0, Math.min(safeTotal, Math.trunc(verifiedDocsCount)));
+    }
+  } else if (
+    typeof verifiedDocsCount === 'number' &&
+    Number.isFinite(verifiedDocsCount) &&
+    verifiedDocsCount >= 0
+  ) {
+    payload.verifiedDocsCount = Math.max(0, Math.min(40, Math.trunc(verifiedDocsCount)));
+  }
+
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    try {
+      await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
+    } catch (firstErr) {
+      const msg = firstErr instanceof Error ? firstErr.message : String(firstErr ?? '');
+      if (
+        auth.currentUser &&
+        (msg.includes('Missing or insufficient permissions') || msg.includes('permission-denied'))
+      ) {
+        await auth.currentUser.getIdToken(true);
+        await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
+      } else {
+        throw firstErr;
+      }
+    }
+  } catch (error) {
+    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
+    const wrapped =
+      error instanceof Error
+        ? new Error(`${error.message}${diag}`)
+        : new Error(`${String(error)}${diag}`);
+    handleFirestoreError(wrapped, OperationType.UPDATE, path);
+  }
+}
+
+export async function seksiInspectAndSendTteTicket(params: {
+  ticketId: string;
+  status: 'Telaah Seksi' | 'Perlu Revisi' | 'Menunggu Berkas' | 'Siap TTE';
+  seksiReviewer: string;
+  adminNote: string;
+  tteLeaderNote?: string;
+  checkedDocsPattern: string;
+  verifiedDocsCount: number;
+  totalDocsCount: number;
+}): Promise<void> {
+  const {
+    ticketId,
+    status,
+    seksiReviewer,
+    adminNote,
+    tteLeaderNote,
+    checkedDocsPattern,
+    verifiedDocsCount,
+    totalDocsCount,
+  } = params;
+  const path = `ptspTickets/${ticketId}`;
+  const safeTotal = Math.max(0, Math.min(40, Math.trunc(totalDocsCount)));
+  const safeVerified = Math.max(0, Math.min(safeTotal, Math.trunc(verifiedDocsCount)));
+  const safePattern = /^[01]{0,40}$/.test(checkedDocsPattern) ? checkedDocsPattern : '';
+
+  const payload: Record<string, unknown> = {
+    status,
+    seksiReviewer: clampStr(seksiReviewer, 160, 'Operator Seksi'),
+    adminNote: clampStr(adminNote, 300),
+    checkedDocsPattern: safePattern,
+    verifiedDocsCount: safeVerified,
+    totalDocsCount: safeTotal,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (status === 'Siap TTE') {
+    payload.tteSentToLeader = true;
+    payload.tteLeaderNote = clampStr(
+      tteLeaderNote || adminNote,
+      300,
+      'Kelengkapan berkas telah diperiksa Seksi dan diteruskan ke Pimpinan untuk TTE.'
+    );
+  }
+
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    try {
+      await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
+    } catch (firstErr) {
+      const msg = firstErr instanceof Error ? firstErr.message : String(firstErr ?? '');
+      if (
+        auth.currentUser &&
+        (msg.includes('Missing or insufficient permissions') || msg.includes('permission-denied'))
+      ) {
+        await auth.currentUser.getIdToken(true);
+        await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
+      } else {
+        throw firstErr;
+      }
+    }
+  } catch (error) {
+    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
+    const wrapped =
+      error instanceof Error
+        ? new Error(`${error.message}${diag}`)
+        : new Error(`${String(error)}${diag}`);
+    handleFirestoreError(wrapped, OperationType.UPDATE, path);
+  }
+}
+
+export async function pimpinanEndorseTteTicket(params: {
+  ticketId: string;
+  status: 'TTE Sah (Selesai)' | 'Perlu Revisi' | 'Siap TTE';
+  adminNote: string;
+  tteLeaderNote?: string;
+}): Promise<void> {
+  const { ticketId, status, adminNote, tteLeaderNote } = params;
+  const path = `ptspTickets/${ticketId}`;
+  const payload: Record<string, unknown> = {
+    status,
+    adminNote: clampStr(adminNote, 300),
+    tteLeaderNote: clampStr(
+      tteLeaderNote || adminNote,
+      300,
+      status === 'TTE Sah (Selesai)'
+        ? 'Dokumen telah disahkan dengan Tanda Tangan Elektronik (TTE) Pimpinan.'
+        : 'Dikembalikan oleh Pimpinan untuk perbaikan berkas.'
+    ),
+    updatedAt: serverTimestamp(),
+  };
+
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
+  } catch (error) {
+    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
+    const wrapped =
+      error instanceof Error
+        ? new Error(`${error.message}${diag}`)
+        : new Error(`${String(error)}${diag}`);
+    handleFirestoreError(wrapped, OperationType.UPDATE, path);
   }
 }
 

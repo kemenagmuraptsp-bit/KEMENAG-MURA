@@ -246,10 +246,12 @@ export function LayananView({
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
+    isPimpinan,
     isNipSession,
     isMasyarakatLogin,
     myVerifiedEmployee,
     adminConsoleTriggerCount,
+    operatorConsoleTriggerCount,
   } = useAuthRole();
 
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -264,20 +266,26 @@ export function LayananView({
   }, [isAdmin, adminConsoleTriggerCount]);
 
   useEffect(() => {
+    if (!isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan) && operatorConsoleTriggerCount > 0) {
+      setShowOperatorPanel(true);
+    }
+  }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount]);
+
+  useEffect(() => {
     if (!user || !isEligibleUser) {
       setCloudTickets([]);
       return;
     }
     const unsub = subscribePtspTickets(
       user,
-      isAdmin,
+      isAdmin || isPimpinan,
       (rows) => setCloudTickets(rows),
       () => {
         // handled inside firebase.ts
       }
     );
     return () => unsub();
-  }, [user, isEligibleUser, isAdmin]);
+  }, [user, isEligibleUser, isAdmin, isPimpinan]);
 
   const availableUnits = isMasyarakatLogin
     ? SERVICE_UNITS.filter((u) => u.id !== 'kepegawaian')
@@ -334,8 +342,8 @@ export function LayananView({
           </div>
         )}
 
-        {/* Operator PTSP / Operator Seksi Console */}
-        {!isAdmin && (isOperatorPtsp || isOperatorSeksi) && showOperatorPanel && (
+        {/* Operator PTSP / Operator Seksi / Pimpinan TTE Console */}
+        {!isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan) && showOperatorPanel && (
           <div id="operator-console" className="scroll-mt-28">
             <OperatorTicketConsole />
           </div>
@@ -410,8 +418,8 @@ export function LayananView({
                             </div>
                             <p className="text-slate-500">
                               {t.applicantName}
-                              {t.nip ? ` · NIP ${t.nip}` : ''} · {t.unitTitle} ·{' '}
-                              {t.submittedAtLabel}
+                              {t.nip ? ` · NIP ${t.nip}` : ''} ·{' '}
+                              {t.dispatchedUnitTitle || t.unitTitle} · {t.submittedAtLabel}
                             </p>
                             {t.adminNote && (
                               <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium pt-0.5">
@@ -420,15 +428,21 @@ export function LayananView({
                             )}
                           </div>
                           <span
-                            className={`px-2.5 py-1 rounded text-[11px] font-bold shrink-0 w-fit ${
-                              t.status === 'Selesai'
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 w-fit ${
+                              t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                : t.status === 'Menunggu Berkas'
+                                : t.status === 'Ditolak PTSP'
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                : t.status === 'Siap TTE'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
+                                : t.status === 'Disposisi ke Seksi' || t.status === 'Telaah Seksi'
+                                ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300'
+                                : t.status === 'Perlu Revisi' || t.status === 'Menunggu Berkas'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                                 : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                             }`}
                           >
-                            {t.status}
+                            {t.status === 'Diproses Verifikasi' ? 'Menunggu Verifikasi' : t.status}
                           </span>
                         </div>
                       ))}

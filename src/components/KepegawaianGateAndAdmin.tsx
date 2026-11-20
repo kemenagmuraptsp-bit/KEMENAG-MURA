@@ -1,20 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   BadgeCheck,
   CheckCircle2,
+  CheckSquare,
   Clock,
   Edit3,
+  Eye,
+  FileCheck2,
   Image as ImageIcon,
   KeyRound,
   Lock,
   LogIn,
   LogOut,
   Newspaper,
+  Phone,
   PlusCircle,
+  Printer,
   RotateCcw,
+  Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
+  Square,
   Ticket,
   Trash2,
   UserCheck,
@@ -22,6 +30,8 @@ import {
   UserPlus,
   UserX,
   Users,
+  X,
+  XCircle,
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
@@ -29,6 +39,7 @@ import {
   NEWS_ARTICLES,
   OFFICIAL_NEWS_IMAGE_PRESETS,
   PTSP_UNIT_OPTIONS,
+  SERVICE_UNITS,
 } from '@/src/data/kemenagData';
 import type { NewsArticle } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
@@ -37,11 +48,14 @@ import {
   deleteNewsArticle,
   deleteVerifiedEmployeeAccount,
   mapFirebaseAuthError,
+  pimpinanEndorseTteTicket,
   provisionEmployeeAccountByAdmin,
+  ptspVerifyAndDispatchTicket,
   rejectEmployeeVerification,
   restoreBuiltInNewsArticle,
   sanitizeNipDigits,
   saveNewsArticle,
+  seksiInspectAndSendTteTicket,
   submitEmployeeVerificationRequest,
   subscribeAllEmployeeRequests,
   subscribeAllGoogleUsers,
@@ -56,6 +70,8 @@ import {
   type EmployeeRequestRecord,
   type EmployeeUnitCategory,
   type OperatorUnitAssignment,
+  type PtspTicketStatus,
+  type SeksiUnitId,
   type TicketSubscriptionScope,
   type UserProfileRecord,
   type VerifiedEmployeeRecord,
@@ -71,6 +87,7 @@ const OPERATOR_ROLE_LABELS: Record<EmployeeOperatorRole, string> = {
   pegawai: 'Pegawai Biasa',
   operator_ptsp: 'Operator PTSP',
   operator_seksi: 'Operator Seksi',
+  pimpinan: 'Pimpinan (Pengesahan TTE)',
 };
 
 const NEWS_CATEGORIES = [
@@ -105,6 +122,82 @@ function getUnitTitleById(unitId: OperatorUnitAssignment | undefined): string {
   return PTSP_UNIT_OPTIONS.find((u) => u.id === unitId)?.title || unitId;
 }
 
+const SEKSI_SHORT_BADGE: Record<string, string> = {
+  sekretariat: 'SEKRETARIAT',
+  'bimas-islam': 'BIMAS ISLAM',
+  pendis: 'PENDIS',
+  'bimas-hindu': 'BIMAS HINDU',
+  'bimas-kristen': 'BIMAS KRISTEN',
+  kepegawaian: 'KEPEGAWAIAN',
+};
+
+function resolveTicketRequirements(ticket: CloudPtspTicketRecord): string[] {
+  const unit = SERVICE_UNITS.find((u) => u.id === ticket.unitId);
+  const sub =
+    unit?.subServices.find((s) => s.id === ticket.subServiceId) ||
+    unit?.subServices.find((s) => s.title.toLowerCase() === ticket.serviceTitle.toLowerCase());
+  if (sub && sub.requirements.length > 0) {
+    return sub.requirements;
+  }
+  return [
+    'Surat Permohonan / Formulir Resmi Layanan',
+    'Identitas Pemohon (KTP / NIP / Kartu Pegawai)',
+    'Dokumen Pendukung Kelengkapan Usulan',
+  ];
+}
+
+function parseCheckedPattern(pattern: string | undefined, total: number): boolean[] {
+  const result: boolean[] = [];
+  for (let i = 0; i < total; i += 1) {
+    result.push(pattern?.[i] === '1');
+  }
+  return result;
+}
+
+function encodeCheckedPattern(flags: boolean[]): string {
+  return flags.map((f) => (f ? '1' : '0')).join('');
+}
+
+function resolveDefaultSeksiUnit(unitId: string): SeksiUnitId {
+  const found = PTSP_UNIT_OPTIONS.find((u) => u.id === unitId);
+  return (found ? found.id : 'sekretariat') as SeksiUnitId;
+}
+
+function getTicketStatusBadgeClass(status: PtspTicketStatus): string {
+  switch (status) {
+    case 'TTE Sah (Selesai)':
+    case 'Selesai':
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800';
+    case 'Siap TTE':
+      return 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800';
+    case 'Disposisi ke Seksi':
+    case 'Telaah Seksi':
+      return 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800';
+    case 'Diterima PTSP':
+      return 'bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800';
+    case 'Ditolak PTSP':
+      return 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800';
+    case 'Perlu Revisi':
+    case 'Menunggu Berkas':
+      return 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800';
+    case 'Diproses Verifikasi':
+    default:
+      return 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800';
+  }
+}
+
+function getTicketDisplayStatus(status: PtspTicketStatus): string {
+  return status === 'Diproses Verifikasi' ? 'Menunggu Verifikasi' : status;
+}
+
+function formatTicketActionError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err ?? 'Gagal memproses tiket.');
+  if (raw.includes('Missing or insufficient permissions') || raw.includes('permission-denied')) {
+    return 'Akses pembaruan tiket ditolak oleh aturan keamanan Firestore. Pastikan akun Operator aktif di Konsol Super Admin dan aturan Firestore terbaru sudah diterapkan. Detail: ' + raw;
+  }
+  return raw;
+}
+
 export function AccountAccessBanner({
   showAdminPanel,
   onToggleAdminPanel,
@@ -124,6 +217,7 @@ export function AccountAccessBanner({
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
+    isPimpinan,
     assignedUnitTitle,
     myVerifiedEmployee,
     isVerifiedEmployee,
@@ -133,7 +227,7 @@ export function AccountAccessBanner({
     clearAuthError,
   } = useAuthRole();
 
-  const isAnyOperator = !isAdmin && (isOperatorPtsp || isOperatorSeksi);
+  const isAnyOperator = !isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan);
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 p-5 space-y-3 shadow-2xs">
@@ -172,6 +266,8 @@ export function AccountAccessBanner({
                   ? 'Memeriksa Sesi Akun...'
                   : isAdmin
                   ? 'Mode Super Admin Portal Kemenag Mura'
+                  : isPimpinan
+                  ? 'Mode Pimpinan — Pengesahan TTE Layanan'
                   : isOperatorPtsp
                   ? 'Mode Operator PTSP (Seluruh Bidang Layanan)'
                   : isOperatorSeksi
@@ -199,8 +295,17 @@ export function AccountAccessBanner({
                   Login sebagai <strong className="font-semibold">{user?.email}</strong>. Anda
                   memiliki kewenangan penuh <strong>Super Admin</strong> untuk menambah, mengedit,
                   dan menghapus <strong>data berita</strong>, mengelola akun{' '}
-                  <strong>Operator PTSP & Operator Seksi</strong>, memverifikasi pegawai, serta
-                  memproses tiket PTSP.
+                  <strong>Operator PTSP, Seksi &amp; Pimpinan</strong>, memverifikasi pegawai,
+                  serta memproses tiket PTSP.
+                </>
+              ) : isPimpinan ? (
+                <>
+                  <strong className="font-semibold">
+                    {myVerifiedEmployee?.fullName || user?.displayName}
+                  </strong>{' '}
+                  ({myVerifiedEmployee?.jabatan} · {myVerifiedEmployee?.unitKerja}). Anda bertugas
+                  sebagai <strong>Pimpinan</strong> untuk meninjau dan mengesahkan dokumen{' '}
+                  <strong>TTE</strong> layanan PTSP.
                 </>
               ) : isOperatorPtsp ? (
                 <>
@@ -295,7 +400,11 @@ export function AccountAccessBanner({
               <UserCog className="w-3.5 h-3.5" />
               <span>
                 {showOperatorPanel
-                  ? 'Tutup Konsol Operator'
+                  ? isPimpinan
+                    ? 'Tutup Konsol Pimpinan'
+                    : 'Tutup Konsol Operator'
+                  : isPimpinan
+                  ? 'Konsol TTE Pimpinan'
                   : isOperatorPtsp
                   ? 'Konsol Operator PTSP'
                   : 'Konsol Operator Seksi'}
@@ -352,144 +461,973 @@ export function AccountAccessBanner({
 }
 
 export function OperatorTicketConsole() {
-  const { user, isAdmin, isOperatorPtsp, isOperatorSeksi, assignedUnitId, assignedUnitTitle } =
-    useAuthRole();
+  const {
+    user,
+    isAdmin,
+    isOperatorPtsp,
+    isOperatorSeksi,
+    isPimpinan,
+    assignedUnitId,
+    assignedUnitTitle,
+    myVerifiedEmployee,
+  } = useAuthRole();
   const [tickets, setTickets] = useState<CloudPtspTicketRecord[]>([]);
-  const [ticketNotes, setTicketNotes] = useState<Record<string, string>>({});
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('semua');
+  const [activeTicket, setActiveTicket] = useState<CloudPtspTicketRecord | null>(null);
+  const [previewTicket, setPreviewTicket] = useState<{
+    ticket: CloudPtspTicketRecord;
+    mode: 'resi' | 'tte';
+  } | null>(null);
+
+  const [checkedFlags, setCheckedFlags] = useState<boolean[]>([]);
+  const [modalNote, setModalNote] = useState('');
+  const [targetSeksiId, setTargetSeksiId] = useState<SeksiUnitId>('sekretariat');
+  const [busyAction, setBusyAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
+  const [modalFeedback, setModalFeedback] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [listErrorMsg, setListErrorMsg] = useState('');
 
   useEffect(() => {
-    if (!user || isAdmin || (!isOperatorPtsp && !isOperatorSeksi)) return;
-    const scope: TicketSubscriptionScope = isOperatorPtsp
-      ? { mode: 'all' }
-      : { mode: 'unit', unitId: assignedUnitId };
-    const unsub = subscribePtspTickets(user, scope, setTickets, () => {});
+    if (!user || isAdmin || (!isOperatorPtsp && !isOperatorSeksi && !isPimpinan)) return;
+    setListErrorMsg('');
+    const scope: TicketSubscriptionScope =
+      isOperatorPtsp || isPimpinan ? { mode: 'all' } : { mode: 'unit', unitId: assignedUnitId };
+    const unsub = subscribePtspTickets(
+      user,
+      scope,
+      setTickets,
+      (err) => {
+        setListErrorMsg(formatTicketActionError(err));
+      }
+    );
     return () => unsub();
-  }, [user, isAdmin, isOperatorPtsp, isOperatorSeksi, assignedUnitId]);
+  }, [user, isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, assignedUnitId]);
 
-  if (!user || isAdmin || (!isOperatorPtsp && !isOperatorSeksi)) return null;
+  const operatorDisplayName =
+    myVerifiedEmployee?.fullName ||
+    user?.displayName ||
+    (isPimpinan ? 'Pimpinan Kemenag Mura' : isOperatorPtsp ? 'Operator PTSP' : 'Operator Seksi');
 
-  const handleUpdateTicket = async (
-    ticket: CloudPtspTicketRecord,
-    nextStatus: CloudPtspTicketRecord['status']
+  const filteredTickets = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return tickets.filter((t) => {
+      if (statusFilter === 'perlu_aksi') {
+        if (isOperatorPtsp && t.status !== 'Diproses Verifikasi' && t.status !== 'Diterima PTSP') {
+          return false;
+        }
+        if (isOperatorSeksi && t.status !== 'Disposisi ke Seksi' && t.status !== 'Telaah Seksi') {
+          return false;
+        }
+        if (isPimpinan && t.status !== 'Siap TTE') {
+          return false;
+        }
+      } else if (statusFilter === 'disposisi') {
+        if (t.status !== 'Disposisi ke Seksi' && t.status !== 'Telaah Seksi') return false;
+      } else if (statusFilter === 'revisi_tolak') {
+        if (
+          t.status !== 'Ditolak PTSP' &&
+          t.status !== 'Perlu Revisi' &&
+          t.status !== 'Menunggu Berkas'
+        ) {
+          return false;
+        }
+      } else if (statusFilter === 'tte') {
+        if (
+          t.status !== 'Siap TTE' &&
+          t.status !== 'TTE Sah (Selesai)' &&
+          t.status !== 'Selesai'
+        ) {
+          return false;
+        }
+      }
+
+      if (!q) return true;
+      return (
+        t.ticketNo.toLowerCase().includes(q) ||
+        t.applicantName.toLowerCase().includes(q) ||
+        t.serviceTitle.toLowerCase().includes(q) ||
+        (t.institution || '').toLowerCase().includes(q) ||
+        t.unitTitle.toLowerCase().includes(q)
+      );
+    });
+  }, [tickets, searchQuery, statusFilter, isOperatorPtsp, isOperatorSeksi, isPimpinan]);
+
+  if (!user || isAdmin || (!isOperatorPtsp && !isOperatorSeksi && !isPimpinan)) return null;
+
+  const openInspectModal = (ticket: CloudPtspTicketRecord) => {
+    const reqs = resolveTicketRequirements(ticket);
+    setActiveTicket(ticket);
+    setCheckedFlags(parseCheckedPattern(ticket.checkedDocsPattern, reqs.length));
+    setModalNote(ticket.adminNote || '');
+    setTargetSeksiId(ticket.dispatchedUnitId || resolveDefaultSeksiUnit(ticket.unitId));
+    setErrorMsg('');
+    setModalFeedback('');
+  };
+
+  const toggleCheckIndex = (idx: number) => {
+    setCheckedFlags((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+  };
+
+  const handleCheckAll = (checked: boolean) => {
+    setCheckedFlags((prev) => prev.map(() => checked));
+  };
+
+  const handlePtspAction = async (
+    nextStatus: 'Diterima PTSP' | 'Ditolak PTSP' | 'Disposisi ke Seksi' | 'Perlu Revisi'
   ) => {
-    setBusyId(ticket.id);
+    if (!activeTicket) return;
+    setErrorMsg('');
+    setModalFeedback('');
     setFeedback('');
+
+    if (nextStatus === 'Ditolak PTSP' && modalNote.trim().length < 5) {
+      setErrorMsg('Tuliskan alasan penolakan tiket pada kolom catatan agar jelas bagi pemohon.');
+      return;
+    }
+
+    const totalDocsCount = checkedFlags.length;
+    const verifiedDocsCount = checkedFlags.filter(Boolean).length;
+    const checkedDocsPattern = encodeCheckedPattern(checkedFlags);
+    const chosenUnit = PTSP_UNIT_OPTIONS.find((u) => u.id === targetSeksiId);
+    const resolvedNote =
+      modalNote.trim() ||
+      (nextStatus === 'Diterima PTSP'
+        ? 'Tiket telah diverifikasi dan diterima oleh Operator PTSP.'
+        : nextStatus === 'Disposisi ke Seksi'
+        ? `Tiket telah diteruskan Operator PTSP ke ${chosenUnit?.title || targetSeksiId}.`
+        : '');
+
+    setBusyAction(nextStatus);
     try {
-      await updateCloudTicketStatus({
-        ticketId: ticket.id,
+      await ptspVerifyAndDispatchTicket({
+        ticketId: activeTicket.id,
         status: nextStatus,
-        adminNote: ticketNotes[ticket.id] ?? ticket.adminNote ?? '',
+        adminNote: resolvedNote,
+        operatorName: operatorDisplayName,
+        dispatchedToSeksi: nextStatus === 'Disposisi ke Seksi',
+        dispatchedUnitId: nextStatus === 'Disposisi ke Seksi' ? targetSeksiId : undefined,
+        dispatchedUnitTitle:
+          nextStatus === 'Disposisi ke Seksi' ? chosenUnit?.title || targetSeksiId : undefined,
+        checkedDocsPattern,
+        verifiedDocsCount,
+        totalDocsCount,
       });
-      setFeedback(`Status tiket ${ticket.ticketNo} diperbarui menjadi "${nextStatus}".`);
+
+      if (nextStatus === 'Diterima PTSP') {
+        setActiveTicket((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'Diterima PTSP',
+                adminNote: resolvedNote,
+                checkedDocsPattern,
+                verifiedDocsCount,
+                totalDocsCount,
+              }
+            : null
+        );
+        setModalFeedback(
+          'Tiket ditandai Diterima PTSP. Pilih Seksi tujuan di bawah lalu klik "Kirim ke Seksi".'
+        );
+      } else {
+        setFeedback(
+          nextStatus === 'Disposisi ke Seksi'
+            ? `Tiket ${activeTicket.ticketNo} berhasil dikirim ke ${chosenUnit?.title || targetSeksiId}.`
+            : `Tiket ${activeTicket.ticketNo} diperbarui menjadi "${nextStatus}".`
+        );
+        setActiveTicket(null);
+      }
+    } catch (err) {
+      setErrorMsg(formatTicketActionError(err));
     } finally {
-      setBusyId(null);
+      setBusyAction(null);
     }
   };
 
+  const handleSeksiAction = async (nextStatus: 'Telaah Seksi' | 'Perlu Revisi' | 'Siap TTE') => {
+    if (!activeTicket) return;
+    setErrorMsg('');
+    setFeedback('');
+
+    const totalDocsCount = checkedFlags.length;
+    const verifiedDocsCount = checkedFlags.filter(Boolean).length;
+    const checkedDocsPattern = encodeCheckedPattern(checkedFlags);
+
+    if (nextStatus === 'Perlu Revisi' && modalNote.trim().length < 5) {
+      setErrorMsg('Tuliskan dokumen/berkas yang perlu direvisi pada kolom catatan.');
+      return;
+    }
+    if (nextStatus === 'Siap TTE' && verifiedDocsCount < totalDocsCount) {
+      setErrorMsg(
+        `Masih ada ${totalDocsCount - verifiedDocsCount} dokumen persyaratan yang belum dicentang valid. Centang seluruh kelengkapan berkas sebelum dikirim ke Pimpinan untuk proses TTE.`
+      );
+      return;
+    }
+
+    setBusyAction(nextStatus);
+    try {
+      await seksiInspectAndSendTteTicket({
+        ticketId: activeTicket.id,
+        status: nextStatus,
+        seksiReviewer: operatorDisplayName,
+        adminNote:
+          modalNote.trim() ||
+          (nextStatus === 'Siap TTE'
+            ? `Seluruh ${totalDocsCount} berkas usulan telah diperiksa lengkap oleh ${
+                assignedUnitTitle || 'Operator Seksi'
+              } dan diteruskan ke Pimpinan untuk TTE.`
+            : nextStatus === 'Telaah Seksi'
+            ? `Berkas sedang ditelaah oleh ${assignedUnitTitle || 'Operator Seksi'} (${verifiedDocsCount}/${totalDocsCount} dokumen valid).`
+            : ''),
+        tteLeaderNote:
+          nextStatus === 'Siap TTE'
+            ? modalNote.trim() ||
+              `Usulan lengkap (${verifiedDocsCount}/${totalDocsCount} berkas valid) — Siap Tanda Tangan Elektronik (TTE) Pimpinan.`
+            : undefined,
+        checkedDocsPattern,
+        verifiedDocsCount,
+        totalDocsCount,
+      });
+
+      setFeedback(
+        nextStatus === 'Siap TTE'
+          ? `Berkas tiket ${activeTicket.ticketNo} lengkap (${verifiedDocsCount}/${totalDocsCount}) dan telah dikirim ke Pimpinan untuk proses TTE.`
+          : `Hasil pemeriksaan tiket ${activeTicket.ticketNo} (${nextStatus}) berhasil disimpan.`
+      );
+      setActiveTicket(null);
+    } catch (err) {
+      setErrorMsg(formatTicketActionError(err));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handlePimpinanAction = async (nextStatus: 'TTE Sah (Selesai)' | 'Perlu Revisi') => {
+    if (!activeTicket) return;
+    setErrorMsg('');
+    setFeedback('');
+
+    if (nextStatus === 'Perlu Revisi' && modalNote.trim().length < 5) {
+      setErrorMsg('Tuliskan catatan perbaikan sebelum mengembalikan berkas untuk revisi.');
+      return;
+    }
+
+    setBusyAction(nextStatus);
+    try {
+      const resolvedNote =
+        modalNote.trim() ||
+        `Disahkan melalui Tanda Tangan Elektronik (TTE) oleh ${operatorDisplayName}.`;
+      await pimpinanEndorseTteTicket({
+        ticketId: activeTicket.id,
+        status: nextStatus,
+        adminNote: resolvedNote,
+        tteLeaderNote: resolvedNote,
+      });
+      setFeedback(
+        nextStatus === 'TTE Sah (Selesai)'
+          ? `Tiket ${activeTicket.ticketNo} berhasil disahkan TTE (Selesai) oleh ${operatorDisplayName}.`
+          : `Tiket ${activeTicket.ticketNo} dikembalikan untuk revisi berkas.`
+      );
+      setActiveTicket(null);
+    } catch (err) {
+      setErrorMsg(formatTicketActionError(err));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const pendingPtspCount = tickets.filter((t) => t.status === 'Diproses Verifikasi').length;
+  const readySeksiCount = tickets.filter((t) => t.status === 'Disposisi ke Seksi').length;
+  const readyPimpinanTteCount = tickets.filter((t) => t.status === 'Siap TTE').length;
+  const siapkanTteCount = tickets.filter(
+    (t) => t.status === 'Siap TTE' || t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai'
+  ).length;
+
   return (
-    <div className="border-2 border-teal-300 dark:border-teal-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-md">
-      <div className="p-5 sm:p-6 bg-teal-50/90 dark:bg-teal-950/50 border-b border-teal-200 dark:border-teal-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-widest text-teal-800 dark:text-teal-300">
-            {isOperatorPtsp
-              ? 'Konsol Kerja Operator PTSP Kemenag Murung Raya'
-              : `Konsol Kerja Operator Seksi — ${assignedUnitTitle || assignedUnitId}`}
+    <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-md">
+      {/* Header Console */}
+      <div className="p-5 sm:p-6 bg-slate-50/90 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-teal-700 dark:text-teal-400">
+            {isPimpinan
+              ? 'Konsol Pimpinan — Pengesahan Tanda Tangan Elektronik (TTE)'
+              : isOperatorPtsp
+              ? 'Konsol Operator PTSP — Verifikasi & Disposisi Layanan'
+              : `Konsol Operator Seksi — ${assignedUnitTitle || assignedUnitId}`}
           </p>
-          <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
-            Antrean Permohonan & Verifikasi Berkas ({tickets.length})
+          <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+            {isPimpinan
+              ? `Antrean Layanan & Pengesahan TTE Pimpinan (${tickets.length})`
+              : isOperatorPtsp
+              ? `Seluruh Tiket Pengajuan Pemohon (${tickets.length})`
+              : `Tiket Disposisi dari Operator PTSP (${tickets.length})`}
           </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            {isPimpinan
+              ? 'Tinjau hasil telaah Operator Seksi pada tiket berstatus Siap TTE lalu sahkan dengan TTE.'
+              : isOperatorPtsp
+              ? 'Verifikasi permohonan masuk (Diterima / Ditolak) kemudian kirim ke Seksi tujuan.'
+              : 'Periksa kelengkapan berkas usulan yang dikirim Operator PTSP lalu kirim ke Pimpinan untuk proses TTE.'}
+          </p>
         </div>
-        <span className="px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-bold w-fit">
-          {isOperatorPtsp ? 'Semua Bidang Layanan' : assignedUnitTitle || assignedUnitId}
-        </span>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <span className="text-slate-500 mr-1.5">
+              {isPimpinan
+                ? 'Menunggu TTE:'
+                : isOperatorPtsp
+                ? 'Menunggu Verifikasi:'
+                : 'Disposisi Baru:'}
+            </span>
+            <strong className="font-mono-tabular text-blue-700 dark:text-blue-400">
+              {isPimpinan ? readyPimpinanTteCount : isOperatorPtsp ? pendingPtspCount : readySeksiCount}
+            </strong>
+          </div>
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <span className="text-slate-500 mr-1.5">Siap / Sah TTE:</span>
+            <strong className="font-mono-tabular text-emerald-700 dark:text-emerald-400">
+              {siapkanTteCount}
+            </strong>
+          </div>
+        </div>
       </div>
 
-      <div className="p-5 sm:p-6 space-y-4">
-        {feedback && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/60 dark:border-emerald-800 px-4 py-2.5 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
+      {/* Filter & Search Bar */}
+      <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari no. resi, layanan, nama pemohon, atau instansi..."
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:outline-none focus:border-teal-600"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          {(
+            [
+              { id: 'semua', label: 'Semua' },
+              {
+                id: 'perlu_aksi',
+                label: isPimpinan
+                  ? 'Menunggu TTE'
+                  : isOperatorPtsp
+                  ? 'Perlu Verifikasi'
+                  : 'Perlu Telaah',
+              },
+              ...(isOperatorPtsp ? [{ id: 'disposisi', label: 'Terkirim ke Seksi' }] : []),
+              { id: 'revisi_tolak', label: 'Revisi / Ditolak' },
+              { id: 'tte', label: 'Proses & Sah TTE' },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                statusFilter === tab.id
+                  ? 'bg-teal-700 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {listErrorMsg && (
+        <div className="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-900 px-4 py-2.5 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">{listErrorMsg}</span>
+        </div>
+      )}
+
+      {feedback && (
+        <div className="mx-5 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/60 dark:border-emerald-800 px-4 py-2.5 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedback}</span>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={() => setFeedback('')}
+            className="text-emerald-700 hover:text-emerald-950 font-bold"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
 
-        {tickets.length === 0 ? (
-          <p className="text-xs text-slate-500 py-6 text-center">
-            Belum ada tiket permohonan cloud yang masuk pada lingkup tugas Anda.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {tickets.map((t) => (
-              <div
-                key={t.id}
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="space-y-0.5 text-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 font-mono-tabular font-bold text-emerald-800 dark:text-emerald-400">
-                        <Ticket className="w-3.5 h-3.5" />
-                        {t.ticketNo}
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-bold uppercase">
-                        {t.unitTitle}
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">
-                      {t.serviceTitle}
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      {t.applicantName} {t.nip ? `(NIP ${t.nip})` : ''} · {t.phone} ·{' '}
-                      {t.userEmail}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded text-[11px] font-bold shrink-0 w-fit ${
-                      t.status === 'Selesai'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : t.status === 'Menunggu Berkas'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-sky-100 text-sky-800'
-                    }`}
+      {/* 5-Column Operator Table Matching Reference UI */}
+      {filteredTickets.length === 0 ? (
+        <div className="p-10 text-center text-xs text-slate-500">
+          {tickets.length === 0
+            ? isOperatorPtsp
+              ? 'Belum ada tiket permohonan pemohon yang masuk.'
+              : `Belum ada tiket yang dikirim oleh Operator PTSP ke ${
+                  assignedUnitTitle || 'seksi ini'
+                }.`
+            : 'Tidak ada tiket yang cocok dengan filter pencarian Anda.'}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[920px]">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-5">No. Resi &amp; Tanggal</th>
+                <th className="py-3.5 px-4">Layanan &amp; Seksi</th>
+                <th className="py-3.5 px-4">Pemohon / Instansi</th>
+                <th className="py-3.5 px-4">Status &amp; Progres</th>
+                <th className="py-3.5 px-5 text-right">Aksi Operator</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+              {filteredTickets.map((t) => {
+                const reqs = resolveTicketRequirements(t);
+                const totalDocs = t.totalDocsCount ?? reqs.length;
+                const validDocs = t.verifiedDocsCount ?? 0;
+                const seksiCode =
+                  SEKSI_SHORT_BADGE[t.dispatchedUnitId || t.unitId] ||
+                  t.unitTitle.toUpperCase();
+                const isActionNeeded =
+                  (isOperatorPtsp &&
+                    (t.status === 'Diproses Verifikasi' || t.status === 'Diterima PTSP')) ||
+                  (isOperatorSeksi &&
+                    (t.status === 'Disposisi ke Seksi' || t.status === 'Telaah Seksi')) ||
+                  (isPimpinan && t.status === 'Siap TTE');
+                const hasTteDocument =
+                  t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai';
+
+                return (
+                  <tr
+                    key={t.id}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    {t.status}
+                    {/* NO. RESI & TANGGAL */}
+                    <td className="py-4 px-5 align-top whitespace-nowrap">
+                      <p className="font-mono-tabular font-extrabold text-slate-900 dark:text-white text-xs">
+                        {t.ticketNo}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{t.submittedAtLabel}</p>
+                    </td>
+
+                    {/* LAYANAN & SEKSI */}
+                    <td className="py-4 px-4 align-top max-w-xs">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                        <span className="inline-block px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold uppercase tracking-wide">
+                          {seksiCode}
+                        </span>
+                        {t.dispatchedToSeksi && t.dispatchedUnitTitle && (
+                          <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-400">
+                            · Seksi Tujuan
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-bold text-slate-900 dark:text-white leading-snug line-clamp-1">
+                        {t.serviceTitle}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                        {t.notes || t.unitTitle}
+                      </p>
+                    </td>
+
+                    {/* PEMOHON / INSTANSI */}
+                    <td className="py-4 px-4 align-top max-w-[230px]">
+                      <p className="font-bold text-slate-900 dark:text-white leading-snug">
+                        {t.applicantName}
+                        {t.nip ? (
+                          <span className="font-mono-tabular text-[11px] font-normal text-slate-500">
+                            {' '}
+                            (NIP {t.nip})
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="text-[11px] font-medium text-blue-600 dark:text-blue-400 truncate mt-0.5">
+                        {t.institution || t.userEmail}
+                      </p>
+                      <p className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-mono-tabular mt-0.5">
+                        <Phone className="w-3 h-3" />
+                        <span>{t.phone}</span>
+                      </p>
+                    </td>
+
+                    {/* STATUS & PROGRES */}
+                    <td className="py-4 px-4 align-top whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${getTicketStatusBadgeClass(
+                          t.status
+                        )}`}
+                      >
+                        {getTicketDisplayStatus(t.status)}
+                      </span>
+                      <p className="text-[11px] text-slate-500 mt-1.5">
+                        {validDocs} dari {totalDocs} dokumen valid
+                      </p>
+                    </td>
+
+                    {/* AKSI OPERATOR */}
+                    <td className="py-4 px-5 align-middle text-right whitespace-nowrap">
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewTicket({ ticket: t, mode: 'resi' })}
+                          title="Cetak / Pratinjau Resi"
+                          className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+
+                        {hasTteDocument && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewTicket({ ticket: t, mode: 'tte' })}
+                            title="Dokumen Sah TTE"
+                            className="p-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors"
+                          >
+                            <FileCheck2 className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => openInspectModal(t)}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+                            isActionNeeded
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                              : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {isActionNeeded ? (
+                            <CheckSquare className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isActionNeeded ? 'Proses Berkas' : 'Detail Berkas'}</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MODAL PROSES / DETAIL BERKAS OPERATOR PTSP & SEKSI */}
+      {activeTicket && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono-tabular text-xs font-extrabold text-teal-800 dark:text-teal-300">
+                    {activeTicket.ticketNo}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${getTicketStatusBadgeClass(
+                      activeTicket.status
+                    )}`}
+                  >
+                    {getTicketDisplayStatus(activeTicket.status)}
                   </span>
                 </div>
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">
+                  {activeTicket.serviceTitle}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTicket(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                  <input
-                    type="text"
-                    value={ticketNotes[t.id] ?? t.adminNote ?? ''}
-                    onChange={(e) =>
-                      setTicketNotes((prev) => ({ ...prev, [t.id]: e.target.value }))
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto text-xs">
+              {/* Identitas Pemohon */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                <div>
+                  <span className="text-slate-500 block">Pemohon</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {activeTicket.applicantName}
+                    {activeTicket.nip ? ` (NIP ${activeTicket.nip})` : ''}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Instansi / Kontak</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {activeTicket.institution || activeTicket.userEmail} · {activeTicket.phone}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Bidang Layanan Asal</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {activeTicket.unitTitle}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Status Disposisi / TTE</span>
+                  <span className="font-semibold text-teal-700 dark:text-teal-300">
+                    {activeTicket.dispatchedToSeksi
+                      ? `Dikirim ke ${activeTicket.dispatchedUnitTitle}${
+                          activeTicket.dispatchedBy ? ` (${activeTicket.dispatchedBy})` : ''
+                        }`
+                      : 'Menunggu verifikasi awal loket PTSP'}
+                  </span>
+                </div>
+                {activeTicket.notes && (
+                  <div className="sm:col-span-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <span className="text-slate-500 block">Keterangan Pemohon</span>
+                    <p className="text-slate-800 dark:text-slate-200 mt-0.5">{activeTicket.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Checklist Kelengkapan Berkas Persyaratan */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Pemeriksaan Kelengkapan Berkas Persyaratan
+                    </h5>
+                    <p className="text-[11px] text-slate-500">
+                      {checkedFlags.filter(Boolean).length} dari {checkedFlags.length} dokumen
+                      persyaratan dinyatakan valid.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCheckAll(checkedFlags.filter(Boolean).length < checkedFlags.length)
                     }
-                    placeholder="Catatan operator untuk pemohon..."
-                    className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    {(['Diproses Verifikasi', 'Menunggu Berkas', 'Selesai'] as const).map((st) => (
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-[11px] text-slate-700 dark:text-slate-200"
+                  >
+                    {checkedFlags.filter(Boolean).length < checkedFlags.length
+                      ? 'Centang Semua Valid'
+                      : 'Kosongkan Centang'}
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {resolveTicketRequirements(activeTicket).map((reqText, idx) => {
+                    const isChecked = Boolean(checkedFlags[idx]);
+                    return (
                       <button
-                        key={st}
+                        key={reqText}
                         type="button"
-                        disabled={busyId === t.id}
-                        onClick={() => void handleUpdateTicket(t, st)}
-                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
-                          t.status === st
-                            ? 'bg-teal-700 text-white'
-                            : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
+                        onClick={() => toggleCheckIndex(idx)}
+                        className={`w-full text-left flex items-start gap-2.5 p-3 rounded-xl border transition-colors ${
+                          isChecked
+                            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200'
+                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        {st}
+                        {isChecked ? (
+                          <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <Square className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        )}
+                        <span className="leading-relaxed font-medium">{reqText}</span>
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+
+              {/* Catatan Petugas */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Catatan Pemeriksaan / Tindak Lanjut{' '}
+                  {isPimpinan
+                    ? 'Pimpinan (TTE)'
+                    : isOperatorPtsp
+                    ? 'Operator PTSP'
+                    : 'Operator Seksi'}
+                </label>
+                <textarea
+                  rows={2}
+                  value={modalNote}
+                  onChange={(e) => setModalNote(e.target.value)}
+                  placeholder="Tuliskan hasil verifikasi berkas, alasan penolakan/revisi, atau pengantar TTE untuk Pimpinan..."
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:outline-none focus:border-teal-600"
+                />
+              </div>
+
+              {modalFeedback && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/50 dark:border-emerald-800 px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="min-w-0 break-words">{modalFeedback}</span>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-900 px-4 py-2.5 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="min-w-0 break-words [overflow-wrap:anywhere]">{errorMsg}</span>
+                </div>
+              )}
+
+              {/* AKSI OPERATOR PTSP */}
+              {isOperatorPtsp && (
+                <div className="space-y-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busyAction !== null}
+                      onClick={() => void handlePtspAction('Diterima PTSP')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>{busyAction === 'Diterima PTSP' ? 'Menyimpan...' : 'Tiket Diterima'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyAction !== null}
+                      onClick={() => void handlePtspAction('Ditolak PTSP')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>{busyAction === 'Ditolak PTSP' ? 'Menyimpan...' : 'Tiket Ditolak'}</span>
+                    </button>
+                  </div>
+
+                  {/* Kirim ke Seksi Tujuan */}
+                  <div className="p-4 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/70 dark:bg-teal-950/40 space-y-2.5">
+                    <p className="text-xs font-extrabold text-teal-900 dark:text-teal-200">
+                      Kirim / Disposisikan ke Seksi yang Dituju
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        value={targetSeksiId}
+                        onChange={(e) => setTargetSeksiId(e.target.value as SeksiUnitId)}
+                        className="flex-1 px-3 py-2 text-xs font-semibold rounded-xl border border-teal-300 dark:border-teal-700 bg-white dark:bg-slate-900"
+                      >
+                        {PTSP_UNIT_OPTIONS.map((unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {unit.title}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={busyAction !== null}
+                        onClick={() => void handlePtspAction('Disposisi ke Seksi')}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white font-bold transition-colors shrink-0"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>
+                          {busyAction === 'Disposisi ke Seksi'
+                            ? 'Mengirim ke Seksi...'
+                            : 'Kirim ke Seksi'}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AKSI OPERATOR SEKSI */}
+              {isOperatorSeksi && (
+                <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={busyAction !== null}
+                        onClick={() => void handleSeksiAction('Perlu Revisi')}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-bold transition-colors"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        <span>
+                          {busyAction === 'Perlu Revisi' ? 'Menyimpan...' : 'Perlu Revisi Berkas'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyAction !== null}
+                        onClick={() => void handleSeksiAction('Telaah Seksi')}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-teal-600 text-teal-800 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950 font-bold transition-colors"
+                      >
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {busyAction === 'Telaah Seksi' ? 'Menyimpan...' : 'Simpan Telaah Seksi'}
+                        </span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={busyAction !== null}
+                      onClick={() => void handleSeksiAction('Siap TTE')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-60 text-white font-bold transition-colors shadow-xs"
+                    >
+                      <FileCheck2 className="w-4 h-4" />
+                      <span>
+                        {busyAction === 'Siap TTE'
+                          ? 'Mengirim ke Pimpinan...'
+                          : 'Kirim ke Pimpinan (Proses TTE)'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* AKSI PIMPINAN (PENGESAHAN TTE) */}
+              {isPimpinan && (
+                <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={busyAction !== null}
+                      onClick={() => void handlePimpinanAction('Perlu Revisi')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-bold transition-colors"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span>
+                        {busyAction === 'Perlu Revisi'
+                          ? 'Menyimpan...'
+                          : 'Kembalikan Revisi Berkas'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={busyAction !== null}
+                      onClick={() => void handlePimpinanAction('TTE Sah (Selesai)')}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-bold transition-colors shadow-xs"
+                    >
+                      <FileCheck2 className="w-4 h-4" />
+                      <span>
+                        {busyAction === 'TTE Sah (Selesai)'
+                          ? 'Mengesahkan TTE...'
+                          : 'Sahkan TTE Pimpinan (Selesai)'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* IN-APP MODAL CETAK RESI / PRATINJAU DOKUMEN TTE (TANPA window.open) */}
+      {previewTicket && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                {previewTicket.mode === 'tte'
+                  ? 'Pratinjau Dokumen Layanan — TTE Sah'
+                  : 'Tanda Terima / Resi Layanan PTSP'}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setPreviewTicket(null)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="border-2 border-slate-800 dark:border-slate-600 rounded-xl p-5 space-y-3 bg-white dark:bg-slate-950">
+                <div className="border-b border-slate-300 dark:border-slate-700 pb-3 text-center">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-800 dark:text-emerald-400">
+                    Kementerian Agama Republik Indonesia
+                  </p>
+                  <p className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    Kantor Kementerian Agama Kab. Murung Raya
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Pelayanan Terpadu Satu Pintu (PTSP) · Puruk Cahu
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div>
+                    <span className="text-slate-500 block">Nomor Resi</span>
+                    <span className="font-mono-tabular font-extrabold text-slate-900 dark:text-white">
+                      {previewTicket.ticket.ticketNo}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Tanggal Masuk</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {previewTicket.ticket.submittedAtLabel}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-500 block">Jenis Layanan</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      {previewTicket.ticket.serviceTitle}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Pemohon</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {previewTicket.ticket.applicantName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Instansi / Kontak</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {previewTicket.ticket.institution || previewTicket.ticket.phone}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-500 block">Status Terakhir</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                      {getTicketDisplayStatus(previewTicket.ticket.status)}
+                    </span>
+                  </div>
+                </div>
+
+                {previewTicket.mode === 'tte' && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-emerald-800 dark:text-emerald-300">
+                        Ditandatangani Secara Elektronik (TTE)
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Kepala Kankemenag Kab. Murung Raya · Pemeriksa Seksi:{' '}
+                        {previewTicket.ticket.seksiReviewer || 'Operator Seksi'}
+                      </p>
+                    </div>
+                    <BadgeCheck className="w-8 h-8 text-emerald-600 shrink-0" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewTicket(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-slate-900 dark:bg-emerald-700 text-white font-bold"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Cetak Sekarang</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -868,7 +1806,7 @@ export function KepegawaianAccessGate({
 export function AdminVerificationPanel() {
   const { user, isAdmin, newsArticles, cloudNewsArticles } = useAuthRole();
   const [activeTab, setActiveTab] = useState<
-    'news' | 'operators' | 'requests' | 'employees' | 'tickets'
+    'news' | 'operators' | 'pimpinan' | 'requests' | 'employees' | 'tickets'
   >('news');
 
   const [requests, setRequests] = useState<EmployeeRequestRecord[]>([]);
@@ -906,6 +1844,16 @@ export function AdminVerificationPanel() {
   const [opUnitKerja, setOpUnitKerja] = useState('Loket PTSP Kankemenag Murung Raya');
   const [opJabatan, setOpJabatan] = useState('Operator PTSP');
   const [opFormError, setOpFormError] = useState('');
+
+  // ---- PIMPINAN CRUD STATE ----
+  const [leadName, setLeadName] = useState('');
+  const [leadNip, setLeadNip] = useState('');
+  const [leadPassword, setLeadPassword] = useState('');
+  const [leadJabatan, setLeadJabatan] = useState('Kepala Kantor Kemenag Kab. Murung Raya');
+  const [leadUnitKerja, setLeadUnitKerja] = useState('Kantor Kemenag Kab. Murung Raya');
+  const [leadCategory, setLeadCategory] = useState<EmployeeUnitCategory>('kankemenag');
+  const [leadFormError, setLeadFormError] = useState('');
+  const [leadSearchQuery, setLeadSearchQuery] = useState('');
 
   // Inline Edit Operator / Verified Employee State
   const [editingEmp, setEditingEmp] = useState<VerifiedEmployeeRecord | null>(null);
@@ -972,6 +1920,17 @@ export function AdminVerificationPanel() {
   const operatorAccounts = employees.filter(
     (e) => e.operatorRole === 'operator_ptsp' || e.operatorRole === 'operator_seksi'
   );
+  const pimpinanAccounts = employees.filter((e) => e.operatorRole === 'pimpinan');
+  const filteredPimpinanAccounts = pimpinanAccounts.filter((emp) => {
+    const q = leadSearchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      emp.fullName.toLowerCase().includes(q) ||
+      emp.nip.toLowerCase().includes(q) ||
+      emp.jabatan.toLowerCase().includes(q) ||
+      emp.unitKerja.toLowerCase().includes(q)
+    );
+  });
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
   const activeEmployeesCount = employees.filter((e) => e.status === 'active').length;
   const verifiedUidSet = new Set(employees.filter((e) => e.status === 'active').map((e) => e.uid));
@@ -1111,6 +2070,56 @@ export function AdminVerificationPanel() {
       setOpPassword('');
     } catch (err) {
       setOpFormError(mapFirebaseAuthError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCreatePimpinanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLeadFormError('');
+    setStatusFeedback('');
+    setErrorFeedback('');
+
+    const cleanNip = sanitizeNipDigits(leadNip);
+    if (cleanNip.length < 8) {
+      setLeadFormError('NIP Pimpinan minimal harus 8 digit angka.');
+      return;
+    }
+    if (leadName.trim().length < 2 || leadJabatan.trim().length < 2 || leadUnitKerja.trim().length < 2) {
+      setLeadFormError('Nama Lengkap, Jabatan Pimpinan, dan Unit Kerja wajib diisi.');
+      return;
+    }
+    if (!leadPassword || leadPassword.length < 6) {
+      setLeadFormError('Password awal minimal 6 karakter.');
+      return;
+    }
+
+    setBusyId('create-pimpinan');
+    try {
+      await provisionEmployeeAccountByAdmin({
+        adminUser: user,
+        fullName: leadName,
+        nip: cleanNip,
+        password: leadPassword,
+        jabatan: leadJabatan,
+        unitKerja: leadUnitKerja,
+        unitCategory: leadCategory,
+        operatorRole: 'pimpinan',
+        assignedUnitId: 'all',
+        assignedUnitTitle: 'Pimpinan (Pengesahan TTE)',
+      });
+      setStatusFeedback(
+        `Akun Pimpinan (${leadName} · NIP ${cleanNip}) berhasil ditambahkan dan diaktifkan.`
+      );
+      setLeadName('');
+      setLeadNip('');
+      setLeadPassword('');
+      setLeadJabatan('Kepala Kantor Kemenag Kab. Murung Raya');
+      setLeadUnitKerja('Kantor Kemenag Kab. Murung Raya');
+      setLeadCategory('kankemenag');
+    } catch (err) {
+      setLeadFormError(mapFirebaseAuthError(err));
     } finally {
       setBusyId(null);
     }
@@ -1357,7 +2366,7 @@ export function AdminVerificationPanel() {
             Konsol Super Admin Portal Kemenag Kab. Murung Raya
           </p>
           <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
-            Manajemen Berita, Akun Operator PTSP & Seksi, Pegawai, dan Tiket
+            Manajemen Berita, Akun Pimpinan, Operator PTSP &amp; Seksi, Pegawai, dan Tiket
           </h3>
         </div>
 
@@ -1365,7 +2374,7 @@ export function AdminVerificationPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('news')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'news'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
@@ -1377,7 +2386,7 @@ export function AdminVerificationPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('operators')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'operators'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
@@ -1388,8 +2397,20 @@ export function AdminVerificationPanel() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('pimpinan')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+              activeTab === 'pimpinan'
+                ? 'bg-amber-600 text-white'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Akun Pimpinan ({pimpinanAccounts.length})</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('requests')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'requests'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
@@ -1400,7 +2421,7 @@ export function AdminVerificationPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('employees')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'employees'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
@@ -1411,7 +2432,7 @@ export function AdminVerificationPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('tickets')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === 'tickets'
                 ? 'bg-amber-600 text-white'
                 : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
@@ -2077,6 +3098,7 @@ export function AdminVerificationPanel() {
                             >
                               <option value="operator_ptsp">Peran: Operator PTSP (Semua)</option>
                               <option value="operator_seksi">Peran: Operator Seksi</option>
+                              <option value="pimpinan">Peran: Pimpinan (Pengesahan TTE)</option>
                               <option value="pegawai">Turunkan ke Pegawai Biasa</option>
                             </select>
                             {editEmpRole === 'operator_seksi' ? (
@@ -2117,6 +3139,386 @@ export function AdminVerificationPanel() {
                                 type="submit"
                                 disabled={busyId === `edit-emp-${emp.uid}`}
                                 className="px-4 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold"
+                              >
+                                {busyId === `edit-emp-${emp.uid}`
+                                  ? 'Menyimpan...'
+                                  : 'Simpan Perubahan Akun'}
+                              </button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2B: KELOLA DAFTAR AKUN PIMPINAN */}
+        {activeTab === 'pimpinan' && (
+          <div className="space-y-6">
+            {/* Form Tambah Akun Pimpinan */}
+            <form
+              onSubmit={(e) => void handleCreatePimpinanSubmit(e)}
+              className="p-4 sm:p-5 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20 space-y-4"
+            >
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Tambah Akun Pimpinan</span>
+                </h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                  Daftarkan akun pimpinan (Kepala Kantor, Plh. Kepala Kantor, atau Pejabat
+                  Berwenang TTE) dengan NIP dan Password awal agar dapat masuk dan mengesahkan
+                  dokumen layanan.
+                </p>
+              </div>
+
+              {leadFormError && (
+                <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+                  {leadFormError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Nama Lengkap &amp; Gelar Pimpinan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={leadName}
+                    onChange={(e) => setLeadName(e.target.value)}
+                    placeholder="Contoh: H. Marzuki, S.Ag., M.Pd.I"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    NIP / ID Login (8–20 digit) *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    value={leadNip}
+                    onChange={(e) => setLeadNip(sanitizeNipDigits(e.target.value))}
+                    placeholder="18 digit NIP angka"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono tabular-nums"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Password Awal (min. 6 karakter) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    minLength={6}
+                    value={leadPassword}
+                    onChange={(e) => setLeadPassword(e.target.value)}
+                    placeholder="Password login pimpinan"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Jabatan Pimpinan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={leadJabatan}
+                    onChange={(e) => setLeadJabatan(e.target.value)}
+                    placeholder="Contoh: Kepala Kantor Kemenag Kab. Murung Raya"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Unit Kerja / Satker *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={leadUnitKerja}
+                    onChange={(e) => setLeadUnitKerja(e.target.value)}
+                    placeholder="Kantor Kemenag Kab. Murung Raya"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Kategori Satker *
+                  </label>
+                  <select
+                    value={leadCategory}
+                    onChange={(e) => setLeadCategory(e.target.value as EmployeeUnitCategory)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                  >
+                    <option value="kankemenag">Kantor Kemenag Kab. Murung Raya</option>
+                    <option value="kua_kecamatan">KUA Kecamatan</option>
+                    <option value="madrasah">Madrasah Negeri / Satker Pendidikan</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={busyId === 'create-pimpinan'}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 disabled:opacity-60 text-white text-xs font-bold whitespace-nowrap shrink-0 transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>
+                    {busyId === 'create-pimpinan'
+                      ? 'Menyimpan Akun Pimpinan...'
+                      : 'Tambah & Aktifkan Akun Pimpinan'}
+                  </span>
+                </button>
+              </div>
+            </form>
+
+            {/* Daftar Akun Pimpinan */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Daftar Akun Pimpinan ({pimpinanAccounts.length})
+                </h4>
+                {pimpinanAccounts.length > 0 && (
+                  <div className="relative w-full sm:w-72">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={leadSearchQuery}
+                      onChange={(e) => setLeadSearchQuery(e.target.value)}
+                      placeholder="Cari nama, NIP, atau jabatan..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:border-indigo-700"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {pimpinanAccounts.length === 0 ? (
+                <p className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  Belum ada akun pimpinan yang terdaftar. Gunakan formulir di atas untuk menambah
+                  akun pimpinan baru.
+                </p>
+              ) : filteredPimpinanAccounts.length === 0 ? (
+                <p className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  Tidak ada akun pimpinan yang cocok dengan kata kunci pencarian.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                  {filteredPimpinanAccounts.map((emp) => {
+                    const isEditingThis = editingEmp?.uid === emp.uid;
+                    const isConfirmDelete = confirmDeleteEmpUid === emp.uid;
+                    return (
+                      <div key={emp.uid} className="p-4 bg-white dark:bg-slate-950 space-y-3">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                          <div className="text-xs space-y-1 min-w-0">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">
+                              {emp.fullName}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                              <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                                Pimpinan (Pengesahan TTE)
+                              </span>
+                              <span aria-hidden="true">·</span>
+                              <span
+                                className={`inline-flex items-center gap-1 font-semibold ${
+                                  emp.status === 'active'
+                                    ? 'text-emerald-700 dark:text-emerald-400'
+                                    : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                              >
+                                {emp.status === 'active' ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5" />
+                                )}
+                                <span>{emp.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
+                              </span>
+                              <span aria-hidden="true">·</span>
+                              <span className="font-mono tabular-nums font-semibold text-slate-800 dark:text-slate-200">
+                                NIP {emp.nip}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-400">
+                              {emp.jabatan} · {emp.unitKerja} · {emp.email}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                isEditingThis ? setEditingEmp(null) : startEditVerifiedEmployee(emp)
+                              }
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold whitespace-nowrap shrink-0"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>{isEditingThis ? 'Tutup Edit' : 'Edit'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={busyId === emp.uid}
+                              onClick={() => void handleToggleEmployee(emp)}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap shrink-0 transition-colors ${
+                                emp.status === 'active'
+                                  ? 'border-amber-200 text-amber-800 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40'
+                              }`}
+                            >
+                              {emp.status === 'active' ? (
+                                <>
+                                  <UserX className="w-3.5 h-3.5" />
+                                  <span>Nonaktifkan</span>
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="w-3.5 h-3.5" />
+                                  <span>Aktifkan</span>
+                                </>
+                              )}
+                            </button>
+
+                            {isConfirmDelete ? (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={busyId === `del-emp-${emp.uid}`}
+                                  onClick={() => void handleDeleteEmployeeConfirm(emp)}
+                                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold whitespace-nowrap shrink-0"
+                                >
+                                  Yakin Hapus
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteEmpUid(null)}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold whitespace-nowrap shrink-0"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteEmpUid(emp.uid)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40 text-xs font-bold whitespace-nowrap shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Hapus</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {isEditingThis && (
+                          <form
+                            onSubmit={(e) => void handleSaveEditVerifiedEmployee(e)}
+                            className="p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-950/30 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"
+                          >
+                            <input
+                              type="text"
+                              required
+                              value={editEmpName}
+                              onChange={(e) => setEditEmpName(e.target.value)}
+                              placeholder="Nama Lengkap & Gelar"
+                              className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            />
+                            <input
+                              type="text"
+                              required
+                              value={editEmpNip}
+                              onChange={(e) => setEditEmpNip(sanitizeNipDigits(e.target.value))}
+                              placeholder="NIP Pimpinan"
+                              className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono tabular-nums"
+                            />
+                            <input
+                              type="text"
+                              required
+                              value={editEmpJabatan}
+                              onChange={(e) => setEditEmpJabatan(e.target.value)}
+                              placeholder="Jabatan Pimpinan"
+                              className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            />
+                            <input
+                              type="text"
+                              required
+                              value={editEmpUnitKerja}
+                              onChange={(e) => setEditEmpUnitKerja(e.target.value)}
+                              placeholder="Unit Kerja / Satker"
+                              className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            />
+                            <select
+                              value={editEmpCategory}
+                              onChange={(e) =>
+                                setEditEmpCategory(e.target.value as EmployeeUnitCategory)
+                              }
+                              className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            >
+                              <option value="kankemenag">Kantor Kemenag Kab. Murung Raya</option>
+                              <option value="kua_kecamatan">KUA Kecamatan</option>
+                              <option value="madrasah">Madrasah Negeri</option>
+                            </select>
+                            <select
+                              value={editEmpRole}
+                              onChange={(e) =>
+                                setEditEmpRole(e.target.value as EmployeeOperatorRole)
+                              }
+                              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                            >
+                              <option value="pimpinan">Peran: Pimpinan (Pengesahan TTE)</option>
+                              <option value="operator_ptsp">Peran: Operator PTSP</option>
+                              <option value="operator_seksi">Peran: Operator Seksi</option>
+                              <option value="pegawai">Turunkan ke Pegawai Biasa</option>
+                            </select>
+                            {editEmpRole === 'operator_seksi' ? (
+                              <select
+                                value={editEmpUnitId}
+                                onChange={(e) =>
+                                  setEditEmpUnitId(e.target.value as OperatorUnitAssignment)
+                                }
+                                className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                              >
+                                {PTSP_UNIT_OPTIONS.map((unit) => (
+                                  <option key={unit.id} value={unit.id}>
+                                    Unit: {unit.title}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <select
+                                value={editEmpStatus}
+                                onChange={(e) =>
+                                  setEditEmpStatus(e.target.value as 'active' | 'revoked')
+                                }
+                                className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                              >
+                                <option value="active">Status: Aktif</option>
+                                <option value="revoked">Status: Nonaktif</option>
+                              </select>
+                            )}
+                            <p className="sm:col-span-2 text-[11px] text-slate-500 dark:text-slate-400 self-center">
+                              ID kredensial login tetap menggunakan {emp.email}.
+                            </p>
+                            <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingEmp(null)}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300"
+                              >
+                                Batal
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={busyId === `edit-emp-${emp.uid}`}
+                                className="px-4 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold whitespace-nowrap shrink-0"
                               >
                                 {busyId === `edit-emp-${emp.uid}`
                                   ? 'Menyimpan...'
@@ -2408,6 +3810,7 @@ export function AdminVerificationPanel() {
                               <option value="pegawai">Peran: Pegawai Biasa</option>
                               <option value="operator_ptsp">Peran: Operator PTSP</option>
                               <option value="operator_seksi">Peran: Operator Seksi</option>
+                              <option value="pimpinan">Peran: Pimpinan (Pengesahan TTE)</option>
                             </select>
                             {editEmpRole === 'operator_seksi' ? (
                               <select
@@ -2636,6 +4039,7 @@ export function AdminVerificationPanel() {
                       <option value="pegawai">Peran: Pegawai Biasa</option>
                       <option value="operator_ptsp">Peran: Operator PTSP</option>
                       <option value="operator_seksi">Peran: Operator Seksi</option>
+                      <option value="pimpinan">Peran: Pimpinan (Pengesahan TTE)</option>
                     </select>
                     {promoteOpRole === 'operator_seksi' ? (
                       <select
@@ -2734,7 +4138,7 @@ export function AdminVerificationPanel() {
           </div>
         )}
 
-        {/* TAB 5: ANTREAN TIKET CLOUD */}
+        {/* TAB 5: ANTREAN TIKET & PENGESAHAN TTE PIMPINAN */}
         {activeTab === 'tickets' && (
           <div className="space-y-3">
             {tickets.length === 0 ? (
@@ -2742,60 +4146,84 @@ export function AdminVerificationPanel() {
                 Belum ada tiket permohonan cloud yang masuk.
               </p>
             ) : (
-              tickets.map((t) => (
-                <div
-                  key={t.id}
-                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-0.5 text-xs">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1 font-mono-tabular font-bold text-emerald-800 dark:text-emerald-400">
-                          <Ticket className="w-3.5 h-3.5" />
-                          {t.ticketNo}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-bold uppercase">
-                          {t.accountTier === 'pegawai'
-                            ? 'Pegawai'
-                            : t.accountTier === 'admin'
-                            ? 'Super Admin'
-                            : 'Masyarakat'}
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">
-                        {t.serviceTitle}
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        {t.applicantName} {t.nip ? `(NIP ${t.nip})` : ''} · {t.phone} ·{' '}
-                        {t.userEmail} · {t.unitTitle}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded text-[11px] font-bold shrink-0 w-fit ${
-                        t.status === 'Selesai'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : t.status === 'Menunggu Berkas'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-sky-100 text-sky-800'
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </div>
+              tickets.map((t) => {
+                const reqs = resolveTicketRequirements(t);
+                const totalDocs = t.totalDocsCount ?? reqs.length;
+                const validDocs = t.verifiedDocsCount ?? 0;
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <input
-                      type="text"
-                      value={ticketNotes[t.id] ?? t.adminNote ?? ''}
-                      onChange={(e) =>
-                        setTicketNotes((prev) => ({ ...prev, [t.id]: e.target.value }))
-                      }
-                      placeholder="Catatan petugas untuk pemohon..."
-                      className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                    />
-                    <div className="flex flex-wrap gap-1.5">
-                      {(['Diproses Verifikasi', 'Menunggu Berkas', 'Selesai'] as const).map(
-                        (st) => (
+                return (
+                  <div
+                    key={t.id}
+                    className={`border rounded-xl p-4 space-y-3 ${
+                      t.status === 'Siap TTE'
+                        ? 'border-purple-300 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="space-y-0.5 text-xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 font-mono-tabular font-bold text-emerald-800 dark:text-emerald-400">
+                            <Ticket className="w-3.5 h-3.5" />
+                            {t.ticketNo}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[10px] font-bold uppercase">
+                            {t.accountTier === 'pegawai'
+                              ? 'Pegawai'
+                              : t.accountTier === 'admin'
+                              ? 'Super Admin'
+                              : 'Masyarakat'}
+                          </span>
+                          {t.dispatchedToSeksi && t.dispatchedUnitTitle && (
+                            <span className="px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 text-[10px] font-bold">
+                              Disposisi: {t.dispatchedUnitTitle}
+                            </span>
+                          )}
+                          <span className="text-[11px] text-slate-500">
+                            ({validDocs}/{totalDocs} dokumen valid)
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                          {t.serviceTitle}
+                        </p>
+                        <p className="text-slate-600 dark:text-slate-400">
+                          {t.applicantName} {t.nip ? `(NIP ${t.nip})` : ''} · {t.phone} ·{' '}
+                          {t.userEmail} · {t.unitTitle}
+                        </p>
+                        {t.tteLeaderNote && (
+                          <p className="text-[11px] font-semibold text-purple-800 dark:text-purple-300 pt-0.5">
+                            Pengantar Seksi ke Pimpinan: {t.tteLeaderNote}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 w-fit ${getTicketStatusBadgeClass(
+                          t.status
+                        )}`}
+                      >
+                        {getTicketDisplayStatus(t.status)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <input
+                        type="text"
+                        value={ticketNotes[t.id] ?? t.adminNote ?? ''}
+                        onChange={(e) =>
+                          setTicketNotes((prev) => ({ ...prev, [t.id]: e.target.value }))
+                        }
+                        placeholder="Catatan pimpinan / super admin untuk pemohon..."
+                        className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        {(
+                          [
+                            'Diproses Verifikasi',
+                            'Perlu Revisi',
+                            'Siap TTE',
+                            'TTE Sah (Selesai)',
+                          ] as const
+                        ).map((st) => (
                           <button
                             key={st}
                             type="button"
@@ -2804,17 +4232,19 @@ export function AdminVerificationPanel() {
                             className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
                               t.status === st
                                 ? 'bg-slate-900 text-white dark:bg-emerald-700'
+                                : st === 'TTE Sah (Selesai)'
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                 : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            {st}
+                            {st === 'TTE Sah (Selesai)' ? 'Sahkan TTE (Selesai)' : st}
                           </button>
-                        )
-                      )}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

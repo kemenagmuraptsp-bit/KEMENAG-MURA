@@ -24,33 +24,52 @@ service cloud.firestore {
 
     function isNipEmployeeAccount() {
       return isSignedIn()
+        && 'email' in request.auth.token
         && request.auth.token.email is string
         && request.auth.token.email.matches('^[0-9]{8,20}@pegawai\\.kemenagmura\\.id$');
     }
 
     function isVerifiedUser() {
       return isSignedIn() && (
-        request.auth.token.email_verified == true
+        ('email_verified' in request.auth.token && request.auth.token.email_verified == true)
         || isNipEmployeeAccount()
       );
     }
 
     function isAdmin() {
       return isSignedIn()
+        && 'email_verified' in request.auth.token
         && request.auth.token.email_verified == true
+        && 'email' in request.auth.token
         && request.auth.token.email == 'kemenagmuraptsp@gmail.com';
+    }
+
+    function hasActiveVerifiedEmployee(empData) {
+      return empData is map
+        && 'status' in empData
+        && empData.status == 'active';
     }
 
     function isVerifiedEmployee() {
       return isVerifiedUser()
         && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
-        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.status == 'active';
+        && hasActiveVerifiedEmployee(
+          get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        );
+    }
+
+    function isKuaEmployeeData(empData) {
+      return hasActiveVerifiedEmployee(empData)
+        && 'unitCategory' in empData
+        && empData.unitCategory == 'kua_kecamatan';
     }
 
     function isVerifiedKuaEmployee() {
-      return isVerifiedEmployee()
-        && 'unitCategory' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
-        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.unitCategory == 'kua_kecamatan';
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
+        && isKuaEmployeeData(
+          get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        );
     }
 
     function isValidUnitCategory(val) {
@@ -58,7 +77,12 @@ service cloud.firestore {
     }
 
     function isValidOperatorRole(val) {
-      return val is string && (val == 'pegawai' || val == 'operator_ptsp' || val == 'operator_seksi');
+      return val is string && (
+        val == 'pegawai' ||
+        val == 'operator_ptsp' ||
+        val == 'operator_seksi' ||
+        val == 'pimpinan'
+      );
     }
 
     function isValidAssignedUnitId(val) {
@@ -73,22 +97,110 @@ service cloud.firestore {
       );
     }
 
+    function isValidSeksiUnitId(val) {
+      return val is string && (
+        val == 'sekretariat' ||
+        val == 'bimas-islam' ||
+        val == 'pendis' ||
+        val == 'bimas-hindu' ||
+        val == 'bimas-kristen' ||
+        val == 'kepegawaian'
+      );
+    }
+
+    function isValidTicketStatus(val) {
+      return val is string && (
+        val == 'Diproses Verifikasi' ||
+        val == 'Diterima PTSP' ||
+        val == 'Ditolak PTSP' ||
+        val == 'Disposisi ke Seksi' ||
+        val == 'Telaah Seksi' ||
+        val == 'Perlu Revisi' ||
+        val == 'Siap TTE' ||
+        val == 'TTE Sah (Selesai)' ||
+        val == 'Menunggu Berkas' ||
+        val == 'Selesai'
+      );
+    }
+
+    function isPtspOperatorAllowedStatus(status) {
+      return status == 'Diproses Verifikasi'
+        || status == 'Diterima PTSP'
+        || status == 'Ditolak PTSP'
+        || status == 'Disposisi ke Seksi'
+        || status == 'Perlu Revisi'
+        || status == 'Menunggu Berkas';
+    }
+
+    function isSeksiOperatorAllowedStatus(status) {
+      return status == 'Disposisi ke Seksi'
+        || status == 'Telaah Seksi'
+        || status == 'Perlu Revisi'
+        || status == 'Menunggu Berkas'
+        || status == 'Siap TTE';
+    }
+
+    function isPimpinanAllowedStatus(status) {
+      return status == 'Siap TTE'
+        || status == 'Perlu Revisi'
+        || status == 'TTE Sah (Selesai)';
+    }
+
+    function isOperatorPtspData(empData) {
+      return hasActiveVerifiedEmployee(empData)
+        && 'operatorRole' in empData
+        && empData.operatorRole == 'operator_ptsp';
+    }
+
     function isOperatorPtsp() {
-      return isVerifiedEmployee()
-        && 'operatorRole' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
-        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.operatorRole == 'operator_ptsp';
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
+        && isOperatorPtspData(
+          get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        );
+    }
+
+    function isPimpinanData(empData) {
+      return hasActiveVerifiedEmployee(empData)
+        && 'operatorRole' in empData
+        && empData.operatorRole == 'pimpinan';
+    }
+
+    function isPimpinan() {
+      return isVerifiedUser()
+        && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
+        && isPimpinanData(
+          get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
+        );
+    }
+
+    function isOperatorSeksiDataForUnit(empData, unitId) {
+      return hasActiveVerifiedEmployee(empData)
+        && 'operatorRole' in empData
+        && empData.operatorRole == 'operator_seksi'
+        && 'assignedUnitId' in empData
+        && empData.assignedUnitId == unitId;
     }
 
     function isOperatorSeksiForUnit(unitId) {
-      return isVerifiedEmployee()
-        && 'operatorRole' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
-        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.operatorRole == 'operator_seksi'
-        && 'assignedUnitId' in get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
-        && get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data.assignedUnitId == unitId;
+      return isVerifiedUser()
+        && unitId is string
+        && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
+        && isOperatorSeksiDataForUnit(
+          get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data,
+          unitId
+        );
     }
 
-    function canManageTicketUnit(unitId) {
-      return isAdmin() || isOperatorPtsp() || isOperatorSeksiForUnit(unitId);
+    function isOperatorSeksiDispatchedTicket(data) {
+      return ('dispatchedToSeksi' in data && data.dispatchedToSeksi == true)
+        && ('dispatchedUnitId' in data
+          && data.dispatchedUnitId is string
+          && isOperatorSeksiForUnit(data.dispatchedUnitId));
+    }
+
+    function canReadTicket(data) {
+      return isAdmin() || isOperatorPtsp() || isPimpinan() || isOperatorSeksiDispatchedTicket(data);
     }
 
     function isValidUserProfile(data, userId) {
@@ -317,6 +429,16 @@ service cloud.firestore {
           'notes',
           'status',
           'adminNote',
+          'dispatchedToSeksi',
+          'dispatchedUnitId',
+          'dispatchedUnitTitle',
+          'dispatchedBy',
+          'seksiReviewer',
+          'tteSentToLeader',
+          'tteLeaderNote',
+          'checkedDocsPattern',
+          'verifiedDocsCount',
+          'totalDocsCount',
           'submittedAtLabel',
           'createdAt',
           'updatedAt'
@@ -335,8 +457,18 @@ service cloud.firestore {
         && (!('institution' in data) || (data.institution is string && data.institution.size() <= 160))
         && (!('nip' in data) || (data.nip is string && data.nip.size() <= 30))
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
-        && data.status is string && (data.status == 'Diproses Verifikasi' || data.status == 'Menunggu Berkas' || data.status == 'Selesai')
+        && isValidTicketStatus(data.status)
         && (!('adminNote' in data) || (data.adminNote is string && data.adminNote.size() <= 300))
+        && (!('dispatchedToSeksi' in data) || data.dispatchedToSeksi is bool)
+        && (!('dispatchedUnitId' in data) || isValidSeksiUnitId(data.dispatchedUnitId))
+        && (!('dispatchedUnitTitle' in data) || (data.dispatchedUnitTitle is string && data.dispatchedUnitTitle.size() <= 100))
+        && (!('dispatchedBy' in data) || (data.dispatchedBy is string && data.dispatchedBy.size() <= 160))
+        && (!('seksiReviewer' in data) || (data.seksiReviewer is string && data.seksiReviewer.size() <= 160))
+        && (!('tteSentToLeader' in data) || data.tteSentToLeader is bool)
+        && (!('tteLeaderNote' in data) || (data.tteLeaderNote is string && data.tteLeaderNote.size() <= 300))
+        && (!('checkedDocsPattern' in data) || (data.checkedDocsPattern is string && data.checkedDocsPattern.size() <= 40 && data.checkedDocsPattern.matches('^[01]{0,40}$')))
+        && (!('verifiedDocsCount' in data) || (data.verifiedDocsCount is number && data.verifiedDocsCount >= 0 && data.verifiedDocsCount <= 40))
+        && (!('totalDocsCount' in data) || (data.totalDocsCount is number && data.totalDocsCount >= 0 && data.totalDocsCount <= 40))
         && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -459,10 +591,10 @@ service cloud.firestore {
 
     match /ptspTickets/{ticketId} {
       allow get: if isValidId(ticketId) && isVerifiedUser() && (
-        existing().userId == request.auth.uid || canManageTicketUnit(existing().unitId)
+        existing().userId == request.auth.uid || canReadTicket(existing())
       );
       allow list: if isVerifiedUser() && (
-        resource.data.userId == request.auth.uid || canManageTicketUnit(resource.data.unitId)
+        resource.data.userId == request.auth.uid || canReadTicket(resource.data)
       );
 
       allow create: if isValidId(ticketId)
@@ -472,6 +604,13 @@ service cloud.firestore {
         && incoming().userEmail == request.auth.token.email
         && incoming().status == 'Diproses Verifikasi'
         && !('adminNote' in incoming())
+        && !('dispatchedToSeksi' in incoming())
+        && !('dispatchedUnitId' in incoming())
+        && !('dispatchedUnitTitle' in incoming())
+        && !('dispatchedBy' in incoming())
+        && !('seksiReviewer' in incoming())
+        && !('tteSentToLeader' in incoming())
+        && !('tteLeaderNote' in incoming())
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time
         && (incoming().unitId != 'kepegawaian' || isAdmin() || isVerifiedEmployee())
@@ -483,23 +622,75 @@ service cloud.firestore {
         );
 
       allow update: if isValidId(ticketId)
-        && canManageTicketUnit(existing().unitId)
+        && isVerifiedUser()
         && isValidPtspTicket(incoming(), ticketId)
-        && incoming().id == existing().id
-        && incoming().ticketNo == existing().ticketNo
         && incoming().userId == existing().userId
-        && incoming().userEmail == existing().userEmail
-        && incoming().accountTier == existing().accountTier
-        && incoming().unitId == existing().unitId
-        && incoming().unitTitle == existing().unitTitle
-        && incoming().subServiceId == existing().subServiceId
-        && incoming().serviceTitle == existing().serviceTitle
-        && incoming().applicantName == existing().applicantName
-        && incoming().phone == existing().phone
-        && incoming().submittedAtLabel == existing().submittedAtLabel
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+        && (
+          (
+            isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'adminNote',
+              'dispatchedToSeksi',
+              'dispatchedUnitId',
+              'dispatchedUnitTitle',
+              'dispatchedBy',
+              'seksiReviewer',
+              'tteSentToLeader',
+              'tteLeaderNote',
+              'checkedDocsPattern',
+              'verifiedDocsCount',
+              'totalDocsCount',
+              'updatedAt'
+            ])
+          )
+          ||
+          (
+            isPtspOperatorAllowedStatus(incoming().status)
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'adminNote',
+              'dispatchedToSeksi',
+              'dispatchedUnitId',
+              'dispatchedUnitTitle',
+              'dispatchedBy',
+              'checkedDocsPattern',
+              'verifiedDocsCount',
+              'totalDocsCount',
+              'updatedAt'
+            ])
+            && isOperatorPtsp()
+          )
+          ||
+          (
+            isSeksiOperatorAllowedStatus(incoming().status)
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'adminNote',
+              'seksiReviewer',
+              'tteSentToLeader',
+              'tteLeaderNote',
+              'checkedDocsPattern',
+              'verifiedDocsCount',
+              'totalDocsCount',
+              'updatedAt'
+            ])
+            && isOperatorSeksiDispatchedTicket(existing())
+          )
+          ||
+          (
+            isPimpinanAllowedStatus(incoming().status)
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'adminNote',
+              'tteLeaderNote',
+              'updatedAt'
+            ])
+            && isPimpinan()
+          )
+        );
 
       allow delete: if false;
     }

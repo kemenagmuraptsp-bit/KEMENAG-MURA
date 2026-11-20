@@ -35,6 +35,7 @@ export function HeaderAccountControls({
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
+    isPimpinan,
     assignedUnitTitle,
     isVerifiedEmployee,
     isVerifiedKuaEmployee,
@@ -45,6 +46,7 @@ export function HeaderAccountControls({
     markNotificationRead,
     markAllNotificationsRead,
     requestOpenAdminConsole,
+    requestOpenOperatorConsole,
     signOut,
   } = useAuthRole();
 
@@ -85,6 +87,8 @@ export function HeaderAccountControls({
   const shortName = displayName.split(' ').slice(0, 2).join(' ');
   const tierLabel = isAdmin
     ? 'Super Admin'
+    : isPimpinan
+    ? 'Pimpinan'
     : isOperatorPtsp
     ? 'Operator PTSP'
     : isOperatorSeksi
@@ -289,9 +293,11 @@ export function HeaderAccountControls({
                   {myVerifiedEmployee.unitKerja}
                 </p>
               )}
-              {(isOperatorPtsp || isOperatorSeksi) && (
+              {(isOperatorPtsp || isOperatorSeksi || isPimpinan) && (
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 truncate">
-                  {isOperatorPtsp
+                  {isPimpinan
+                    ? 'Peran: Pimpinan (Pengesahan TTE)'
+                    : isOperatorPtsp
                     ? 'Peran: Operator PTSP (Semua Unit)'
                     : `Peran: Operator ${assignedUnitTitle || 'Seksi'}`}
                 </p>
@@ -326,6 +332,25 @@ export function HeaderAccountControls({
                   </span>
                   <span className="text-[9px] font-mono-tabular px-1.5 py-0.5 rounded bg-amber-200/80 dark:bg-amber-900/60">
                     Ctrl+Alt+A
+                  </span>
+                </button>
+              )}
+
+              {!isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    requestOpenOperatorConsole();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg font-bold text-teal-800 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/30 hover:bg-teal-100 dark:hover:bg-teal-900/40 flex items-center justify-between gap-2"
+                >
+                  <span className="flex items-center gap-2">
+                    <BadgeCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                    <span>{isPimpinan ? 'Konsol TTE Pimpinan' : 'Konsol Operator'}</span>
+                  </span>
+                  <span className="text-[9px] font-mono-tabular px-1.5 py-0.5 rounded bg-teal-200/80 dark:bg-teal-900/60">
+                    Ctrl+Alt+Z
                   </span>
                 </button>
               )}

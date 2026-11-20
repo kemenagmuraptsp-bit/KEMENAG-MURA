@@ -18,6 +18,7 @@ import { KemenagEmblem } from '@/src/components/KemenagEmblem';
 import { AuthRoleProvider, useAuthRole } from '@/src/context/AuthRoleContext';
 import { LoginModal } from '@/src/components/LoginModal';
 import { SuperAdminModal } from '@/src/components/SuperAdminModal';
+import { OperatorModal } from '@/src/components/OperatorModal';
 import {
   ProfilView,
   LayananView,
@@ -58,6 +59,21 @@ function SuperAdminNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
       onTrigger();
     }
   }, [isAdmin, adminConsoleTriggerCount]);
+  return null;
+}
+
+function OperatorNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
+  const { isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount } =
+    useAuthRole();
+  useEffect(() => {
+    if (
+      !isAdmin &&
+      (isOperatorPtsp || isOperatorSeksi || isPimpinan) &&
+      operatorConsoleTriggerCount > 0
+    ) {
+      onTrigger();
+    }
+  }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount]);
   return null;
 }
 
@@ -240,6 +256,19 @@ export default function App() {
     setActiveView('layanan');
     window.setTimeout(() => {
       const el = document.getElementById('admin-console');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 90);
+  };
+
+  const handleOpenOperatorConsole = () => {
+    setServiceSidebarOpen(false);
+    setActiveView('layanan');
+    window.setTimeout(() => {
+      const el = document.getElementById('operator-console');
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
@@ -472,7 +501,9 @@ export default function App() {
       />
       <LoginModal />
       <SuperAdminModal />
+      <OperatorModal />
       <SuperAdminNavigationWatcher onTrigger={handleOpenAdminConsole} />
+      <OperatorNavigationWatcher onTrigger={handleOpenOperatorConsole} />
       <ServiceCatalogRedirectWatcher
         onRedirect={handleBackToKatalogLayanan}
         onResetKepegawaianSelection={() => {

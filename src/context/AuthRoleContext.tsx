@@ -10,6 +10,7 @@ import {
   registerEmployeeNipRequest,
   registerPublicWithEmail,
   signInEmployeeWithNip,
+  signInOperatorWithNip,
   signInPublicWithEmail,
   signInSuperAdminWithEmail,
   signInWithGoogleAndRecord,
@@ -58,6 +59,7 @@ interface AuthRoleContextValue {
   operatorRole: EmployeeOperatorRole;
   isOperatorPtsp: boolean;
   isOperatorSeksi: boolean;
+  isPimpinan: boolean;
   assignedUnitId?: OperatorUnitAssignment;
   assignedUnitTitle?: string;
   myEmployeeRequest: EmployeeRequestRecord | null;
@@ -77,6 +79,11 @@ interface AuthRoleContextValue {
   closeSuperAdminModal: () => void;
   adminConsoleTriggerCount: number;
   requestOpenAdminConsole: () => void;
+  operatorModalOpen: boolean;
+  openOperatorModal: () => void;
+  closeOperatorModal: () => void;
+  operatorConsoleTriggerCount: number;
+  requestOpenOperatorConsole: () => void;
   serviceCatalogRedirectCount: number;
   signInWithGoogle: () => Promise<User | null>;
   signInPublicWithEmail: (email: string, password: string) => Promise<User | null>;
@@ -86,6 +93,7 @@ interface AuthRoleContextValue {
     password: string;
   }) => Promise<void>;
   signInSuperAdminWithEmail: (email: string, password: string) => Promise<User | null>;
+  signInOperatorWithNip: (nip: string, password: string) => Promise<User | null>;
   signInWithNip: (nip: string, password: string) => Promise<User | null>;
   registerWithNip: (params: {
     fullName: string;
@@ -154,6 +162,8 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const [loginModalTab, setLoginModalTab] = useState<'google' | 'pegawai'>('google');
   const [superAdminModalOpen, setSuperAdminModalOpen] = useState<boolean>(false);
   const [adminConsoleTriggerCount, setAdminConsoleTriggerCount] = useState<number>(0);
+  const [operatorModalOpen, setOperatorModalOpen] = useState<boolean>(false);
+  const [operatorConsoleTriggerCount, setOperatorConsoleTriggerCount] = useState<number>(0);
   const [serviceCatalogRedirectCount, setServiceCatalogRedirectCount] = useState<number>(0);
 
   const isEligibleUser = isEligibleSessionUser(user);
@@ -177,6 +187,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   const isOperatorPtsp = operatorRole === 'operator_ptsp';
   const isOperatorSeksi = operatorRole === 'operator_seksi';
+  const isPimpinan = operatorRole === 'pimpinan';
   const assignedUnitId = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitId : undefined;
   const assignedUnitTitle = isOperatorSeksi ? myVerifiedEmployee?.assignedUnitTitle : undefined;
 
@@ -251,7 +262,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     );
 
     const ticketScope: TicketSubscriptionScope =
-      isAdmin || isOperatorPtsp
+      isAdmin || isOperatorPtsp || isPimpinan
         ? { mode: 'all' }
         : isOperatorSeksi && assignedUnitId && assignedUnitId !== 'all'
         ? { mode: 'unit', unitId: assignedUnitId }
@@ -284,39 +295,63 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       unsubTickets();
       if (unsubAdminReqs) unsubAdminReqs();
     };
-  }, [user, isEligibleUser, isAdmin, isOperatorPtsp, isOperatorSeksi, assignedUnitId]);
+  }, [user, isEligibleUser, isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, assignedUnitId]);
 
   const requestOpenAdminConsole = () => {
     setAdminConsoleTriggerCount((c) => c + 1);
   };
 
+  const requestOpenOperatorConsole = () => {
+    setOperatorConsoleTriggerCount((c) => c + 1);
+  };
+
   useEffect(() => {
     const onGlobalKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      const isCtrlAltShortcut = e.ctrlKey && e.altKey && !e.metaKey && (key === 'a' || key === 'k');
-      const isAltShiftShortcut = e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && key === 'a';
+      const isCtrlAltAdmin = e.ctrlKey && e.altKey && !e.metaKey && (key === 'a' || key === 'k');
+      const isAltShiftAdmin = e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && key === 'a';
+      const isCtrlAltOperator = e.ctrlKey && e.altKey && !e.metaKey && key === 'z';
 
-      if (!isCtrlAltShortcut && !isAltShiftShortcut) return;
+      if (isCtrlAltOperator) {
+        e.preventDefault();
+        if (!isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan)) {
+          setOperatorModalOpen(false);
+          setSuperAdminModalOpen(false);
+          setLoginModalOpen(false);
+          setOperatorConsoleTriggerCount((c) => c + 1);
+        } else {
+          setAuthError('');
+          setLoginModalOpen(false);
+          setSuperAdminModalOpen(false);
+          setOperatorModalOpen((prev) => !prev);
+        }
+        return;
+      }
+
+      if (!isCtrlAltAdmin && !isAltShiftAdmin) return;
 
       e.preventDefault();
       if (isAdmin) {
         setSuperAdminModalOpen(false);
+        setOperatorModalOpen(false);
         setLoginModalOpen(false);
         setAdminConsoleTriggerCount((c) => c + 1);
       } else {
         setAuthError('');
         setLoginModalOpen(false);
+        setOperatorModalOpen(false);
         setSuperAdminModalOpen((prev) => !prev);
       }
     };
 
     window.addEventListener('keydown', onGlobalKeyDown);
     return () => window.removeEventListener('keydown', onGlobalKeyDown);
-  }, [isAdmin]);
+  }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan]);
 
   const openLoginModal = (tab: 'google' | 'pegawai' = 'google') => {
     setAuthError('');
     setSuperAdminModalOpen(false);
+    setOperatorModalOpen(false);
     setLoginModalTab(tab);
     setLoginModalOpen(true);
   };
@@ -328,11 +363,23 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const openSuperAdminModal = () => {
     setAuthError('');
     setLoginModalOpen(false);
+    setOperatorModalOpen(false);
     setSuperAdminModalOpen(true);
   };
 
   const closeSuperAdminModal = () => {
     setSuperAdminModalOpen(false);
+  };
+
+  const openOperatorModal = () => {
+    setAuthError('');
+    setLoginModalOpen(false);
+    setSuperAdminModalOpen(false);
+    setOperatorModalOpen(true);
+  };
+
+  const closeOperatorModal = () => {
+    setOperatorModalOpen(false);
   };
 
   const signInWithGoogle = async (): Promise<User | null> => {
@@ -404,6 +451,23 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleSignInOperatorWithNip = async (
+    nip: string,
+    password: string
+  ): Promise<User | null> => {
+    setAuthError('');
+    try {
+      const result = await signInOperatorWithNip(nip, password);
+      setOperatorModalOpen(false);
+      setOperatorConsoleTriggerCount((c) => c + 1);
+      return result.user;
+    } catch (err) {
+      const friendly = mapFirebaseAuthError(err, 'nip');
+      setAuthError(friendly);
+      throw new Error(friendly);
+    }
+  };
+
   const signInWithNip = async (nip: string, password: string): Promise<User | null> => {
     setAuthError('');
     try {
@@ -453,7 +517,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
     const items: PortalNotification[] = [];
 
-    const isTicketOperator = isAdmin || isOperatorPtsp || isOperatorSeksi;
+    const isTicketOperator = isAdmin || isOperatorPtsp || isOperatorSeksi || isPimpinan;
 
     // 1. Ticket notifications
     myOrAllTickets.forEach((t) => {
@@ -462,7 +526,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       const isMine = t.userId === user.uid;
 
       if (isTicketOperator && !isMine) {
-        if (t.status === 'Diproses Verifikasi') {
+        if ((isAdmin || isOperatorPtsp) && t.status === 'Diproses Verifikasi') {
           const sig = `adm_tk_${t.id}_${t.status}_${t.updatedAt?.toMillis?.() ?? 0}`;
           items.push({
             id: `adm-tk-${t.id}`,
@@ -471,9 +535,41 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
             badge: 'Tiket Masuk Baru',
             tone: 'sky',
             title: `${t.ticketNo} · ${t.serviceTitle}`,
-            message: `Pemohon: ${t.applicantName} (${t.unitTitle}). Segera tinjau di ${
-              isAdmin ? 'Konsol Super Admin' : 'Konsol Operator'
+            message: `Pemohon: ${t.applicantName} (${t.unitTitle}). Segera verifikasi di ${
+              isAdmin ? 'Konsol Super Admin' : 'Konsol Operator PTSP'
             }.`,
+            timestampMs: ts,
+            timeLabel,
+            read: Boolean(readMap[sig]),
+            actionView: 'layanan',
+            targetUnitId: t.unitId,
+          });
+        } else if (isOperatorSeksi && t.status === 'Disposisi ke Seksi') {
+          const sig = `sek_tk_${t.id}_${t.status}_${t.updatedAt?.toMillis?.() ?? 0}`;
+          items.push({
+            id: `sek-tk-${t.id}`,
+            signature: sig,
+            kind: 'admin',
+            badge: 'Disposisi Seksi Baru',
+            tone: 'indigo',
+            title: `${t.ticketNo} · ${t.serviceTitle}`,
+            message: `Dikirim oleh Operator PTSP (${t.dispatchedBy || 'PTSP'}). Periksa kelengkapan berkas di Konsol Operator Seksi.`,
+            timestampMs: ts,
+            timeLabel,
+            read: Boolean(readMap[sig]),
+            actionView: 'layanan',
+            targetUnitId: t.dispatchedUnitId || t.unitId,
+          });
+        } else if ((isAdmin || isPimpinan) && t.status === 'Siap TTE') {
+          const sig = `adm_tte_${t.id}_${t.status}_${t.updatedAt?.toMillis?.() ?? 0}`;
+          items.push({
+            id: `adm-tte-${t.id}`,
+            signature: sig,
+            kind: 'admin',
+            badge: 'Siap TTE Pimpinan',
+            tone: 'indigo',
+            title: `${t.ticketNo} · ${t.serviceTitle}`,
+            message: `Berkas dinyatakan lengkap oleh ${t.dispatchedUnitTitle || t.unitTitle}. Menunggu pengesahan TTE Pimpinan.`,
             timestampMs: ts,
             timeLabel,
             read: Boolean(readMap[sig]),
@@ -485,13 +581,31 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
       }
 
       const tone: PortalNotification['tone'] =
-        t.status === 'Selesai' ? 'emerald' : t.status === 'Menunggu Berkas' ? 'amber' : 'sky';
+        t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai'
+          ? 'emerald'
+          : t.status === 'Ditolak PTSP'
+          ? 'rose'
+          : t.status === 'Perlu Revisi' || t.status === 'Menunggu Berkas'
+          ? 'amber'
+          : t.status === 'Siap TTE'
+          ? 'indigo'
+          : 'sky';
 
       const defaultMsg =
-        t.status === 'Selesai'
-          ? `Permohonan ${t.serviceTitle} telah selesai diproses.`
-          : t.status === 'Menunggu Berkas'
-          ? `Mohon lengkapi berkas persyaratan untuk layanan ${t.serviceTitle}.`
+        t.status === 'TTE Sah (Selesai)' || t.status === 'Selesai'
+          ? `Permohonan ${t.serviceTitle} telah selesai dan disahkan TTE.`
+          : t.status === 'Ditolak PTSP'
+          ? `Permohonan ${t.serviceTitle} ditolak oleh petugas PTSP.`
+          : t.status === 'Diterima PTSP'
+          ? `Tiket ${t.serviceTitle} telah diterima petugas PTSP dan siap didisposisikan.`
+          : t.status === 'Disposisi ke Seksi'
+          ? `Permohonan diteruskan ke ${t.dispatchedUnitTitle || t.unitTitle} untuk telaah berkas.`
+          : t.status === 'Telaah Seksi'
+          ? `Kelengkapan berkas sedang ditelaah oleh ${t.dispatchedUnitTitle || t.unitTitle}.`
+          : t.status === 'Siap TTE'
+          ? `Berkas usulan dinyatakan lengkap oleh Seksi dan dikirim ke Pimpinan untuk TTE.`
+          : t.status === 'Perlu Revisi' || t.status === 'Menunggu Berkas'
+          ? `Mohon lengkapi/perbaiki berkas persyaratan untuk layanan ${t.serviceTitle}.`
           : `Berkas ${t.serviceTitle} sedang dalam antrean verifikasi petugas PTSP.`;
 
       const sig = `tk_${t.id}_${t.status}_${t.adminNote ?? ''}`;
@@ -499,7 +613,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         id: `tk-${t.id}`,
         signature: sig,
         kind: 'ticket',
-        badge: t.status,
+        badge: t.status === 'Diproses Verifikasi' ? 'Menunggu Verifikasi' : t.status,
         tone,
         title: `${t.ticketNo} · ${t.serviceTitle}`,
         message: t.adminNote ? `Pesan Petugas: ${t.adminNote}` : defaultMsg,
@@ -521,7 +635,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         signature: sig,
         kind: 'employee',
         badge: isActive
-          ? isOperatorPtsp
+          ? isPimpinan
+            ? 'Akun Pimpinan Aktif'
+            : isOperatorPtsp
             ? 'Operator PTSP Aktif'
             : isOperatorSeksi
             ? 'Operator Seksi Aktif'
@@ -529,7 +645,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
           : 'Akses Pegawai Nonaktif',
         tone: isActive ? 'indigo' : 'rose',
         title: isActive
-          ? isOperatorPtsp
+          ? isPimpinan
+            ? 'Akun Pimpinan TTE Aktif'
+            : isOperatorPtsp
             ? 'Akun Operator PTSP Aktif'
             : isOperatorSeksi
             ? `Akun Operator ${myVerifiedEmployee.assignedUnitTitle || 'Seksi'} Aktif`
@@ -541,7 +659,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
                 ? ' & Tauliyah Wali Hakim KUA'
                 : ''
             }${
-              isOperatorPtsp
+              isPimpinan
+                ? ' & Konsol Pengesahan TTE Pimpinan'
+                : isOperatorPtsp
                 ? ' & Konsol Operator PTSP'
                 : isOperatorSeksi
                 ? ` & Konsol Operator ${myVerifiedEmployee.assignedUnitTitle || 'Seksi'}`
@@ -616,6 +736,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
+    isPimpinan,
     myOrAllTickets,
     myVerifiedEmployee,
     myEmployeeRequest,
@@ -662,6 +783,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         operatorRole,
         isOperatorPtsp,
         isOperatorSeksi,
+        isPimpinan,
         assignedUnitId,
         assignedUnitTitle,
         myEmployeeRequest,
@@ -681,11 +803,17 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         closeSuperAdminModal,
         adminConsoleTriggerCount,
         requestOpenAdminConsole,
+        operatorModalOpen,
+        openOperatorModal,
+        closeOperatorModal,
+        operatorConsoleTriggerCount,
+        requestOpenOperatorConsole,
         serviceCatalogRedirectCount,
         signInWithGoogle,
         signInPublicWithEmail: handleSignInPublicWithEmail,
         registerPublicWithEmail: handleRegisterPublicWithEmail,
         signInSuperAdminWithEmail: handleSignInSuperAdminWithEmail,
+        signInOperatorWithNip: handleSignInOperatorWithNip,
         signInWithNip,
         registerWithNip,
         signOut,
