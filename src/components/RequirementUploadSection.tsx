@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -23,6 +23,7 @@ interface RequirementUploadSectionProps {
   onChangeAttachment: (index: number, attachment: TicketAttachmentDraft | null) => void;
   isSignedIn: boolean;
   onRequestLogin?: () => void;
+  title?: string;
 }
 
 export function TicketAttachmentPreviewModal({
@@ -102,7 +103,9 @@ export function RequirementUploadSection({
   onChangeAttachment,
   isSignedIn,
   onRequestLogin,
+  title = 'Kelengkapan & Unggah Berkas Persyaratan Layanan',
 }: RequirementUploadSectionProps) {
+  const uid = useId();
   const [processingIndex, setProcessingIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [previewAttachment, setPreviewAttachment] = useState<TicketAttachmentDraft | null>(null);
@@ -130,16 +133,16 @@ export function RequirementUploadSection({
   };
 
   return (
-    <div className="space-y-3 pt-2">
+    <div className="space-y-3 pt-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <Paperclip className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-            <span>Unggah Berkas Persyaratan Layanan</span>
+            <span>{title}</span>
           </h5>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Format PDF (maks 560 KB) atau Foto JPG/PNG/WEBP (kompresi otomatis) untuk diperiksa
-            Operator PTSP dan Seksi.
+            Unggah berkas persyaratan (PDF maks 560 KB atau Foto JPG/PNG/WEBP kompresi otomatis)
+            sebelum mengajukan layanan agar dapat diverifikasi Operator PTSP &amp; Seksi.
           </p>
         </div>
         <span className="font-mono-tabular text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 rounded-lg">
@@ -150,8 +153,8 @@ export function RequirementUploadSection({
       {!isSignedIn && (
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/30 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200">
           <span>
-            Untuk mengirimkan lampiran berkas persyaratan ke Operator PTSP &amp; Seksi secara
-            daring, silakan login menggunakan Akun Google atau NIP terlebih dahulu.
+            Anda dapat memilih &amp; meninjau berkas persyaratan sekarang. Login Akun Google atau
+            NIP diperlukan saat mengirim pengajuan ke Operator PTSP &amp; Seksi.
           </span>
           {onRequestLogin && (
             <button
@@ -176,7 +179,7 @@ export function RequirementUploadSection({
         {requirements.map((reqLabel, idx) => {
           const att = attachmentsByIndex[idx];
           const isBusy = processingIndex === idx;
-          const inputId = `req-upload-${idx}-${reqLabel.slice(0, 12).replace(/[^a-zA-Z0-9]/g, '')}`;
+          const inputId = `${uid}-req-${idx}`;
 
           return (
             <div

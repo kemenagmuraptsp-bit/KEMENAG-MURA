@@ -254,21 +254,24 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-2.5">
-                  Persyaratan Administrasi
-                </h3>
-                <ul className="space-y-2 text-sm text-slate-700">
-                  {activeSub.requirements.map((req, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                      <span className="font-mono-tabular text-xs text-emerald-700 font-semibold mt-0.5">
-                        0{idx + 1}.
-                      </span>
-                      <span>{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <RequirementUploadSection
+                title="Persyaratan Administrasi & Unggah Berkas"
+                requirements={activeSub.requirements}
+                attachmentsByIndex={attachmentsByReq}
+                onChangeAttachment={(idx, att) =>
+                  setAttachmentsByReq((prev) => {
+                    const next = { ...prev };
+                    if (att) {
+                      next[idx] = att;
+                    } else {
+                      delete next[idx];
+                    }
+                    return next;
+                  })
+                }
+                isSignedIn={Boolean(user && isEligibleUser)}
+                onRequestLogin={() => openLoginModal('google')}
+              />
 
               <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -280,7 +283,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                   onClick={() => setMode('request')}
                   className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
                 >
-                  Ajukan Layanan Ini
+                  Ajukan Layanan Ini ({Object.keys(attachmentsByReq).length}/{activeSub.requirements.length} berkas)
                 </button>
               </div>
             </div>

@@ -583,23 +583,26 @@ export function UnitServicesCatalog({
             </div>
           </form>
         ) : (
-          /* Standard Service Detail: Requirements + Conditional Templates + Primary CTA */
+          /* Standard Service Detail: Uploadable Requirements + Conditional Templates + Primary CTA */
           <div className="space-y-6">
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                Kelengkapan Berkas Persyaratan
-              </h4>
-              <ul className="space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
-                {sub.requirements.map((req, rIdx) => (
-                  <li key={rIdx} className="flex items-start gap-2.5">
-                    <span className="font-mono-tabular text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-1 shrink-0">
-                      0{rIdx + 1}.
-                    </span>
-                    <span className="leading-relaxed">{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <RequirementUploadSection
+              title="Kelengkapan & Unggah Berkas Persyaratan"
+              requirements={sub.requirements}
+              attachmentsByIndex={attachmentsByReq}
+              onChangeAttachment={(idx, att) =>
+                setAttachmentsByReq((prev) => {
+                  const next = { ...prev };
+                  if (att) {
+                    next[idx] = att;
+                  } else {
+                    delete next[idx];
+                  }
+                  return next;
+                })
+              }
+              isSignedIn={Boolean(user && isEligibleUser)}
+              onRequestLogin={() => openLoginModal('google')}
+            />
 
             {/* Templates Section (flat hairline divider instead of nested cards) */}
             {templates.length > 0 && (
@@ -692,9 +695,16 @@ export function UnitServicesCatalog({
 
             {/* Bottom CTA */}
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Siap mengajukan layanan ini secara daring untuk mendapatkan nomor tiket PTSP?
-              </p>
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {Object.keys(attachmentsByReq).length > 0
+                    ? `${Object.keys(attachmentsByReq).length} dari ${sub.requirements.length} berkas persyaratan siap dikirim.`
+                    : 'Unggah berkas persyaratan di atas sebelum mengajukan layanan.'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Lanjutkan ke formulir pendaftaran untuk mendapatkan nomor tiket PTSP.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
