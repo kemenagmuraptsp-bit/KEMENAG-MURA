@@ -153,7 +153,7 @@ service cloud.firestore {
     }
 
     function isOperatorPtsp() {
-      return isVerifiedUser()
+      return isSignedIn()
         && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
         && isOperatorPtspData(
           get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
@@ -167,7 +167,7 @@ service cloud.firestore {
     }
 
     function isPimpinan() {
-      return isVerifiedUser()
+      return isSignedIn()
         && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
         && isPimpinanData(
           get(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid)).data
@@ -183,7 +183,7 @@ service cloud.firestore {
     }
 
     function isOperatorSeksiForUnit(unitId) {
-      return isVerifiedUser()
+      return isSignedIn()
         && unitId is string
         && exists(/databases/$(database)/documents/verifiedEmployees/$(request.auth.uid))
         && isOperatorSeksiDataForUnit(

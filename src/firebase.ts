@@ -1731,16 +1731,21 @@ async function buildPtspTicketUpdateDiag(
       'status', 'adminNote', 'seksiReviewer', 'tteSentToLeader', 'tteLeaderNote',
       'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount', 'updatedAt',
     ]);
+    const ptspAllowedKeys = new Set([
+      'status', 'adminNote', 'dispatchedToSeksi', 'dispatchedUnitId',
+      'dispatchedUnitTitle', 'dispatchedBy', 'checkedDocsPattern',
+      'verifiedDocsCount', 'totalDocsCount', 'updatedAt',
+    ]);
     const changedKeys = tData
       ? Object.keys(payload).filter((k) => !(k in tData) || tData[k] !== payload[k])
       : Object.keys(payload);
     const isIdStr = (v: unknown) =>
       typeof v === 'string' && v.length >= 1 && v.length <= 128 && /^[a-zA-Z0-9_\-]+$/.test(v);
-    const ruleChecks = merged
+
+    const checks: Record<string, boolean> = merged
       ? {
-          ownerMatch: merged.userId === auth.currentUser.uid,
-          missingReq: requiredKeys.filter((k) => !(k in merged)),
-          extraKeys: Object.keys(merged).filter((k) => !allowedKeys.has(k)),
+          noMissingReq: requiredKeys.every((k) => k in merged),
+          noExtraKeys: Object.keys(merged).every((k) => allowedKeys.has(k)),
           idOk: merged.id === ticketId && isIdStr(merged.id),
           ticketNoOk:
             typeof merged.ticketNo === 'string' &&
@@ -1805,13 +1810,11 @@ async function buildPtspTicketUpdateDiag(
           verifiedIntOk:
             !('verifiedDocsCount' in merged) ||
             (typeof merged.verifiedDocsCount === 'number' &&
-              Number.isInteger(merged.verifiedDocsCount) &&
               merged.verifiedDocsCount >= 0 &&
               merged.verifiedDocsCount <= 40),
           totalIntOk:
             !('totalDocsCount' in merged) ||
             (typeof merged.totalDocsCount === 'number' &&
-              Number.isInteger(merged.totalDocsCount) &&
               merged.totalDocsCount >= 0 &&
               merged.totalDocsCount <= 40),
           uploadedDocsOk:
@@ -1861,29 +1864,40 @@ async function buildPtspTicketUpdateDiag(
           createdAtIsTs: tData?.createdAt instanceof Timestamp,
           updatedAtIsTs: tData?.updatedAt instanceof Timestamp,
           seksiKeysOk: changedKeys.every((k) => seksiAllowedKeys.has(k)),
+          ptspKeysOk: changedKeys.every((k) => ptspAllowedKeys.has(k)),
         }
-      : null;
+      : {};
+
+    const failedChecks = Object.entries(checks)
+      .filter(([, ok]) => !ok)
+      .map(([name]) => name);
+
     return ` | diag=${JSON.stringify({
-      empExists: empSnap.exists(),
-      empStatus: empData?.status ?? null,
-      empRole: empData?.operatorRole ?? null,
-      empUnit: empData?.assignedUnitId ?? null,
-      tokenEmail: tokenResult?.claims?.email ?? null,
-      tokenEmailVerified: tokenResult?.claims?.email_verified ?? null,
-      payloadKeys: Object.keys(payload),
-      changedKeys,
+      failedChecks,
+      missingReq: merged ? requiredKeys.filter((k) => !(k in merged)) : null,
+      extraKeys: merged ? Object.keys(merged).filter((k) => !allowedKeys.has(k)) : null,
+      emp: {
+        exists: empSnap.exists(),
+        status: empData?.status ?? null,
+        role: empData?.operatorRole ?? null,
+        unit: empData?.assignedUnitId ?? null,
+      },
+      token: {
+        email: tokenResult?.claims?.email ?? null,
+        verified: tokenResult?.claims?.email_verified ?? null,
+      },
+      ticket: {
+        exists: ticketSnap ? ticketSnap.exists() : null,
+        status: tData?.status ?? null,
+        dispatched: tData?.dispatchedToSeksi ?? null,
+        dUnit: tData?.dispatchedUnitId ?? null,
+        unitMatch:
+          empData?.assignedUnitId && tData?.dispatchedUnitId
+            ? empData.assignedUnitId === tData.dispatchedUnitId
+            : null,
+      },
       status: payload.status,
-      dispatchedToSeksi: payload.dispatchedToSeksi ?? null,
-      dispatchedUnitId: payload.dispatchedUnitId ?? null,
-      ticketExists: ticketSnap ? ticketSnap.exists() : null,
-      ticketStatus: tData?.status ?? null,
-      ticketDispatched: tData?.dispatchedToSeksi ?? null,
-      ticketDispatchedUnit: tData?.dispatchedUnitId ?? null,
-      unitMatch:
-        empData?.assignedUnitId && tData?.dispatchedUnitId
-          ? empData.assignedUnitId === tData.dispatchedUnitId
-          : null,
-      ruleChecks,
+      changedKeys,
     })}`;
   } catch {
     return '';

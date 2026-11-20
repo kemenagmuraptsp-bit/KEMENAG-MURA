@@ -330,6 +330,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onGlobalKeyDown = (e: KeyboardEvent) => {
+      if (typeof e.key !== 'string' || !e.key) return;
       const key = e.key.toLowerCase();
       const isCtrlAltAdmin = e.ctrlKey && e.altKey && !e.metaKey && (key === 'a' || key === 'k');
       const isAltShiftAdmin = e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && key === 'a';
