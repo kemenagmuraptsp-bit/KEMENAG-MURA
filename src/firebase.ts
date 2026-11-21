@@ -32,6 +32,12 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import type { NewsArticle } from '@/src/types';
+import type {
+  InfoMetric,
+  InfoOrgNode,
+  InfoSection,
+  InformasiUnitConfig,
+} from '@/src/data/informasiData';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -186,6 +192,26 @@ export type SeksiUnitId =
   | 'bimas-hindu'
   | 'bimas-kristen'
   | 'kepegawaian';
+
+export interface CloudInfoSectionRecord {
+  id: string;
+  seksiUnitId: SeksiUnitId;
+  infoUnitId: string;
+  sectionId: string;
+  sectionLabel: string;
+  title: string;
+  subtitle: string;
+  updatedAtLabel: string;
+  columns: string[];
+  rows: string[][];
+  rowCount: number;
+  metrics?: InfoMetric[];
+  orgNodes?: InfoOrgNode[];
+  footnote?: string;
+  updatedByName: string;
+  createdAt?: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}
 
 export type PtspTicketStatus =
   | 'Diproses Verifikasi'
@@ -2411,4 +2437,279 @@ export function mergeNewsArticles(
 
   return [...customCloud, ...mergedStatic];
 }
+
+/* -------------------------------------------------------------------------- */
+/* MENU INFORMASI DATA (SUPER ADMIN & OPERATOR SEKSI SESUAI KEWENANGAN)       */
+/* -------------------------------------------------------------------------- */
+
+function safeParseJsonArray<T>(raw: unknown): T[] | undefined {
+  if (typeof raw !== 'string' || !raw.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function subscribeInfoSectionData(
+  onData: (rows: CloudInfoSectionRecord[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = 'infoSectionData';
+  const q = query(collection(db, path), limit(100));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const records: CloudInfoSectionRecord[] = [];
+      snapshot.docs.forEach((d) => {
+        const data = d.data();
+        const rawUnit = String(data.seksiUnitId ?? '');
+        if (!VALID_SEKSI_UNITS.has(rawUnit as SeksiUnitId)) return;
+
+        const parsedRows = safeParseJsonArray<string[]>(data.rowsJson) || [];
+        const cleanRows = parsedRows.map((r) =>
+          Array.isArray(r) ? r.map((cell) => String(cell ?? '')) : []
+        );
+        const cleanCols = Array.isArray(data.columns)
+          ? data.columns.map((c) => String(c ?? '')).filter(Boolean).slice(0, 20)
+          : ['No', 'Uraian'];
+
+        records.push({
+          id: String(data.id ?? d.id),
+          seksiUnitId: rawUnit as SeksiUnitId,
+          infoUnitId: String(data.infoUnitId ?? rawUnit),
+          sectionId: String(data.sectionId ?? ''),
+          sectionLabel: String(data.sectionLabel ?? ''),
+          title: String(data.title ?? ''),
+          subtitle: String(data.subtitle ?? ''),
+          updatedAtLabel: String(data.updatedAtLabel ?? ''),
+          columns: cleanCols.length > 0 ? cleanCols : ['No', 'Uraian'],
+          rows: cleanRows,
+          rowCount: typeof data.rowCount === 'number' ? data.rowCount : cleanRows.length,
+          metrics: safeParseJsonArray<InfoMetric>(data.metricsJson),
+          orgNodes: safeParseJsonArray<InfoOrgNode>(data.orgNodesJson),
+          footnote: data.footnote ? String(data.footnote) : undefined,
+          updatedByName: String(data.updatedByName ?? 'Admin'),
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+          updatedAt: (data.updatedAt as Timestamp | null) ?? null,
+        });
+      });
+
+      onData(records);
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function saveInfoSectionData(params: {
+  seksiUnitId: SeksiUnitId;
+  infoUnitId: string;
+  sectionId: string;
+  sectionLabel: string;
+  title: string;
+  subtitle?: string;
+  updatedAtLabel?: string;
+  columns: string[];
+  rows: string[][];
+  metrics?: InfoMetric[];
+  orgNodes?: InfoOrgNode[];
+  footnote?: string;
+  updatedByName: string;
+}): Promise<string> {
+  const {
+    seksiUnitId,
+    infoUnitId,
+    sectionId,
+    sectionLabel,
+    title,
+    subtitle,
+    updatedAtLabel,
+    columns,
+    rows,
+    metrics,
+    orgNodes,
+    footnote,
+    updatedByName,
+  } = params;
+
+  if (!VALID_SEKSI_UNITS.has(seksiUnitId)) {
+    throw new Error('ID unit seksi tidak valid.');
+  }
+
+  const safeSectionId = sectionId.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+  const safeInfoUnitId = infoUnitId.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+  if (!safeSectionId || !safeInfoUnitId) {
+    throw new Error('Identitas subbagian informasi tidak valid.');
+  }
+
+  const docId = `${seksiUnitId}__${safeSectionId}`;
+  const path = `infoSectionData/${docId}`;
+  const docRef = doc(db, 'infoSectionData', docId);
+
+  const cleanColumns = columns
+    .map((c) => clampStr(c, 80))
+    .filter(Boolean)
+    .slice(0, 20);
+  if (cleanColumns.length === 0) {
+    cleanColumns.push('No', 'Uraian');
+  }
+
+  const normalizedRows = rows.slice(0, 5000).map((row) =>
+    cleanColumns.map((_, idx) => clampStr(row[idx] ?? '', 300))
+  );
+
+  const rowsJson = JSON.stringify(normalizedRows);
+  if (rowsJson.length > 395000) {
+    throw new Error(
+      'Ukuran data tabel melebihi batas dokumen Firestore (maksimal ~395 KB). Kurangi jumlah baris atau ringkas teks.'
+    );
+  }
+
+  const payload: Record<string, unknown> = {
+    id: docId,
+    seksiUnitId,
+    infoUnitId: clampStr(safeInfoUnitId, 60),
+    sectionId: clampStr(safeSectionId, 80),
+    sectionLabel: clampStr(sectionLabel, 100, 'Data Informasi'),
+    title: clampStr(title, 200, 'Data Satuan Kerja'),
+    subtitle: clampStr(subtitle, 400),
+    updatedAtLabel: clampStr(
+      updatedAtLabel,
+      80,
+      `Diperbarui · ${formatTodayLabel()}`
+    ),
+    columns: cleanColumns,
+    rowsJson,
+    rowCount: normalizedRows.length,
+    updatedByName: clampStr(updatedByName, 120, 'Operator Seksi'),
+    updatedAt: serverTimestamp(),
+  };
+
+  if (metrics && metrics.length > 0) {
+    const cleanMetrics = metrics.slice(0, 6).map((m) => ({
+      label: clampStr(m.label, 80),
+      value: clampStr(m.value, 80),
+      ...(m.note ? { note: clampStr(m.note, 140) } : {}),
+    }));
+    const metricsJson = JSON.stringify(cleanMetrics);
+    if (metricsJson.length <= 20000) {
+      payload.metricsJson = metricsJson;
+    }
+  }
+
+  if (orgNodes && orgNodes.length > 0) {
+    const cleanOrg = orgNodes.slice(0, 80).map((n) => ({
+      role: clampStr(n.role, 120),
+      name: clampStr(n.name, 120),
+      level:
+        n.level === 'pimpinan' || n.level === 'koordinator'
+          ? n.level
+          : ('pelaksana' as const),
+      ...(n.nip ? { nip: clampStr(n.nip, 30) } : {}),
+      ...(n.division ? { division: clampStr(n.division, 200) } : {}),
+    }));
+    const orgNodesJson = JSON.stringify(cleanOrg);
+    if (orgNodesJson.length <= 60000) {
+      payload.orgNodesJson = orgNodesJson;
+    }
+  }
+
+  if (footnote && footnote.trim()) {
+    payload.footnote = clampStr(footnote, 400);
+  }
+
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    const existingSnap = await getDoc(docRef);
+    if (!existingSnap.exists()) {
+      await setDoc(docRef, {
+        ...payload,
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      const updatePayload: Record<string, unknown> = { ...payload };
+      delete updatePayload.id;
+      delete updatePayload.seksiUnitId;
+      delete updatePayload.infoUnitId;
+      delete updatePayload.sectionId;
+      try {
+        await updateDoc(docRef, updatePayload);
+      } catch (firstErr) {
+        const msg = firstErr instanceof Error ? firstErr.message : String(firstErr ?? '');
+        if (
+          auth.currentUser &&
+          (msg.includes('Missing or insufficient permissions') || msg.includes('permission-denied'))
+        ) {
+          await auth.currentUser.getIdToken(true);
+          await updateDoc(docRef, updatePayload);
+        } else {
+          throw firstErr;
+        }
+      }
+    }
+    return docId;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function resetInfoSectionData(
+  seksiUnitId: SeksiUnitId,
+  sectionId: string
+): Promise<void> {
+  const safeSectionId = sectionId.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+  const docId = `${seksiUnitId}__${safeSectionId}`;
+  const path = `infoSectionData/${docId}`;
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken();
+    }
+    await deleteDoc(doc(db, 'infoSectionData', docId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export function mergeInformasiUnits(
+  baseUnits: InformasiUnitConfig[],
+  cloudRecords: CloudInfoSectionRecord[]
+): InformasiUnitConfig[] {
+  if (cloudRecords.length === 0) return baseUnits;
+  const byKey = new Map<string, CloudInfoSectionRecord>();
+  cloudRecords.forEach((rec) => {
+    byKey.set(`${rec.seksiUnitId}__${rec.sectionId}`, rec);
+  });
+
+  return baseUnits.map((unit) => ({
+    ...unit,
+    sections: unit.sections.map((sec): InfoSection => {
+      const cloud = byKey.get(`${unit.seksiUnitId}__${sec.id}`);
+      if (!cloud) return sec;
+      return {
+        ...sec,
+        label: cloud.sectionLabel || sec.label,
+        title: cloud.title || sec.title,
+        subtitle: cloud.subtitle || sec.subtitle,
+        updatedAt: cloud.updatedAtLabel || sec.updatedAt,
+        metrics:
+          cloud.metrics && cloud.metrics.length > 0 ? cloud.metrics : sec.metrics,
+        columns: cloud.orgNodes ? sec.columns : cloud.columns,
+        rows: cloud.orgNodes ? sec.rows : cloud.rows,
+        orgNodes:
+          cloud.orgNodes && cloud.orgNodes.length > 0
+            ? cloud.orgNodes
+            : sec.orgNodes,
+        footnote: cloud.footnote ?? sec.footnote,
+      };
+    }),
+  }));
+}
+
 

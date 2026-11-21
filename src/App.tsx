@@ -10,6 +10,7 @@ import {
   ComplaintSubmission,
 } from '@/src/types';
 import { NEWS_ARTICLES, SERVICE_UNITS } from '@/src/data/kemenagData';
+import { INFORMASI_UNITS, InformasiUnitId } from '@/src/data/informasiData';
 import { Navbar } from '@/src/components/Navbar';
 import { Footer } from '@/src/components/Footer';
 import { BerandaView } from '@/src/components/BerandaView';
@@ -19,6 +20,7 @@ import { AuthRoleProvider, useAuthRole } from '@/src/context/AuthRoleContext';
 import { LoginModal } from '@/src/components/LoginModal';
 import { SuperAdminModal } from '@/src/components/SuperAdminModal';
 import { OperatorModal } from '@/src/components/OperatorModal';
+import { InformasiUnitView } from '@/src/components/InformasiUnitView';
 import {
   ProfilView,
   LayananView,
@@ -44,6 +46,7 @@ const VIEW_TITLES: Record<PageView, string> = {
   beranda: 'Beranda | Kemenag Kabupaten Murung Raya',
   profil: 'Profil Kantor | Kemenag Kabupaten Murung Raya',
   layanan: 'Layanan PTSP | Kemenag Kabupaten Murung Raya',
+  informasi: 'Informasi Satuan Kerja | Kemenag Kabupaten Murung Raya',
   berita: 'Berita & Media Center | Kemenag Kabupaten Murung Raya',
   galeri: 'Galeri Dokumentasi | Kemenag Kabupaten Murung Raya',
   ppid: 'PPID & Informasi Publik | Kemenag Kabupaten Murung Raya',
@@ -139,6 +142,12 @@ export default function App() {
   const [activeServiceUnitId, setActiveServiceUnitId] = useState<string>(SERVICE_UNITS[0].id);
   const [activeSubServiceId, setActiveSubServiceId] = useState<string>(
     SERVICE_UNITS[0].subServices[0].id
+  );
+  const [activeInfoUnitId, setActiveInfoUnitId] = useState<InformasiUnitId>(
+    INFORMASI_UNITS[0].id
+  );
+  const [activeInfoSectionId, setActiveInfoSectionId] = useState<string>(
+    INFORMASI_UNITS[0].sections[0].id
   );
 
   const [selectedService, setSelectedService] = useState<ServiceUnit | null>(null);
@@ -240,15 +249,31 @@ export default function App() {
     }, 80);
   };
 
-  const handleNavigateToKepegawaian = () => {
-    const kepUnit = SERVICE_UNITS.find((u) => u.id === 'kepegawaian');
-    if (kepUnit) {
-      setActiveServiceUnitId(kepUnit.id);
-      setActiveSubServiceId(kepUnit.subServices[0]?.id || '');
+  const handleSelectServiceUnitById = (unitId: string) => {
+    const targetUnit = SERVICE_UNITS.find((u) => u.id === unitId);
+    if (targetUnit) {
+      setActiveServiceUnitId(targetUnit.id);
+      setActiveSubServiceId(targetUnit.subServices[0]?.id || '');
     }
     setServiceSidebarOpen(false);
     setActiveView('layanan');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectInformasiUnit = (unitId: InformasiUnitId, sectionId?: string) => {
+    const targetUnit = INFORMASI_UNITS.find((u) => u.id === unitId) || INFORMASI_UNITS[0];
+    setActiveInfoUnitId(targetUnit.id);
+    const targetSection =
+      (sectionId && targetUnit.sections.find((s) => s.id === sectionId)) ||
+      targetUnit.sections[0];
+    setActiveInfoSectionId(targetSection.id);
+    setServiceSidebarOpen(false);
+    setActiveView('informasi');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToKepegawaian = () => {
+    handleSelectServiceUnitById('kepegawaian');
   };
 
   const handleOpenAdminConsole = () => {
@@ -345,6 +370,8 @@ export default function App() {
         onNavigate={handleNavigate}
         onNavigateToHistory={handleNavigateToHistory}
         onNavigateToKepegawaian={handleNavigateToKepegawaian}
+        onSelectServiceUnit={handleSelectServiceUnitById}
+        onSelectInformasiUnit={handleSelectInformasiUnit}
         lang={lang}
         onChangeLang={setLang}
         isDark={isDark}
@@ -404,8 +431,8 @@ export default function App() {
           <div className="w-full max-w-[390px] bg-slate-50 dark:bg-slate-950 h-full overflow-y-auto p-3.5 space-y-3 shadow-2xl border-r border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between px-2 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-950 flex items-center justify-center shrink-0">
-                  <KemenagEmblem className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 flex items-center justify-center shrink-0">
+                  <KemenagEmblem className="w-6 h-6" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
@@ -458,8 +485,17 @@ export default function App() {
             tickets={ptspTickets}
             selectedUnitId={activeServiceUnitId}
             selectedSubId={activeSubServiceId}
+            onSelectUnitId={handleSelectServiceUnitById}
             onOpenServiceSidebar={() => setServiceSidebarOpen(true)}
             onTicketCreated={handleTicketCreated}
+          />
+        )}
+        {activeView === 'informasi' && (
+          <InformasiUnitView
+            selectedUnitId={activeInfoUnitId}
+            selectedSectionId={activeInfoSectionId}
+            onSelectUnit={handleSelectInformasiUnit}
+            onNavigate={handleNavigate}
           />
         )}
         {activeView === 'berita' && <BeritaView onSelectArticle={setSelectedArticle} />}

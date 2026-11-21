@@ -37,7 +37,8 @@ export const OFFICE_INFO = {
   whatsapp: '0811-5209-411',
   hoursWeekday: 'Senin – Kamis: 07:30 – 16:00 WIB',
   hoursFriday: "Jum'at: 07:30 – 16:30 WIB",
-  heroImage: heroBuildingImg,
+  heroImage: '/assets/aistudio/Gemini_Generated_Image_3z5a2m3z5a2m3z5a_6d0e09db.jpg',
+  officeBuildingImage: heroBuildingImg,
 };
 
 export const OFFICIAL_NEWS_IMAGE_PRESETS = [

@@ -535,6 +535,61 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function isValidInfoSectionData(data, docId) {
+      return data.keys().hasAll([
+          'id',
+          'seksiUnitId',
+          'infoUnitId',
+          'sectionId',
+          'sectionLabel',
+          'title',
+          'updatedAtLabel',
+          'columns',
+          'rowsJson',
+          'rowCount',
+          'updatedByName',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'seksiUnitId',
+          'infoUnitId',
+          'sectionId',
+          'sectionLabel',
+          'title',
+          'subtitle',
+          'updatedAtLabel',
+          'columns',
+          'rowsJson',
+          'rowCount',
+          'metricsJson',
+          'orgNodesJson',
+          'footnote',
+          'updatedByName',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.id is string && data.id == docId && isValidId(data.id)
+        && isValidSeksiUnitId(data.seksiUnitId)
+        && data.infoUnitId is string && data.infoUnitId.size() >= 1 && data.infoUnitId.size() <= 60 && data.infoUnitId.matches('^[a-z0-9\\-]+$')
+        && data.sectionId is string && data.sectionId.size() >= 1 && data.sectionId.size() <= 80 && data.sectionId.matches('^[a-z0-9\\-]+$')
+        && data.id == data.seksiUnitId + '__' + data.sectionId
+        && data.sectionLabel is string && data.sectionLabel.size() >= 1 && data.sectionLabel.size() <= 100
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 200
+        && (!('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 400))
+        && data.updatedAtLabel is string && data.updatedAtLabel.size() >= 2 && data.updatedAtLabel.size() <= 80
+        && data.columns is list && data.columns.size() >= 1 && data.columns.size() <= 20 && data.columns[0] is string
+        && data.rowsJson is string && data.rowsJson.size() >= 2 && data.rowsJson.size() <= 400000
+        && data.rowCount is int && data.rowCount >= 0 && data.rowCount <= 5000
+        && (!('metricsJson' in data) || (data.metricsJson is string && data.metricsJson.size() <= 20000))
+        && (!('orgNodesJson' in data) || (data.orgNodesJson is string && data.orgNodesJson.size() <= 60000))
+        && (!('footnote' in data) || (data.footnote is string && data.footnote.size() <= 400))
+        && data.updatedByName is string && data.updatedByName.size() >= 2 && data.updatedByName.size() <= 120
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{userId} {
       allow get: if isValidId(userId) && isVerifiedUser() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
@@ -844,6 +899,46 @@ service cloud.firestore {
         ]);
 
       allow delete: if isValidId(articleId) && isAdmin();
+    }
+
+    match /infoSectionData/{docId} {
+      allow get, list: if true;
+
+      allow create: if isValidId(docId)
+        && isVerifiedUser()
+        && isValidInfoSectionData(incoming(), docId)
+        && (isAdmin() || isOperatorSeksiForUnit(incoming().seksiUnitId))
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(docId)
+        && isVerifiedUser()
+        && isValidInfoSectionData(incoming(), docId)
+        && (isAdmin() || isOperatorSeksiForUnit(existing().seksiUnitId))
+        && incoming().id == existing().id
+        && incoming().seksiUnitId == existing().seksiUnitId
+        && incoming().infoUnitId == existing().infoUnitId
+        && incoming().sectionId == existing().sectionId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'sectionLabel',
+          'title',
+          'subtitle',
+          'updatedAtLabel',
+          'columns',
+          'rowsJson',
+          'rowCount',
+          'metricsJson',
+          'orgNodesJson',
+          'footnote',
+          'updatedByName',
+          'updatedAt'
+        ]);
+
+      allow delete: if isValidId(docId)
+        && isVerifiedUser()
+        && (isAdmin() || isOperatorSeksiForUnit(existing().seksiUnitId));
     }
   }
 }

@@ -2,6 +2,7 @@ export type PageView =
   | 'beranda'
   | 'profil'
   | 'layanan'
+  | 'informasi'
   | 'berita'
   | 'galeri'
   | 'ppid'

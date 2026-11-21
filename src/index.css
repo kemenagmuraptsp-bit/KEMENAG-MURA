@@ -89,6 +89,106 @@
   animation: scrollWheelMove 1.4s ease-in-out infinite;
 }
 
+@keyframes dropdownReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown-reveal {
+  animation: dropdownReveal 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.menu-expand-btn {
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+
+.menu-expand-btn:hover {
+  transform: translateY(-1px);
+}
+
+.menu-expand-label {
+  display: inline-block;
+  transform-origin: center;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    letter-spacing 200ms ease,
+    color 200ms ease;
+}
+
+.menu-expand-btn:hover .menu-expand-label,
+.menu-expand-btn:focus-visible .menu-expand-label {
+  transform: scale(1.08);
+}
+
+.menu-expand-btn-left {
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+
+.menu-expand-btn-left .menu-expand-label {
+  display: inline-block;
+  transform-origin: left center;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    letter-spacing 200ms ease,
+    color 200ms ease;
+}
+
+.menu-expand-btn-left:hover .menu-expand-label,
+.menu-expand-btn-left:focus-visible .menu-expand-label {
+  transform: scale(1.07) translateX(4px);
+}
+
+.service-expand-row {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+
+.service-expand-title {
+  display: inline-block;
+  transform-origin: left center;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms ease,
+    letter-spacing 200ms ease;
+}
+
+.service-expand-row:hover .service-expand-title,
+.service-expand-row:focus-visible .service-expand-title {
+  transform: scale(1.04) translateX(4px);
+}
+
+.service-card-expand-title {
+  display: inline-block;
+  transform-origin: left center;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 200ms ease;
+}
+
+.group:hover .service-card-expand-title,
+.group:focus-visible .service-card-expand-title {
+  transform: scale(1.06) translateX(3px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

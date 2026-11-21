@@ -412,9 +412,9 @@ export function UnitServicesCatalog({
                   setCreatedTicket(null);
                   setPanelMode('form');
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg whitespace-nowrap shrink-0"
+                className="menu-expand-btn px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg whitespace-nowrap shrink-0"
               >
-                Ajukan Permohonan Lagi
+                <span className="menu-expand-label">Ajukan Permohonan Lagi</span>
               </button>
               <button
                 type="button"
@@ -422,9 +422,9 @@ export function UnitServicesCatalog({
                   setCreatedTicket(null);
                   setPanelMode('detail');
                 }}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-lg whitespace-nowrap shrink-0"
+                className="menu-expand-btn px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-lg whitespace-nowrap shrink-0"
               >
-                Kembali ke Persyaratan
+                <span className="menu-expand-label">Kembali ke Persyaratan</span>
               </button>
             </div>
           </div>
@@ -639,18 +639,18 @@ export function UnitServicesCatalog({
                               onClick={() =>
                                 setPreviewTemplateId(isPreviewOpen ? null : tpl.id)
                               }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+                              className="menu-expand-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 whitespace-nowrap shrink-0"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>{isPreviewOpen ? 'Tutup' : 'Pratinjau'}</span>
+                              <span className="menu-expand-label">{isPreviewOpen ? 'Tutup' : 'Pratinjau'}</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => downloadWordTemplate(tpl)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                              className="menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold whitespace-nowrap shrink-0"
                             >
                               <Download className="w-3.5 h-3.5" />
-                              <span>Unduh (.doc)</span>
+                              <span className="menu-expand-label">Unduh (.doc)</span>
                             </button>
                           </div>
                         </div>
@@ -711,9 +711,9 @@ export function UnitServicesCatalog({
                   setCreatedTicket(null);
                   setPanelMode('form');
                 }}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                className="menu-expand-btn inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg whitespace-nowrap shrink-0 shadow-xs"
               >
-                <span>Ajukan Layanan</span>
+                <span className="menu-expand-label">Ajukan Layanan</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -726,7 +726,7 @@ export function UnitServicesCatalog({
   return (
     <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
       {/* Compact Institutional Unit Header Strip */}
-      <div className="px-5 py-5 sm:px-7 bg-emerald-950 text-white border-b border-emerald-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="px-5 py-5 sm:px-7 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white border-b border-emerald-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-300 font-semibold">
             <span>Bidang {unit.code}</span>
@@ -767,10 +767,10 @@ export function UnitServicesCatalog({
           <button
             type="button"
             onClick={onOpenServiceSidebar}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-emerald-400/30 text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+            className="menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-emerald-400/30 text-white text-xs font-bold whitespace-nowrap shrink-0"
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Ganti Bidang (Sidebar Kiri)</span>
+            <span className="menu-expand-label">Ganti Bidang (Sidebar Kiri)</span>
           </button>
         </div>
       </div>
@@ -786,7 +786,7 @@ export function UnitServicesCatalog({
           {/* DESKTOP MASTER-DETAIL SPLIT DIRECTORY (Compact, Low Vertical Footprint) */}
           <div className="hidden lg:grid lg:grid-cols-12 items-start">
             {/* Left Directory List (All Services of Active Section) */}
-            <div className="lg:col-span-5 border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 divide-y divide-slate-200 dark:divide-slate-800">
+            <div className="lg:col-span-5 border-r border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40 divide-y divide-slate-200/80 dark:divide-slate-800">
               {visibleServices.map((sub) => {
                 const origIdx = unit.subServices.findIndex((item) => item.id === sub.id);
                 const numberLabel = String(origIdx + 1).padStart(2, '0');
@@ -801,33 +801,35 @@ export function UnitServicesCatalog({
                     key={sub.id}
                     type="button"
                     onClick={() => handleSelectRow(sub.id)}
-                    className={`w-full text-left px-4 py-3.5 flex items-start justify-between gap-3 transition-colors ${
+                    className={`service-expand-row group/svc w-full text-left px-4 py-4 flex items-start justify-between gap-3 ${
                       active
-                        ? 'bg-emerald-50/90 dark:bg-emerald-950/50'
-                        : 'hover:bg-white dark:hover:bg-slate-900'
+                        ? 'bg-gradient-to-r from-emerald-50 via-emerald-50/60 to-white dark:from-emerald-950/65 dark:via-emerald-950/35 dark:to-slate-900'
+                        : 'hover:bg-gradient-to-r hover:from-emerald-50/80 hover:to-white dark:hover:from-emerald-950/40 dark:hover:to-slate-900'
                     }`}
                   >
-                    <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1 pr-2">
                       <span
-                        className={`font-mono-tabular text-xs font-bold mt-0.5 shrink-0 ${
+                        className={`w-7 h-7 rounded-lg font-mono-tabular text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
                           active
-                            ? 'text-emerald-700 dark:text-emerald-400'
-                            : 'text-slate-400 dark:text-slate-500'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800/90 text-slate-500 dark:text-slate-400 group-hover/svc:bg-emerald-600 group-hover/svc:text-white group-hover/svc:scale-105 group-hover/svc:shadow-xs'
                         }`}
                       >
-                        {numberLabel}.
+                        {numberLabel}
                       </span>
-                      <div className="min-w-0 space-y-1">
-                        <p
-                          className={`text-sm leading-snug ${
-                            active
-                              ? 'font-bold text-emerald-950 dark:text-white'
-                              : 'font-semibold text-slate-800 dark:text-slate-200'
-                          }`}
-                        >
-                          {sub.title}
+                      <div className="min-w-0 space-y-1.5 flex-1">
+                        <p className="leading-snug pr-2">
+                          <span
+                            className={`service-expand-title text-sm leading-snug ${
+                              active
+                                ? 'font-bold text-emerald-950 dark:text-white'
+                                : 'font-semibold text-slate-800 dark:text-slate-200 group-hover/svc:text-emerald-800 dark:group-hover/svc:text-emerald-300 group-hover/svc:font-bold'
+                            }`}
+                          >
+                            {sub.title}
+                          </span>
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 transition-colors group-hover/svc:text-slate-600 dark:group-hover/svc:text-slate-300">
                           <span className="font-mono-tabular">{sub.sla}</span>
                           <span aria-hidden="true">·</span>
                           <span>{sub.fee === 'Rp 0 (Gratis)' ? 'Gratis' : sub.fee}</span>
@@ -859,13 +861,15 @@ export function UnitServicesCatalog({
                       </div>
                     </div>
 
-                    <ChevronRight
-                      className={`w-4 h-4 shrink-0 mt-1 transition-transform ${
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
                         active
-                          ? 'text-emerald-700 dark:text-emerald-400 translate-x-0.5'
-                          : 'text-slate-300 dark:text-slate-600'
+                          ? 'bg-emerald-700 text-white shadow-xs translate-x-0.5'
+                          : 'bg-slate-100/80 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover/svc:bg-emerald-600 group-hover/svc:text-white group-hover/svc:translate-x-1'
                       }`}
-                    />
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
                   </button>
                 );
               })}
@@ -890,7 +894,7 @@ export function UnitServicesCatalog({
           </div>
 
           {/* MOBILE COMPACT ACCORDION DIRECTORY */}
-          <div className="lg:hidden divide-y divide-slate-200 dark:divide-slate-800">
+          <div className="lg:hidden divide-y divide-slate-200/90 dark:divide-slate-800">
             {visibleServices.map((sub) => {
               const origIdx = unit.subServices.findIndex((item) => item.id === sub.id);
               const numberLabel = String(origIdx + 1).padStart(2, '0');
@@ -903,17 +907,33 @@ export function UnitServicesCatalog({
                     type="button"
                     onClick={() => handleSelectRow(sub.id)}
                     aria-expanded={isOpen}
-                    className={`w-full text-left px-4 py-3.5 flex items-start justify-between gap-3 transition-colors ${
-                      isOpen ? 'bg-emerald-50/70 dark:bg-emerald-950/40' : ''
+                    className={`service-expand-row group/svc w-full text-left px-4 py-4 flex items-start justify-between gap-3 ${
+                      isOpen
+                        ? 'bg-gradient-to-r from-emerald-50 via-emerald-50/50 to-white dark:from-emerald-950/55 dark:to-slate-900'
+                        : 'hover:bg-gradient-to-r hover:from-emerald-50/75 hover:to-white dark:hover:from-emerald-950/35 dark:hover:to-slate-900'
                     }`}
                   >
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <span className="font-mono-tabular text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0">
-                        {numberLabel}.
+                    <div className="flex items-start gap-3 min-w-0 flex-1 pr-2">
+                      <span
+                        className={`w-7 h-7 rounded-lg font-mono-tabular text-xs font-extrabold flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
+                          isOpen
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 group-hover/svc:bg-emerald-600 group-hover/svc:text-white group-hover/svc:scale-105'
+                        }`}
+                      >
+                        {numberLabel}
                       </span>
-                      <div className="space-y-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                          {sub.title}
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <p className="leading-snug pr-2">
+                          <span
+                            className={`service-expand-title text-sm font-bold leading-snug ${
+                              isOpen
+                                ? 'text-emerald-950 dark:text-white'
+                                : 'text-slate-900 dark:text-white group-hover/svc:text-emerald-800 dark:group-hover/svc:text-emerald-300'
+                            }`}
+                          >
+                            {sub.title}
+                          </span>
                         </p>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
                           {sub.sla} · {sub.fee === 'Rp 0 (Gratis)' ? 'Gratis' : sub.fee}
@@ -921,11 +941,19 @@ export function UnitServicesCatalog({
                         </p>
                       </div>
                     </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 shrink-0 mt-1 transition-transform ${
-                        isOpen ? 'rotate-180 text-emerald-700' : ''
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
+                        isOpen
+                          ? 'bg-emerald-700 text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover/svc:bg-emerald-600 group-hover/svc:text-white'
                       }`}
-                    />
+                    >
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          isOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </span>
                   </button>
 
                   {isOpen && (

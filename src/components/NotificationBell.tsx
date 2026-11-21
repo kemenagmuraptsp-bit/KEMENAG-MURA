@@ -123,7 +123,7 @@ export function HeaderAccountControls({
           title="Notifikasi Pembaruan Berkas & Pesan Petugas"
           className={`relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
             isTransparentHeroHeader
-              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+              ? 'bg-[#071226]/55 border-sky-300/25 text-white hover:bg-[#0b1d3d]/70'
               : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
@@ -239,7 +239,7 @@ export function HeaderAccountControls({
           }}
           className={`inline-flex items-center gap-2 pl-2 pr-2.5 h-9 rounded-full border text-xs font-bold transition-colors ${
             isTransparentHeroHeader
-              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+              ? 'bg-[#071226]/55 border-sky-300/25 text-white hover:bg-[#0b1d3d]/70'
               : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >

@@ -20,6 +20,14 @@ import {
   Printer,
   ZoomIn,
   X,
+  Building2,
+  Lock,
+  Copy,
+  Check,
+  Send,
+  BarChart3,
+  MessageSquareWarning,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   OFFICE_INFO,
@@ -141,7 +149,7 @@ export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }
 
           <div className="lg:col-span-5 rounded-xl overflow-hidden border border-slate-200">
             <SafeImage
-              src={OFFICE_INFO.heroImage}
+              src={OFFICE_INFO.officeBuildingImage}
               alt="Gedung Kantor Kementerian Agama Kabupaten Murung Raya"
               className="w-full h-full object-cover min-h-[260px]"
             />
@@ -240,12 +248,14 @@ export function LayananView({
   tickets,
   selectedUnitId,
   selectedSubId,
+  onSelectUnitId,
   onOpenServiceSidebar,
   onTicketCreated,
 }: {
   tickets: PTSPTicket[];
   selectedUnitId: string;
   selectedSubId: string;
+  onSelectUnitId?: (unitId: string) => void;
   onOpenServiceSidebar: () => void;
   onTicketCreated: (ticket: PTSPTicket) => void;
 }) {
@@ -399,7 +409,43 @@ export function LayananView({
           </div>
         )}
 
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {onSelectUnitId && (
+            <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-2 flex flex-wrap items-center gap-2 shadow-2xs">
+              {availableUnits.map((unit) => {
+                const isSelected = unit.id === activeUnit.id;
+                return (
+                  <button
+                    key={unit.id}
+                    type="button"
+                    onClick={() => onSelectUnitId(unit.id)}
+                    className={`group menu-expand-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-md shadow-emerald-900/20'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:bg-emerald-50/90 dark:hover:bg-slate-800 hover:text-emerald-900 dark:hover:text-emerald-300 hover:shadow-xs'
+                    }`}
+                  >
+                    {unit.id === 'kepegawaian' ? (
+                      <Lock className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    ) : (
+                      <Building2 className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    )}
+                    <span className="menu-expand-label">{unit.title}</span>
+                    <span
+                      className={`font-mono-tabular text-[11px] ${
+                        isSelected
+                          ? 'text-emerald-200'
+                          : 'text-slate-400 dark:text-slate-500'
+                      }`}
+                    >
+                      ({unit.subServices.length})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <UnitServicesCatalog
             unit={activeUnit}
             highlightedSubId={activeSub.id}
@@ -723,13 +769,13 @@ export function BeritaView({ onSelectArticle }: { onSelectArticle: (a: NewsArtic
                 key={cat}
                 type="button"
                 onClick={() => setCategory(cat)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
+                className={`menu-expand-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap ${
                   category === cat
-                    ? 'bg-emerald-700 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
                 }`}
               >
-                {cat}
+                <span className="menu-expand-label">{cat}</span>
               </button>
             ))}
           </div>
@@ -817,20 +863,20 @@ export function GaleriView({ onSelectGallery }: { onSelectGallery: (g: GalleryIt
           <button
             type="button"
             onClick={() => setTab('foto')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              tab === 'foto' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+            className={`menu-expand-btn px-4 py-1.5 text-xs font-semibold rounded-md ${
+              tab === 'foto' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
             }`}
           >
-            Dokumentasi Foto ({GALLERY_ITEMS.length})
+            <span className="menu-expand-label">Dokumentasi Foto ({GALLERY_ITEMS.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setTab('video')}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              tab === 'video' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+            className={`menu-expand-btn px-4 py-1.5 text-xs font-semibold rounded-md ${
+              tab === 'video' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
             }`}
           >
-            Kanal Video ({VIDEO_ITEMS.length})
+            <span className="menu-expand-label">Kanal Video ({VIDEO_ITEMS.length})</span>
           </button>
         </div>
 
@@ -935,11 +981,11 @@ export function PPIDView({ onNavigate }: { onNavigate: (v: PageView) => void }) 
                 key={c}
                 type="button"
                 onClick={() => setCat(c)}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
-                  cat === c ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                className={`menu-expand-btn px-3.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap ${
+                  cat === c ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
                 }`}
               >
-                {c}
+                <span className="menu-expand-label">{c}</span>
               </button>
             ))}
           </div>
@@ -1082,18 +1128,18 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
           <button
             type="button"
             onClick={() => scrollToSection('pilar-zi')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+            className="menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-            <span>6 Pilar WBK / WBBM</span>
+            <span className="menu-expand-label">6 Pilar WBK / WBBM</span>
           </button>
           <button
             type="button"
             onClick={() => scrollToSection('maklumat-pelayanan')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white transition-colors"
+            className="menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white"
           >
             <Award className="w-3.5 h-3.5 text-amber-300" />
-            <span>Maklumat Pelayanan</span>
+            <span className="menu-expand-label">Maklumat Pelayanan</span>
           </button>
         </div>
 
@@ -1304,8 +1350,101 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6. E-PENGADUAN VIEW                                                        */
+/* 6. E-PENGADUAN, SPAN LAPOR (PUSAT) & SKM VIEW                              */
 /* -------------------------------------------------------------------------- */
+interface SkmElementItem {
+  code: string;
+  label: string;
+  question: string;
+  baselineScore: number;
+}
+
+interface SkmSubmissionRecord {
+  id: string;
+  unitTitle: string;
+  ageGroup: string;
+  education: string;
+  scores: Record<string, number>;
+  ikmScore: number;
+  grade: 'A' | 'B' | 'C' | 'D';
+  feedback: string;
+  submittedAt: string;
+}
+
+const STORAGE_SKM_KEY = 'kemenag_mura_skm_responses_v1';
+const BASELINE_SKM_RESPONDENTS = 248;
+
+const SKM_ELEMENTS: SkmElementItem[] = [
+  {
+    code: 'U1',
+    label: 'Persyaratan Pelayanan',
+    question: 'Kesesuaian persyaratan pelayanan dengan jenis pengurusan di PTSP',
+    baselineScore: 3.72,
+  },
+  {
+    code: 'U2',
+    label: 'Sistem, Mekanisme & Prosedur',
+    question: 'Kemudahan tahapan dan kejelasan alur pelayanan dari meja PTSP ke seksi',
+    baselineScore: 3.68,
+  },
+  {
+    code: 'U3',
+    label: 'Waktu Penyelesaian',
+    question: 'Ketepatan waktu penyelesaian sesuai standar SLA layanan yang ditetapkan',
+    baselineScore: 3.64,
+  },
+  {
+    code: 'U4',
+    label: 'Biaya / Tarif Pelayanan',
+    question: 'Kejelasan bebas pungutan / kesesuaian tarif resmi sesuai ketentuan PNBP',
+    baselineScore: 3.88,
+  },
+  {
+    code: 'U5',
+    label: 'Produk Spesifikasi Layanan',
+    question: 'Kesesuaian hasil/dokumen layanan dengan standar pelayanan yang dijanjikan',
+    baselineScore: 3.74,
+  },
+  {
+    code: 'U6',
+    label: 'Kompetensi Pelaksana',
+    question: 'Kemampuan, penguasaan aturan, dan ketelitian petugas PTSP serta verifikator',
+    baselineScore: 3.71,
+  },
+  {
+    code: 'U7',
+    label: 'Perilaku Pelaksana',
+    question: 'Kesopanan, keramahan, dan ketulusan petugas dalam memberikan pelayanan',
+    baselineScore: 3.81,
+  },
+  {
+    code: 'U8',
+    label: 'Penanganan Pengaduan & Saran',
+    question: 'Kecepatan tindak lanjut pengaduan, konsultasi, dan saran masukan masyarakat',
+    baselineScore: 3.62,
+  },
+  {
+    code: 'U9',
+    label: 'Sarana & Prasarana',
+    question: 'Kenyamanan ruang tunggu, loket PTSP, akses informasi, serta portal digital',
+    baselineScore: 3.66,
+  },
+];
+
+const SKM_RATING_OPTIONS = [
+  { value: 1, short: '1', label: 'Tidak Baik' },
+  { value: 2, short: '2', label: 'Kurang Baik' },
+  { value: 3, short: '3', label: 'Baik' },
+  { value: 4, short: '4', label: 'Sangat Baik' },
+];
+
+function getIkmGrade(ikm: number): { grade: 'A' | 'B' | 'C' | 'D'; label: string } {
+  if (ikm >= 88.31) return { grade: 'A', label: 'Sangat Baik' };
+  if (ikm >= 76.61) return { grade: 'B', label: 'Baik' };
+  if (ikm >= 65.0) return { grade: 'C', label: 'Kurang Baik' };
+  return { grade: 'D', label: 'Tidak Baik' };
+}
+
 export function PengaduanView({
   complaints,
   onAddComplaint,
@@ -1313,6 +1452,11 @@ export function PengaduanView({
   complaints: ComplaintSubmission[];
   onAddComplaint: (c: ComplaintSubmission) => void;
 }) {
+  const [activeAnchor, setActiveAnchor] = useState<
+    'formulir-pengaduan' | 'span-lapor' | 'survei-skm'
+  >('formulir-pengaduan');
+
+  // Internal E-Pengaduan state
   const [category, setCategory] = useState('Pelayanan PTSP / KUA');
   const [subject, setSubject] = useState('');
   const [details, setDetails] = useState('');
@@ -1321,6 +1465,56 @@ export function PengaduanView({
   const [anonymous, setAnonymous] = useState(false);
   const [error, setError] = useState('');
   const [latestTicket, setLatestTicket] = useState<ComplaintSubmission | null>(null);
+
+  // SPAN LAPOR (Integrasi Pusat) assistant state
+  const [spanType, setSpanType] = useState<'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi'>(
+    'Pengaduan'
+  );
+  const [spanTopic, setSpanTopic] = useState('Pelayanan Publik PTSP');
+  const [spanSummary, setSpanSummary] = useState('');
+  const [copiedSms, setCopiedSms] = useState(false);
+
+  // Survei Kepuasan Masyarakat (SKM) state
+  const [skmUnit, setSkmUnit] = useState(SERVICE_UNITS[0]?.title || 'Sekretariat Jenderal');
+  const [skmAge, setSkmAge] = useState('26–40 Tahun');
+  const [skmEdu, setSkmEdu] = useState('S1 / D-IV');
+  const [skmScores, setSkmScores] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    SKM_ELEMENTS.forEach((el) => {
+      initial[el.code] = 4;
+    });
+    return initial;
+  });
+  const [skmFeedback, setSkmFeedback] = useState('');
+  const [skmResponses, setSkmResponses] = useState<SkmSubmissionRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_SKM_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [latestSkm, setLatestSkm] = useState<SkmSubmissionRecord | null>(null);
+
+  useEffect(() => {
+    const handleSectionFocus = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      if (
+        detail === 'formulir-pengaduan' ||
+        detail === 'span-lapor' ||
+        detail === 'survei-skm'
+      ) {
+        setActiveAnchor(detail);
+      }
+    };
+    window.addEventListener('kemenag:section-focus', handleSectionFocus);
+    return () => window.removeEventListener('kemenag:section-focus', handleSectionFocus);
+  }, []);
+
+  const jumpToSection = (id: 'formulir-pengaduan' | 'span-lapor' | 'survei-skm') => {
+    setActiveAnchor(id);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1339,7 +1533,11 @@ export function PengaduanView({
       category,
       subject: subject.trim(),
       reporter: anonymous ? 'Anonim (Dirahasiakan)' : reporter.trim(),
-      submittedAt: '13 November 2026',
+      submittedAt: new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
       status: 'Diterima Inspektorat Internal',
     };
     onAddComplaint(submission);
@@ -1348,195 +1546,860 @@ export function PengaduanView({
     setDetails('');
   };
 
+  const formattedSmsDraft = `KEMENAG #MurungRaya [${spanType} - ${spanTopic}] ${
+    spanSummary.trim() || 'Tuliskan uraian laporan/aspirasi Anda di sini'
+  }`;
+
+  const handleCopySmsFormat = async () => {
+    try {
+      await navigator.clipboard.writeText(formattedSmsDraft);
+      setCopiedSms(true);
+      window.setTimeout(() => setCopiedSms(false), 2500);
+    } catch {
+      setCopiedSms(true);
+      window.setTimeout(() => setCopiedSms(false), 2500);
+    }
+  };
+
+  const currentRespondentAvg =
+    SKM_ELEMENTS.reduce((acc, el) => acc + (skmScores[el.code] ?? 4), 0) / SKM_ELEMENTS.length;
+  const currentRespondentIkm = Number((currentRespondentAvg * 25).toFixed(2));
+  const currentRespondentGrade = getIkmGrade(currentRespondentIkm);
+
+  const handleSkmSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = Math.floor(100 + Math.random() * 900);
+    const record: SkmSubmissionRecord = {
+      id: `SKM-${Date.now()}-${num}`,
+      unitTitle: skmUnit,
+      ageGroup: skmAge,
+      education: skmEdu,
+      scores: { ...skmScores },
+      ikmScore: currentRespondentIkm,
+      grade: currentRespondentGrade.grade,
+      feedback: skmFeedback.trim(),
+      submittedAt: new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }),
+    };
+    const next = [record, ...skmResponses];
+    setSkmResponses(next);
+    try {
+      localStorage.setItem(STORAGE_SKM_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage quota errors
+    }
+    setLatestSkm(record);
+    setSkmFeedback('');
+  };
+
+  const totalRespondents = BASELINE_SKM_RESPONDENTS + skmResponses.length;
+  const elementAggregates = SKM_ELEMENTS.map((el) => {
+    const sumAdded = skmResponses.reduce((acc, r) => acc + (r.scores[el.code] ?? 4), 0);
+    const combinedAvg =
+      (el.baselineScore * BASELINE_SKM_RESPONDENTS + sumAdded) / totalRespondents;
+    return {
+      ...el,
+      avgScore: Number(combinedAvg.toFixed(2)),
+      ikmEquivalent: Number((combinedAvg * 25).toFixed(2)),
+    };
+  });
+  const cumulativeIkm = Number(
+    (
+      elementAggregates.reduce((acc, item) => acc + item.ikmEquivalent, 0) /
+      elementAggregates.length
+    ).toFixed(2)
+  );
+  const cumulativeGrade = getIkmGrade(cumulativeIkm);
+
   return (
-    <div className="bg-white">
+    <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <PageHeader
-        kicker="Kanal Pengaduan & Aspirasi Publik"
-        title="E-Pengaduan Kemenag Kabupaten Murung Raya"
-        description="Sampaikan pengaduan layanan, saran perbaikan, atau pelaporan indikasi gratifikasi secara aman, tertib, dan terdokumentasi."
+        kicker="Kanal Pengaduan, Aspirasi & Evaluasi Mutu"
+        title="E-Pengaduan, SPAN LAPOR & Survei Kepuasan Masyarakat"
+        description="Sampaikan pengaduan layanan secara internal, terhubung ke SP4N-LAPOR! Pusat, serta berpartisipasi dalam Survei Kepuasan Masyarakat (SKM) PTSP Kemenag Kabupaten Murung Raya."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        <div className="lg:col-span-7">
-          {latestTicket ? (
-            <div className="border border-emerald-200 bg-emerald-50/70 rounded-xl p-6 space-y-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-700 shrink-0 mt-0.5" />
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Laporan Pengaduan Berhasil Dikirim
-                  </h2>
-                  <p className="text-sm text-slate-700 mt-1">
-                    Terima kasih atas partisipasi Anda dalam meningkatkan mutu pelayanan Kemenag
-                    Kabupaten Murung Raya.
-                  </p>
-                </div>
-              </div>
-              <div className="bg-white border border-emerald-200 rounded-lg p-4 text-sm space-y-2">
-                <p>
-                  <span className="text-slate-500">Nomor Tiket Aduan: </span>
-                  <strong className="font-mono-tabular text-emerald-800">
-                    {latestTicket.ticketNo}
-                  </strong>
-                </p>
-                <p>
-                  <span className="text-slate-500">Kategori: </span>
-                  <strong className="text-slate-900">{latestTicket.category}</strong>
-                </p>
-                <p>
-                  <span className="text-slate-500">Status: </span>
-                  <strong className="text-slate-900">{latestTicket.status}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setLatestTicket(null)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
-              >
-                Kirim Pengaduan Lainnya
-              </button>
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="border border-slate-200 rounded-xl p-6 space-y-5 bg-white"
-            >
-              <h2 className="text-lg font-bold text-slate-900">
-                Formulir Pengaduan Masyarakat
-              </h2>
-
-              {error && (
-                <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Kategori Laporan
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-emerald-700"
+      {/* Sticky Sub-Menu Quick Jump Bar */}
+      <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              {
+                id: 'formulir-pengaduan' as const,
+                num: '01',
+                label: 'Formulir E-Pengaduan PTSP',
+              },
+              {
+                id: 'span-lapor' as const,
+                num: '02',
+                label: 'SPAN LAPOR (Integrasi Pusat)',
+              },
+              {
+                id: 'survei-skm' as const,
+                num: '03',
+                label: 'Survei Kepuasan Masyarakat (SKM)',
+              },
+            ].map((tab) => {
+              const active = activeAnchor === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => jumpToSection(tab.id)}
+                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2 border ${
+                    active
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400'
+                  }`}
                 >
-                  <option>Pelayanan PTSP / KUA</option>
-                  <option>Pendidikan Madrasah & Guru Agama</option>
-                  <option>Penyelenggaraan Haji & Umrah</option>
-                  <option>Dugaan Pungli / Gratifikasi (WBS)</option>
-                  <option>Saran & Masukan Pelayanan</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Judul / Pokok Pengaduan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Ringkasan singkat hal yang dilaporkan"
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Uraian Kejadian / Aspirasi *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  value={details}
-                  onChange={(e) => setDetails(e.target.value)}
-                  placeholder="Jelaskan waktu, unit layanan terkait, dan kronologi secara jelas..."
-                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                />
-              </div>
-
-              <label className="flex items-center gap-2.5 text-xs font-medium text-slate-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={anonymous}
-                  onChange={(e) => setAnonymous(e.target.checked)}
-                  className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-700"
-                />
-                <span>Kirim sebagai Pelapor Anonim (Identitas dirahasiakan)</span>
-              </label>
-
-              {!anonymous && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Nama Pelapor *
-                    </label>
-                    <input
-                      type="text"
-                      value={reporter}
-                      onChange={(e) => setReporter(e.target.value)}
-                      placeholder="Nama lengkap Anda"
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Email / WhatsApp *
-                    </label>
-                    <input
-                      type="text"
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                      placeholder="Untuk tindak lanjut resmi"
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-700"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
-              >
-                Kirim Pengaduan Resmi
-              </button>
-            </form>
-          )}
+                  <span
+                    className={`font-mono-tabular text-[11px] ${
+                      active ? 'text-emerald-200' : 'text-slate-400 dark:text-slate-500'
+                    }`}
+                  >
+                    {tab.num}.
+                  </span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Terintegrasi WBS Kemenag RI · SP4N-LAPOR! · PermenPAN-RB 14/2017
+          </p>
         </div>
+      </div>
 
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-900">
-              Jaminan Perlindungan & Tindak Lanjut
-            </h3>
-            <ul className="space-y-2.5 text-xs text-slate-700 leading-relaxed">
-              <li>· Setiap laporan diverifikasi oleh Tim Pengendali Pengaduan Internal dalam 2 hari kerja.</li>
-              <li>· Identitas pelapor dilindungi sesuai mekanisme Whistleblowing System Kementerian Agama RI.</li>
-              <li>· Pengaduan langsung juga dapat disampaikan melalui WhatsApp PTSP {OFFICE_INFO.whatsapp}.</li>
-            </ul>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+        {/* SECTION 01: FORMULIR E-PENGADUAN INTERNAL */}
+        <section id="formulir-pengaduan" className="scroll-mt-32 space-y-6">
+          <div className="space-y-1.5 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
+              01 · Pengaduan Internal Kankemenag Murung Raya
+            </p>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              Formulir E-Pengaduan & Whistleblowing System
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+              Laporan yang disampaikan di kanal ini diterima langsung oleh Tim Pengendali Pengaduan
+              Internal PTSP dan dilindungi kerahasiaannya.
+            </p>
           </div>
 
-          {complaints.length > 0 && (
-            <div className="border border-slate-200 rounded-xl p-5 space-y-3">
-              <h3 className="text-sm font-bold text-slate-900">
-                Riwayat Pengaduan Terkirim ({complaints.length})
-              </h3>
-              <ul className="divide-y divide-slate-100">
-                {complaints.map((c) => (
-                  <li key={c.ticketNo} className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5">
-                    <p className="font-mono-tabular font-bold text-emerald-800">{c.ticketNo}</p>
-                    <p className="font-semibold text-slate-900">{c.subject}</p>
-                    <p className="text-slate-500">
-                      {c.category} · {c.status}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            <div className="lg:col-span-7">
+              {latestTicket ? (
+                <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Laporan Pengaduan Berhasil Dikirim
+                      </h3>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                        Terima kasih atas partisipasi Anda dalam meningkatkan mutu pelayanan Kemenag
+                        Kabupaten Murung Raya.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 text-sm space-y-2">
+                    <p>
+                      <span className="text-slate-500 dark:text-slate-400">Nomor Tiket Aduan: </span>
+                      <strong className="font-mono-tabular text-emerald-800 dark:text-emerald-300">
+                        {latestTicket.ticketNo}
+                      </strong>
                     </p>
-                  </li>
-                ))}
-              </ul>
+                    <p>
+                      <span className="text-slate-500 dark:text-slate-400">Kategori: </span>
+                      <strong className="text-slate-900 dark:text-white">
+                        {latestTicket.category}
+                      </strong>
+                    </p>
+                    <p>
+                      <span className="text-slate-500 dark:text-slate-400">Status: </span>
+                      <strong className="text-slate-900 dark:text-white">
+                        {latestTicket.status}
+                      </strong>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLatestTicket(null)}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                  >
+                    Kirim Pengaduan Lainnya
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleSubmit}
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <MessageSquareWarning className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Formulir Pengaduan Masyarakat
+                    </h3>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Kategori Laporan
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                    >
+                      <option>Pelayanan PTSP / KUA</option>
+                      <option>Pendidikan Madrasah & Guru Agama</option>
+                      <option>Penyelenggaraan Haji & Umrah</option>
+                      <option>Dugaan Pungli / Gratifikasi (WBS)</option>
+                      <option>Saran & Masukan Pelayanan</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Judul / Pokok Pengaduan *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="Ringkasan singkat hal yang dilaporkan"
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Uraian Kejadian / Aspirasi *
+                    </label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={details}
+                      onChange={(e) => setDetails(e.target.value)}
+                      placeholder="Jelaskan waktu, unit layanan terkait, dan kronologi secara jelas..."
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={anonymous}
+                      onChange={(e) => setAnonymous(e.target.checked)}
+                      className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-700"
+                    />
+                    <span>Kirim sebagai Pelapor Anonim (Identitas dirahasiakan)</span>
+                  </label>
+
+                  {!anonymous && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Nama Pelapor *
+                        </label>
+                        <input
+                          type="text"
+                          value={reporter}
+                          onChange={(e) => setReporter(e.target.value)}
+                          placeholder="Nama lengkap Anda"
+                          className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Email / WhatsApp *
+                        </label>
+                        <input
+                          type="text"
+                          value={contact}
+                          onChange={(e) => setContact(e.target.value)}
+                          placeholder="Untuk tindak lanjut resmi"
+                          className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Kirim Pengaduan Resmi</span>
+                  </button>
+                </form>
+              )}
             </div>
-          )}
-        </div>
+
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Jaminan Perlindungan & Tindak Lanjut
+                </h3>
+                <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <li>
+                    · Setiap laporan diverifikasi oleh Tim Pengendali Pengaduan Internal dalam 2
+                    hari kerja.
+                  </li>
+                  <li>
+                    · Identitas pelapor dilindungi sesuai mekanisme Whistleblowing System Kementerian
+                    Agama RI.
+                  </li>
+                  <li>
+                    · Pengaduan langsung juga dapat disampaikan melalui WhatsApp PTSP{' '}
+                    {OFFICE_INFO.whatsapp}.
+                  </li>
+                </ul>
+              </div>
+
+              {complaints.length > 0 && (
+                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Riwayat Pengaduan Terkirim ({complaints.length})
+                  </h3>
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {complaints.map((c) => (
+                      <li
+                        key={c.ticketNo}
+                        className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5"
+                      >
+                        <p className="font-mono-tabular font-bold text-emerald-800 dark:text-emerald-400">
+                          {c.ticketNo}
+                        </p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{c.subject}</p>
+                        <p className="text-slate-500 dark:text-slate-400">
+                          {c.category} · {c.status}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 02: SPAN LAPOR (INTEGRASI SP4N-LAPOR! PUSAT) */}
+        <section id="span-lapor" className="scroll-mt-32 pt-10 border-t border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold uppercase tracking-widest text-rose-700 dark:text-rose-400">
+              02 · Integrasi Kanal Nasional (SP4N-LAPOR! Pusat)
+            </p>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              SPAN LAPOR — Sistem Pengelolaan Pengaduan Pelayanan Publik Nasional
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+              Terhubung langsung ke portal SP4N-LAPOR! Pusat (KemenPAN-RB, Kantor Staf Presiden,
+              dan Ombudsman RI) yang meneruskan laporan masyarakat secara terpusat ke Kementerian
+              Agama RI hingga Kantor Kemenag Kabupaten Murung Raya.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-xl p-6 bg-white dark:bg-slate-900 space-y-6">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Penyusun Laporan & Akses SP4N-LAPOR! Pusat
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Siapkan draf laporan Anda atau langsung kirim melalui portal nasional{' '}
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      lapor.go.id
+                    </span>{' '}
+                    dan SMS <span className="font-mono-tabular font-semibold">1708</span>.
+                  </p>
+                </div>
+                <a
+                  href="https://www.lapor.go.id/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white transition-colors whitespace-nowrap shrink-0"
+                >
+                  <span>Buka SP4N-LAPOR! Pusat</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              {/* 3-Step National Integration Flow */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  {
+                    step: '01',
+                    title: 'Kirim ke Pusat',
+                    desc: 'Pelapor mengisi aduan melalui portal www.lapor.go.id atau SMS ke 1708.',
+                  },
+                  {
+                    step: '02',
+                    title: 'Verifikasi & Disposisi',
+                    desc: 'Admin Pusat meneruskan ke Kemenag RI dan Kemenag Murung Raya (maks. 3 hari kerja).',
+                  },
+                  {
+                    step: '03',
+                    title: 'Tindak Lanjut Terpantau',
+                    desc: 'Pelapor dapat memantau progres penyelesaian menggunakan Tracking ID resmi.',
+                  },
+                ].map((flow) => (
+                  <div
+                    key={flow.step}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5"
+                  >
+                    <p className="font-mono-tabular text-xs font-extrabold text-rose-700 dark:text-rose-400">
+                      {flow.step}.
+                    </p>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                      {flow.title}
+                    </h4>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {flow.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Draft Helper for SP4N-LAPOR! / SMS 1708 */}
+              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Klasifikasi Laporan Pusat
+                    </label>
+                    <select
+                      value={spanType}
+                      onChange={(e) =>
+                        setSpanType(
+                          e.target.value as 'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi'
+                        )
+                      }
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                    >
+                      <option value="Pengaduan">Pengaduan</option>
+                      <option value="Aspirasi">Aspirasi</option>
+                      <option value="Permintaan Informasi">Permintaan Informasi</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Topik Layanan Tujuan
+                    </label>
+                    <select
+                      value={spanTopic}
+                      onChange={(e) => setSpanTopic(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                    >
+                      <option>Pelayanan Publik PTSP</option>
+                      <option>Pendidikan Madrasah & Guru Agama</option>
+                      <option>Layanan KUA & Bimbingan Masyarakat</option>
+                      <option>Penyelenggaraan Haji & Umrah</option>
+                      <option>Kepegawaian & Tata Kelola</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Ringkasan Laporan (untuk Disalin ke Portal SP4N-LAPOR! / SMS 1708)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={spanSummary}
+                    onChange={(e) => setSpanSummary(e.target.value)}
+                    placeholder="Contoh: Mohon informasi tindak lanjut verifikasi berkas pengajuan layanan di KUA/PTSP..."
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                  />
+                </div>
+
+                <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Pratinjau Format SMS 1708 / Draf SP4N-LAPOR!
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopySmsFormat}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+                    >
+                      {copiedSms ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 dark:text-emerald-400">Tersalin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Salin Draf</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="font-mono text-xs text-slate-800 dark:text-slate-200 break-words">
+                    {formattedSmsDraft}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href="https://www.lapor.go.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-colors"
+                  >
+                    <span>Lanjutkan Kirim di lapor.go.id</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://wbs.kemenag.go.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+                  >
+                    <span>Portal WBS Kemenag RI</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 space-y-5">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Spesifikasi Integrasi SP4N-LAPOR! Pusat
+                </h3>
+                <dl className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                  {[
+                    { k: 'Portal Web Resmi', v: 'https://www.lapor.go.id' },
+                    { k: 'Kanal SMS Nasional', v: '1708 (Ketik: KEMENAG <spasi> Aduan)' },
+                    {
+                      k: 'Instansi Tujuan',
+                      v: 'Kementerian Agama RI → Kankemenag Kab. Murung Raya',
+                    },
+                    { k: 'Pembina Nasional', v: 'KemenPAN-RB · KSP · Ombudsman RI' },
+                    { k: 'SLA Verifikasi Pusat', v: 'Maksimal 3 Hari Kerja' },
+                    {
+                      k: 'SLA Penyelesaian',
+                      v: '5 Hari Kerja (Informasi) · 14–60 Hari Kerja (Aduan)',
+                    },
+                  ].map((item) => (
+                    <div key={item.k} className="py-2.5 flex flex-col gap-0.5">
+                      <dt className="text-slate-500 dark:text-slate-400">{item.k}</dt>
+                      <dd className="font-semibold text-slate-900 dark:text-white">{item.v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 03: SURVEI KEPUASAN MASYARAKAT (SKM) */}
+        <section id="survei-skm" className="scroll-mt-32 pt-10 border-t border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold uppercase tracking-widest text-sky-700 dark:text-sky-400">
+              03 · Evaluasi Pelayanan Publik (PermenPAN-RB No. 14 Tahun 2017)
+            </p>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              Survei Kepuasan Masyarakat (SKM) Layanan PTSP
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
+              Penilaian Anda terhadap 9 unsur pelayanan menjadi tolok ukur Indeks Kepuasan
+              Masyarakat (IKM) pada Kantor Kementerian Agama Kabupaten Murung Raya.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left: Interactive 9-Element SKM Questionnaire */}
+            <div className="lg:col-span-7">
+              {latestSkm ? (
+                <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <ClipboardCheck className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Terima Kasih, Penilaian SKM Anda Tersimpan
+                      </h3>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                        Masukan Anda telah memperbarui rekapitulasi Indeks Kepuasan Masyarakat (IKM)
+                        PTSP Kabupaten Murung Raya.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 text-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Unit Dinilai</p>
+                      <p className="font-semibold text-slate-900 dark:text-white mt-0.5">
+                        {latestSkm.unitTitle}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Skor IKM Anda</p>
+                      <p className="font-mono-tabular text-lg font-extrabold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                        {latestSkm.ikmScore.toFixed(2).replace('.', ',')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Mutu Pelayanan</p>
+                      <p className="font-semibold text-slate-900 dark:text-white mt-0.5">
+                        Mutu {latestSkm.grade} ({getIkmGrade(latestSkm.ikmScore).label})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLatestSkm(null)}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                  >
+                    Isi Survei untuk Layanan Lainnya
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleSkmSubmit}
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Kuesioner 9 Unsur Pelayanan Publik
+                    </h3>
+                    <span className="text-xs font-mono-tabular font-semibold text-emerald-700 dark:text-emerald-400">
+                      Estimasi Skor Anda: {currentRespondentIkm.toFixed(2).replace('.', ',')} (Mutu{' '}
+                      {currentRespondentGrade.grade})
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Unit Layanan PTSP / KUA
+                      </label>
+                      <select
+                        value={skmUnit}
+                        onChange={(e) => setSkmUnit(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                      >
+                        {SERVICE_UNITS.map((u) => (
+                          <option key={u.id} value={u.title}>
+                            {u.title}
+                          </option>
+                        ))}
+                        <option value="KUA Kecamatan">KUA Kecamatan</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Kelompok Usia
+                      </label>
+                      <select
+                        value={skmAge}
+                        onChange={(e) => setSkmAge(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                      >
+                        <option>17–25 Tahun</option>
+                        <option>26–40 Tahun</option>
+                        <option>41–55 Tahun</option>
+                        <option>Di atas 55 Tahun</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Pendidikan Terakhir
+                      </label>
+                      <select
+                        value={skmEdu}
+                        onChange={(e) => setSkmEdu(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                      >
+                        <option>SMP / Sederajat</option>
+                        <option>SMA / MA / SMK</option>
+                        <option>D-I / D-III</option>
+                        <option>S1 / D-IV</option>
+                        <option>S2 / S3</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 9 Unsur SKM */}
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border-t border-b border-slate-200 dark:border-slate-800">
+                    {SKM_ELEMENTS.map((el) => {
+                      const selectedVal = skmScores[el.code] ?? 4;
+                      return (
+                        <div
+                          key={el.code}
+                          className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-0.5 max-w-md">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white">
+                              <span className="font-mono-tabular text-emerald-700 dark:text-emerald-400 mr-1.5">
+                                {el.code}.
+                              </span>
+                              {el.label}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {el.question}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {SKM_RATING_OPTIONS.map((opt) => {
+                              const active = selectedVal === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() =>
+                                    setSkmScores((prev) => ({
+                                      ...prev,
+                                      [el.code]: opt.value,
+                                    }))
+                                  }
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors whitespace-nowrap ${
+                                    active
+                                      ? 'bg-emerald-700 text-white border-emerald-700'
+                                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                                  }`}
+                                >
+                                  {opt.short} · {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Saran & Masukan Perbaikan (Opsional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={skmFeedback}
+                      onChange={(e) => setSkmFeedback(e.target.value)}
+                      placeholder="Tuliskan saran untuk peningkatan kualitas pelayanan PTSP..."
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                  >
+                    <ClipboardCheck className="w-4 h-4" />
+                    <span>Kirim Penilaian SKM</span>
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Right: Live IKM Scoreboard & 9 Elements Breakdown */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Indeks Kepuasan Masyarakat (IKM)
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono-tabular text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                        {cumulativeIkm.toFixed(2).replace('.', ',')}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">/ 100</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      Mutu {cumulativeGrade.grade} ({cumulativeGrade.label})
+                    </p>
+                    <p className="font-mono-tabular text-xs text-slate-500 dark:text-slate-400">
+                      {totalRespondents} Responden
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Capaian Per Unsur Pelayanan (Skala 4,00)
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {elementAggregates.map((item) => {
+                      const pct = Math.min(100, Math.round((item.avgScore / 4) * 100));
+                      return (
+                        <div key={item.code} className="space-y-1">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                              <strong className="font-mono-tabular text-slate-900 dark:text-white mr-1">
+                                {item.code}
+                              </strong>
+                              {item.label}
+                            </span>
+                            <span className="font-mono-tabular font-bold text-slate-900 dark:text-white shrink-0">
+                              {item.avgScore.toFixed(2).replace('.', ',')}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {skmResponses.length > 0 && (
+                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Partisipasi Survei Anda ({skmResponses.length})
+                  </h3>
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {skmResponses.slice(0, 4).map((r) => (
+                      <li key={r.id} className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            {r.unitTitle}
+                          </span>
+                          <span className="font-mono-tabular font-bold text-emerald-700 dark:text-emerald-400">
+                            IKM {r.ikmScore.toFixed(2).replace('.', ',')} (Mutu {r.grade})
+                          </span>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400">
+                          {r.ageGroup} · {r.education} · {r.submittedAt}
+                        </p>
+                        {r.feedback && (
+                          <p className="text-slate-700 dark:text-slate-300 pt-0.5">
+                            “{r.feedback}”
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export function Footer({ onNavigate }: FooterProps) {
             <h3 className="text-xs uppercase tracking-widest text-emerald-300 font-semibold">
               Tautan Cepat
             </h3>
-            <ul className="space-y-2 text-sm text-emerald-100/85">
+            <ul className="divide-y divide-emerald-900/50 text-sm text-emerald-100/85">
               {[
                 { id: 'beranda' as PageView, label: 'Beranda' },
                 { id: 'profil' as PageView, label: 'Profil & Visi Misi' },
@@ -76,15 +76,30 @@ export function Footer({ onNavigate }: FooterProps) {
                 { id: 'galeri' as PageView, label: 'Galeri Dokumentasi' },
                 { id: 'ppid' as PageView, label: 'PPID & Informasi Publik' },
                 { id: 'zona-integritas' as PageView, label: 'Zona Integritas (WBK)' },
-                { id: 'e-pengaduan' as PageView, label: 'E-Pengaduan Masyarakat' },
+                { id: 'e-pengaduan' as PageView, label: 'E-Pengaduan Masyarakat', sectionId: 'formulir-pengaduan' },
+                { id: 'e-pengaduan' as PageView, label: 'SPAN LAPOR (Integrasi Pusat)', sectionId: 'span-lapor' },
+                { id: 'e-pengaduan' as PageView, label: 'Survei Kepuasan Masyarakat (SKM)', sectionId: 'survei-skm' },
               ].map((link) => (
-                <li key={link.id}>
+                <li key={`${link.id}-${link.label}`} className="py-1.5 first:pt-0 last:pb-0">
                   <button
                     type="button"
-                    onClick={() => onNavigate(link.id)}
-                    className="hover:text-white hover:underline underline-offset-4 transition-colors text-left"
+                    onClick={() => {
+                      onNavigate(link.id);
+                      if ('sectionId' in link && link.sectionId) {
+                        const targetSection = link.sectionId;
+                        window.setTimeout(() => {
+                          window.dispatchEvent(
+                            new CustomEvent('kemenag:section-focus', { detail: targetSection })
+                          );
+                          document
+                            .getElementById(targetSection)
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 120);
+                      }
+                    }}
+                    className="menu-expand-btn-left w-full hover:text-white hover:underline underline-offset-4 text-left"
                   >
-                    {link.label}
+                    <span className="menu-expand-label">{link.label}</span>
                   </button>
                 </li>
               ))}

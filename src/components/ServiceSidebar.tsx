@@ -251,11 +251,11 @@ export function ServiceSidebar({
                 type="button"
                 onClick={() => toggleExpand(unit.id)}
                 aria-expanded={isExpanded}
-                className="w-full px-3 py-2.5 text-left flex items-center justify-between gap-2.5 rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                className="menu-expand-btn-left group/unit w-full px-3 py-2.5 text-left flex items-center justify-between gap-2.5 rounded-xl hover:bg-emerald-50/70 dark:hover:bg-slate-800/70"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 group-hover/unit:scale-105 ${
                       isUnitActive
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : unitMeta.badgeClass
@@ -268,10 +268,10 @@ export function ServiceSidebar({
                       className={`flex items-center gap-1.5 text-xs font-extrabold tracking-wide uppercase truncate ${
                         isUnitActive
                           ? 'text-emerald-900 dark:text-emerald-300'
-                          : 'text-slate-800 dark:text-slate-100'
+                          : 'text-slate-800 dark:text-slate-100 group-hover/unit:text-emerald-800 dark:group-hover/unit:text-emerald-300'
                       }`}
                     >
-                      <span className="truncate">{unit.title}</span>
+                      <span className="menu-expand-label truncate">{unit.title}</span>
                       {unit.id === 'kepegawaian' && !isVerifiedEmployee && (
                         <Lock className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
                       )}
@@ -287,7 +287,7 @@ export function ServiceSidebar({
                 {isExpanded ? (
                   <ChevronDown className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 group-hover/unit:translate-x-0.5" />
                 )}
               </button>
 
@@ -298,27 +298,27 @@ export function ServiceSidebar({
                     <button
                       type="button"
                       onClick={() => onSelectUnit(unit)}
-                      className="w-full mb-1.5 px-2.5 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[11px] font-bold flex items-center gap-2 transition-colors"
+                      className="menu-expand-btn-left w-full mb-1.5 px-2.5 py-2 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[11px] font-bold flex items-center gap-2"
                     >
                       <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-                      <span>
+                      <span className="menu-expand-label">
                         {unit.id === 'kepegawaian' && !isVerifiedEmployee
                           ? `Buka Gerbang Kepegawaian (${unit.subServices.length} Layanan)`
                           : `Tampilkan Semua ${unit.subServices.length} Layanan & Template`}
                       </span>
                     </button>
                   )}
-                  <ul className="border-l-2 border-emerald-200/90 dark:border-emerald-800/80 pl-2.5 space-y-0.5">
+                  <ul className="border-l-2 border-emerald-200/90 dark:border-emerald-800/80 pl-2.5 divide-y divide-slate-100 dark:divide-slate-800/70">
                     {subs.map((sub) => {
                       const active = selectedUnitId === unit.id && selectedSubId === sub.id;
                       const SubIcon = getSubServiceIcon(sub.id);
                       const isKuaRestricted = sub.restrictedScope === 'kua';
                       return (
-                        <li key={sub.id}>
+                        <li key={sub.id} className="py-0.5 first:pt-0 last:pb-0">
                           <button
                             type="button"
                             onClick={() => onSelect(unit, sub)}
-                            className={`w-full text-left px-2.5 py-2 rounded-lg text-xs leading-snug flex items-start gap-2.5 transition-all ${
+                            className={`menu-expand-btn-left w-full text-left px-2.5 py-2 rounded-lg text-xs leading-snug flex items-start gap-2.5 ${
                               active
                                 ? 'bg-emerald-700 text-white font-semibold shadow-sm'
                                 : 'text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-800 hover:text-emerald-900 dark:hover:text-emerald-300'
@@ -332,7 +332,7 @@ export function ServiceSidebar({
                               }`}
                             />
                             <span className="flex-1">
-                              <span className="block">{sub.title}</span>
+                              <span className="menu-expand-label block">{sub.title}</span>
                               {isKuaRestricted && (
                                 <span
                                   className={`mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold ${

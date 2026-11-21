@@ -7,6 +7,7 @@ import {
   isEligibleSessionUser,
   isNipEmployeeEmail,
   mapFirebaseAuthError,
+  mergeInformasiUnits,
   mergeNewsArticles,
   registerEmployeeNipRequest,
   registerPublicWithEmail,
@@ -17,12 +18,14 @@ import {
   signInWithGoogleAndRecord,
   signOutGoogle,
   subscribeAllEmployeeRequests,
+  subscribeInfoSectionData,
   subscribeMyEmployeeRequest,
   subscribeMyVerifiedEmployee,
   subscribeNewsArticles,
   subscribePtspTickets,
   upsertGoogleUserProfile,
   type AccountTier,
+  type CloudInfoSectionRecord,
   type CloudNewsArticleRecord,
   type CloudPtspTicketRecord,
   type EmployeeOperatorRole,
@@ -33,6 +36,7 @@ import {
   type VerifiedEmployeeRecord,
 } from '@/src/firebase';
 import { NEWS_ARTICLES } from '@/src/data/kemenagData';
+import { INFORMASI_UNITS, type InformasiUnitConfig } from '@/src/data/informasiData';
 import type { NewsArticle } from '@/src/types';
 
 export interface PortalNotification {
@@ -71,6 +75,8 @@ interface AuthRoleContextValue {
   accountTier: AccountTier | 'tamu';
   newsArticles: NewsArticle[];
   cloudNewsArticles: CloudNewsArticleRecord[];
+  infoUnits: InformasiUnitConfig[];
+  cloudInfoSections: CloudInfoSectionRecord[];
   loginModalOpen: boolean;
   loginModalTab: 'google' | 'pegawai';
   openLoginModal: (tab?: 'google' | 'pegawai') => void;
@@ -157,6 +163,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const [myOrAllTickets, setMyOrAllTickets] = useState<CloudPtspTicketRecord[]>([]);
   const [adminPendingRequests, setAdminPendingRequests] = useState<EmployeeRequestRecord[]>([]);
   const [cloudNewsArticles, setCloudNewsArticles] = useState<CloudNewsArticleRecord[]>([]);
+  const [cloudInfoSections, setCloudInfoSections] = useState<CloudInfoSectionRecord[]>([]);
   const [readMap, setReadMap] = useState<Record<string, true>>({});
 
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
@@ -209,6 +216,11 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     [cloudNewsArticles]
   );
 
+  const infoUnits = useMemo(
+    () => mergeInformasiUnits(INFORMASI_UNITS, cloudInfoSections),
+    [cloudInfoSections]
+  );
+
   useEffect(() => {
     const unsubNews = subscribeNewsArticles(
       (rows) => setCloudNewsArticles(rows),
@@ -216,7 +228,16 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         // Fallback smoothly to static NEWS_ARTICLES on transient connectivity failure
       }
     );
-    return () => unsubNews();
+    const unsubInfo = subscribeInfoSectionData(
+      (rows) => setCloudInfoSections(rows),
+      () => {
+        // Fallback smoothly to default INFORMASI_UNITS on transient connectivity failure
+      }
+    );
+    return () => {
+      unsubNews();
+      unsubInfo();
+    };
   }, []);
 
   useEffect(() => {
@@ -821,6 +842,8 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         accountTier,
         newsArticles,
         cloudNewsArticles,
+        infoUnits,
+        cloudInfoSections,
         loginModalOpen,
         loginModalTab,
         openLoginModal,

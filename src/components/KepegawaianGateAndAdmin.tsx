@@ -9,6 +9,7 @@ import {
   Edit3,
   Eye,
   FileCheck2,
+  FileSpreadsheet,
   Image as ImageIcon,
   KeyRound,
   Lock,
@@ -47,6 +48,7 @@ import type { NewsArticle } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
 import { TicketAttachmentPreviewModal } from '@/src/components/RequirementUploadSection';
 import { OfficialTteDocumentModal } from '@/src/components/OfficialTteDocumentModal';
+import { InformasiManagerPanel } from '@/src/components/InformasiManagerPanel';
 import {
   formatAttachmentBytes,
   generateSuggestedTteDocNumber,
@@ -481,6 +483,7 @@ export function OperatorTicketConsole() {
     assignedUnitTitle,
     myVerifiedEmployee,
   } = useAuthRole();
+  const [consoleMode, setConsoleMode] = useState<'tickets' | 'informasi'>('tickets');
   const [tickets, setTickets] = useState<CloudPtspTicketRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('semua');
@@ -853,8 +856,49 @@ export function OperatorTicketConsole() {
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* Role-scoped Console Switcher for Operator Seksi: Tiket Disposisi vs Menu Informasi & Excel */}
+      {isOperatorSeksi && (
+        <div className="px-5 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-teal-50/70 dark:bg-teal-950/30 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setConsoleMode('tickets')}
+              className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold ${
+                consoleMode === 'tickets'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-teal-500 hover:bg-teal-50/70'
+              }`}
+            >
+              <Ticket className="w-3.5 h-3.5" />
+              <span className="menu-expand-label">Verifikasi Tiket PTSP ({tickets.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setConsoleMode('informasi')}
+              className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold ${
+                consoleMode === 'informasi'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-teal-500 hover:bg-teal-50/70'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span className="menu-expand-label">Kelola Menu Informasi &amp; Ekspor/Impor Excel</span>
+            </button>
+          </div>
+          <span className="text-[11px] font-semibold text-teal-800 dark:text-teal-300">
+            Kewenangan Seksi: {assignedUnitTitle || assignedUnitId}
+          </span>
+        </div>
+      )}
+
+      {isOperatorSeksi && consoleMode === 'informasi' ? (
+        <div className="p-5 sm:p-6">
+          <InformasiManagerPanel />
+        </div>
+      ) : (
+        <>
+          {/* Filter & Search Bar */}
+          <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -887,13 +931,13 @@ export function OperatorTicketConsole() {
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+              className={`menu-expand-btn px-3 py-1.5 rounded-lg font-semibold ${
                 statusFilter === tab.id
-                  ? 'bg-teal-700 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-teal-700 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-teal-50 dark:hover:bg-slate-700 hover:text-teal-800 dark:hover:text-teal-300'
               }`}
             >
-              {tab.label}
+              <span className="menu-expand-label">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -1081,6 +1125,8 @@ export function OperatorTicketConsole() {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
 
       {/* MODAL PROSES / DETAIL BERKAS OPERATOR PTSP & SEKSI */}
@@ -1927,7 +1973,7 @@ export function KepegawaianAccessGate({
 export function AdminVerificationPanel() {
   const { user, isAdmin, newsArticles, cloudNewsArticles } = useAuthRole();
   const [activeTab, setActiveTab] = useState<
-    'news' | 'operators' | 'pimpinan' | 'requests' | 'employees' | 'tickets'
+    'news' | 'informasi' | 'operators' | 'pimpinan' | 'requests' | 'employees' | 'tickets'
   >('news');
 
   const [requests, setRequests] = useState<EmployeeRequestRecord[]>([]);
@@ -2544,7 +2590,7 @@ export function AdminVerificationPanel() {
             Konsol Super Admin Portal Kemenag Kab. Murung Raya
           </p>
           <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
-            Manajemen Berita, Akun Pimpinan, Operator PTSP &amp; Seksi, Pegawai, dan Tiket
+            Manajemen Berita, Menu Informasi, Akun Pimpinan, Operator PTSP &amp; Seksi, Pegawai, dan Tiket
           </h3>
         </div>
 
@@ -2552,71 +2598,83 @@ export function AdminVerificationPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('news')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'news'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
             <Newspaper className="w-3.5 h-3.5" />
-            <span>Data Berita ({newsArticles.length})</span>
+            <span className="menu-expand-label">Data Berita ({newsArticles.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('informasi')}
+            className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
+              activeTab === 'informasi'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="menu-expand-label">Menu Informasi &amp; Excel</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('operators')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'operators'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
             <UserCog className="w-3.5 h-3.5" />
-            <span>Operator PTSP & Seksi ({operatorAccounts.length})</span>
+            <span className="menu-expand-label">Operator PTSP &amp; Seksi ({operatorAccounts.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('pimpinan')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'pimpinan'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Akun Pimpinan ({pimpinanAccounts.length})</span>
+            <span className="menu-expand-label">Akun Pimpinan ({pimpinanAccounts.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('requests')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'requests'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
-            Pengajuan Pegawai ({pendingCount})
+            <span className="menu-expand-label">Pengajuan Pegawai ({pendingCount})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('employees')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'employees'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
-            Pegawai Aktif ({activeEmployeesCount})
+            <span className="menu-expand-label">Pegawai Aktif ({activeEmployeesCount})</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('tickets')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-colors ${
+            className={`menu-expand-btn px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 ${
               activeTab === 'tickets'
-                ? 'bg-amber-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-amber-200 dark:border-amber-800 hover:border-amber-500'
             }`}
           >
-            Antrean Tiket ({tickets.length})
+            <span className="menu-expand-label">Antrean Tiket ({tickets.length})</span>
           </button>
         </div>
       </div>
@@ -4461,6 +4519,9 @@ export function AdminVerificationPanel() {
             )}
           </div>
         )}
+
+        {/* TAB MENU INFORMASI & EKSPOR/IMPOR EXCEL (6 SEKSI) */}
+        {activeTab === 'informasi' && <InformasiManagerPanel />}
       </div>
 
       {/* MODAL INSPEKSI BERKAS UNGGAHAN UNTUK SUPER ADMIN */}

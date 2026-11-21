@@ -348,8 +348,8 @@ export function LoginModal() {
         {/* Top Bar */}
         <div className="px-5 py-4 bg-emerald-950 text-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center shrink-0">
-              <KemenagEmblem className="w-6 h-6" />
+            <div className="w-9 h-9 rounded-lg bg-white/15 border border-white/20 p-1 flex items-center justify-center shrink-0">
+              <KemenagEmblem className="w-7 h-7" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">
