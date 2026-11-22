@@ -281,7 +281,14 @@ export default function App() {
         }
       }, 110);
     } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.setTimeout(() => {
+        const menuDataSeksi = document.getElementById('menu-data-seksi');
+        if (menuDataSeksi) {
+          menuDataSeksi.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 110);
     }
   };
 

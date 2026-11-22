@@ -27,6 +27,7 @@ export function InformasiUnitView({
 }: InformasiUnitViewProps) {
   const { infoUnits, isAdmin, isOperatorSeksi, assignedUnitId } = useAuthRole();
   const [tableQuery, setTableQuery] = useState('');
+  const menuDataSeksiRef = useRef<HTMLDivElement | null>(null);
   const sectionDataRef = useRef<HTMLDivElement | null>(null);
 
   const activeUnit =
@@ -52,6 +53,11 @@ export function InformasiUnitView({
   const handleUnitChange = (unitId: InformasiUnitId) => {
     setTableQuery('');
     onSelectUnit(unitId);
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        menuDataSeksiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 60);
+    });
   };
 
   const handleSectionChange = (sectionId: string) => {
@@ -67,13 +73,13 @@ export function InformasiUnitView({
   return (
     <div className="bg-white dark:bg-slate-950">
       {/* Header matching SubViews PageHeader */}
-      <section className="pt-28 pb-10 sm:pt-32 sm:pb-12 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
+      <section className="bg-emerald-950 text-white border-b border-emerald-900 pt-24 sm:pt-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
             Informasi Publik Satuan Kerja · Kankemenag Kab. Murung Raya
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
               {activeUnit.title}
             </h1>
             {activeUnit.externalUrl && (
@@ -81,14 +87,14 @@ export function InformasiUnitView({
                 href={activeUnit.externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors self-start"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-500/40 text-white text-xs font-bold shadow-xs transition-colors self-start"
               >
                 <span>Buka Aplikasi SIPENDISMURA</span>
                 <ExternalLink className="w-3.5 h-3.5 shrink-0" />
               </a>
             )}
           </div>
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
+          <p className="text-sm sm:text-base text-emerald-100/85 max-w-3xl leading-relaxed">
             {activeUnit.description}
           </p>
         </div>
@@ -96,7 +102,11 @@ export function InformasiUnitView({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
         {/* SATU BORDER TERPADU: Menu Informasi Seksi (Tier 1) + Pembatas + Menu Data Seksi (Tier 2) */}
-        <div className="rounded-2xl border-2 border-[#0b1d3d]/30 dark:border-sky-300/25 shadow-sm overflow-hidden">
+        <div
+          id="menu-data-seksi"
+          ref={menuDataSeksiRef}
+          className="scroll-mt-32 rounded-2xl border-2 border-[#0b1d3d]/30 dark:border-sky-300/25 shadow-sm overflow-hidden"
+        >
           {/* TIER 1: Menu Informasi Seksi (Transparan Navy Jelas) */}
           <div className="bg-[#0b1d3d]/75 dark:bg-[#071226]/80 backdrop-blur-md p-4 sm:p-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/20 pb-2.5">
