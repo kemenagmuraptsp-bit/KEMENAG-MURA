@@ -753,6 +753,261 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "PublicComplaint": {
+      "title": "PublicComplaint",
+      "description": "Pengaduan masyarakat pada kanal E-Pengaduan PTSP yang dikirim oleh pengunjung terautentikasi akun Google.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ticketNo": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "details": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 2000
+        },
+        "reporter": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "contact": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "anonymous": {
+          "type": "boolean"
+        },
+        "submittedAtLabel": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 50
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Diterima Inspektorat Internal"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ticketNo",
+        "userId",
+        "userEmail",
+        "category",
+        "subject",
+        "details",
+        "reporter",
+        "anonymous",
+        "submittedAtLabel",
+        "status",
+        "createdAt"
+      ]
+    },
+    "SpanLaporSubmission": {
+      "title": "SpanLaporSubmission",
+      "description": "Catatan pengajuan laporan SP4N-LAPOR! Pusat yang disusun dan dikirim oleh pengunjung terautentikasi akun Google.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "trackingNo": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "userName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "reportType": {
+          "type": "string",
+          "enum": ["Pengaduan", "Aspirasi", "Permintaan Informasi"]
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 2000
+        },
+        "smsDraft": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2200
+        },
+        "submittedAtLabel": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "trackingNo",
+        "userId",
+        "userEmail",
+        "userName",
+        "reportType",
+        "topic",
+        "summary",
+        "smsDraft",
+        "submittedAtLabel",
+        "createdAt"
+      ]
+    },
+    "SkmResponse": {
+      "title": "SkmResponse",
+      "description": "Penilaian Survei Kepuasan Masyarakat (SKM) 9 unsur pelayanan PTSP oleh pengunjung terautentikasi akun Google.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "userName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "unitTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "ageGroup": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40
+        },
+        "education": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "scores": {
+          "type": "object",
+          "properties": {
+            "U1": { "type": "number" },
+            "U2": { "type": "number" },
+            "U3": { "type": "number" },
+            "U4": { "type": "number" },
+            "U5": { "type": "number" },
+            "U6": { "type": "number" },
+            "U7": { "type": "number" },
+            "U8": { "type": "number" },
+            "U9": { "type": "number" }
+          }
+        },
+        "ikmScore": {
+          "type": "number"
+        },
+        "grade": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D"]
+        },
+        "feedback": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "submittedAtLabel": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "userEmail",
+        "userName",
+        "unitTitle",
+        "ageGroup",
+        "education",
+        "scores",
+        "ikmScore",
+        "grade",
+        "submittedAtLabel",
+        "createdAt"
+      ]
     }
   },
   "firestore": {
@@ -787,6 +1042,18 @@
     "/infoSectionData/{docId}": {
       "schema": { "$ref": "#/entities/InfoSectionData" },
       "description": "Data publik per subbagian menu Informasi yang dikelola oleh Super Admin atau Operator Seksi sesuai kewenangan unitnya."
+    },
+    "/publicComplaints/{complaintId}": {
+      "schema": { "$ref": "#/entities/PublicComplaint" },
+      "description": "Pengaduan masyarakat E-Pengaduan PTSP oleh akun pengunjung Google terdaftar."
+    },
+    "/spanLaporSubmissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/SpanLaporSubmission" },
+      "description": "Pengajuan laporan SPAN LAPOR oleh akun pengunjung Google terdaftar."
+    },
+    "/skmResponses/{responseId}": {
+      "schema": { "$ref": "#/entities/SkmResponse" },
+      "description": "Respon Survei Kepuasan Masyarakat (SKM) oleh akun pengunjung Google terdaftar."
     }
   }
 }

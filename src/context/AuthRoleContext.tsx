@@ -5,6 +5,7 @@ import {
   auth,
   completeGoogleRedirectSignIn,
   isEligibleSessionUser,
+  isGoogleAuthUser,
   isNipEmployeeEmail,
   mapFirebaseAuthError,
   mergeInformasiUnits,
@@ -20,6 +21,7 @@ import {
   subscribeAllEmployeeRequests,
   subscribeInfoSectionData,
   subscribeMyEmployeeRequest,
+  subscribeMyUserProfile,
   subscribeMyVerifiedEmployee,
   subscribeNewsArticles,
   subscribePtspTickets,
@@ -33,6 +35,7 @@ import {
   type EmployeeUnitCategory,
   type OperatorUnitAssignment,
   type TicketSubscriptionScope,
+  type UserProfileRecord,
   type VerifiedEmployeeRecord,
 } from '@/src/firebase';
 import { NEWS_ARTICLES } from '@/src/data/kemenagData';
@@ -72,6 +75,9 @@ interface AuthRoleContextValue {
   isVerifiedEmployee: boolean;
   isVerifiedKuaEmployee: boolean;
   isMasyarakatLogin: boolean;
+  hasGoogleProvider: boolean;
+  myUserProfile: UserProfileRecord | null;
+  isRegisteredGoogleVisitor: boolean;
   accountTier: AccountTier | 'tamu';
   newsArticles: NewsArticle[];
   cloudNewsArticles: CloudNewsArticleRecord[];
@@ -92,7 +98,7 @@ interface AuthRoleContextValue {
   operatorConsoleTriggerCount: number;
   requestOpenOperatorConsole: () => void;
   serviceCatalogRedirectCount: number;
-  signInWithGoogle: () => Promise<User | null>;
+  signInWithGoogle: (options?: { skipRedirect?: boolean }) => Promise<User | null>;
   signInPublicWithEmail: (email: string, password: string) => Promise<User | null>;
   registerPublicWithEmail: (params: {
     fullName: string;
@@ -160,6 +166,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string>('');
   const [myEmployeeRequest, setMyEmployeeRequest] = useState<EmployeeRequestRecord | null>(null);
   const [myVerifiedEmployee, setMyVerifiedEmployee] = useState<VerifiedEmployeeRecord | null>(null);
+  const [myUserProfile, setMyUserProfile] = useState<UserProfileRecord | null>(null);
   const [myOrAllTickets, setMyOrAllTickets] = useState<CloudPtspTicketRecord[]>([]);
   const [adminPendingRequests, setAdminPendingRequests] = useState<EmployeeRequestRecord[]>([]);
   const [cloudNewsArticles, setCloudNewsArticles] = useState<CloudNewsArticleRecord[]>([]);
@@ -176,6 +183,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   const isEligibleUser = isEligibleSessionUser(user);
   const isNipSession = isNipEmployeeEmail(user?.email);
+  const hasGoogleProvider = isGoogleAuthUser(user);
 
   const isAdmin = Boolean(user?.email && user.email === ADMIN_EMAIL && user.emailVerified);
   const isVerifiedEmployee = Boolean(
@@ -201,6 +209,10 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   const isMasyarakatLogin = Boolean(
     user && !isAdmin && !isVerifiedEmployee && !isNipSession
+  );
+
+  const isRegisteredGoogleVisitor = Boolean(
+    user && hasGoogleProvider && myUserProfile
   );
 
   const accountTier: AccountTier | 'tamu' = !user
@@ -284,10 +296,19 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     if (!user || !isEligibleUser) {
       setMyEmployeeRequest(null);
       setMyVerifiedEmployee(null);
+      setMyUserProfile(null);
       setMyOrAllTickets([]);
       setAdminPendingRequests([]);
       return;
     }
+
+    const unsubProfile = subscribeMyUserProfile(
+      user.uid,
+      (profile) => setMyUserProfile(profile),
+      () => {
+        // handled inside firebase.ts
+      }
+    );
 
     const unsubReq = subscribeMyEmployeeRequest(
       user.uid,
@@ -334,6 +355,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
+      unsubProfile();
       unsubReq();
       unsubEmp();
       unsubTickets();
@@ -427,7 +449,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     setOperatorModalOpen(false);
   };
 
-  const signInWithGoogle = async (): Promise<User | null> => {
+  const signInWithGoogle = async (options?: { skipRedirect?: boolean }): Promise<User | null> => {
     setAuthError('');
     try {
       const loggedIn = await signInWithGoogleAndRecord();
@@ -435,7 +457,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         return null;
       }
       setLoginModalOpen(false);
-      if (loggedIn.email !== ADMIN_EMAIL) {
+      if (!options?.skipRedirect && loggedIn.email !== ADMIN_EMAIL) {
         setServiceCatalogRedirectCount((c) => c + 1);
       }
       return loggedIn;
@@ -839,6 +861,9 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         isVerifiedEmployee,
         isVerifiedKuaEmployee,
         isMasyarakatLogin,
+        hasGoogleProvider,
+        myUserProfile,
+        isRegisteredGoogleVisitor,
         accountTier,
         newsArticles,
         cloudNewsArticles,

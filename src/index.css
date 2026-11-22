@@ -70,6 +70,25 @@
   animation: arrowDownPulse 1.2s ease-in-out infinite;
 }
 
+@keyframes catalogCardPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(4px) scale(1.025);
+  }
+}
+
+.animate-catalog-card-pulse {
+  animation: catalogCardPulse 1.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-catalog-card-pulse:hover,
+.animate-catalog-card-pulse:focus-within {
+  animation-play-state: paused;
+}
+
 @keyframes scrollWheelMove {
   0% {
     opacity: 1;

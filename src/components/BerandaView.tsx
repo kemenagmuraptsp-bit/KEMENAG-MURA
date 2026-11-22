@@ -153,6 +153,9 @@ const APP_ACCENTS: Record<string, string> = {
   'app-simpeg': 'bg-emerald-800 text-white',
   'app-srikandi': 'bg-indigo-800 text-white',
   'app-simkah': 'bg-teal-800 text-white',
+  'app-sipdar': 'bg-cyan-700 text-white',
+  'app-sitren': 'bg-violet-700 text-white',
+  'app-siaga': 'bg-rose-700 text-white',
 };
 
 export function BerandaView({
@@ -286,16 +289,16 @@ export function BerandaView({
         <div className="relative z-10 flex justify-center pt-6">
           <a
             href="#katalog-ptsp"
-            className="group flex flex-col items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-sky-200 hover:text-white drop-shadow-[0_2px_8px_rgba(7,18,38,0.92)] transition-colors"
+            className="group flex flex-col items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-yellow-300 hover:text-yellow-200 drop-shadow-[0_2px_8px_rgba(7,18,38,0.95)] transition-colors"
           >
             <span>{lang === 'en' ? 'Scroll Down' : 'Gulir ke bawah'}</span>
             <ArrowDown
               strokeWidth={2.75}
-              className="w-4 h-4 text-sky-200 group-hover:text-white animate-arrow-down-pulse"
+              className="w-4 h-4 text-yellow-300 group-hover:text-yellow-200 animate-arrow-down-pulse"
               aria-hidden="true"
             />
-            <span className="w-6 h-9 rounded-full border-2 border-sky-300/80 group-hover:border-white bg-[#071226]/60 flex items-start justify-center p-1.5 shadow-[0_0_16px_rgba(56,189,248,0.35)] transition-colors">
-              <span className="w-1.5 h-2 rounded-full bg-sky-300 group-hover:bg-white animate-scroll-wheel" />
+            <span className="w-6 h-9 rounded-full border-2 border-yellow-300 group-hover:border-yellow-200 bg-[#071226]/70 flex items-start justify-center p-1.5 shadow-[0_0_16px_rgba(253,224,71,0.4)] transition-colors">
+              <span className="w-1.5 h-2 rounded-full bg-yellow-300 group-hover:bg-yellow-200 animate-scroll-wheel" />
             </span>
           </a>
         </div>
@@ -322,24 +325,77 @@ export function BerandaView({
               <span className="text-amber-600 dark:text-amber-400">L</span>ayanan{' '}
               <span className="text-amber-600 dark:text-amber-400">K</span>eagamaan Kabupaten Murung Raya
             </p>
+            <p className="mt-2.5 max-w-2xl mx-auto text-xs sm:text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
+              {lang === 'en' ? (
+                <>
+                  <strong className="font-bold text-slate-800 dark:text-white">
+                    One-Stop Integrated Service (PTSP)
+                  </strong>{' '}
+                  is an integrated religious administration gateway enabling the public to receive services quickly, transparently, and accountably in one place.
+                </>
+              ) : (
+                <>
+                  <strong className="font-bold text-slate-800 dark:text-white">
+                    Pelayanan Terpadu Satu Pintu (PTSP)
+                  </strong>{' '}
+                  adalah layanan administrasi keagamaan terintegrasi dalam satu pintu agar masyarakat memperoleh pelayanan secara cepat, transparan, dan akuntabel.
+                </>
+              )}
+            </p>
+
+            <a
+              href="#katalog-layanan-grid"
+              className="mt-5 inline-flex flex-col items-center gap-1.5 group focus-visible:outline-2 focus-visible:outline-emerald-700 rounded-lg px-3 py-1"
+            >
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-100 tracking-wide">
+                {lang === 'en' ? (
+                  <>
+                    <span className="font-black uppercase text-red-600 dark:text-red-400">
+                      CLICK CATALOG
+                    </span>{' '}
+                    to select a service
+                  </>
+                ) : (
+                  <>
+                    <span className="font-black uppercase text-red-600 dark:text-red-400">
+                      KLIK KATALOG
+                    </span>{' '}
+                    untuk memilih layanan
+                  </>
+                )}
+              </span>
+              <span className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 animate-arrow-down-pulse dark:rounded-full dark:bg-white dark:p-1 dark:shadow-sm">
+                <SafeImage
+                  src="/assets/aistudio/images__9__e42ac56b.jpg"
+                  alt={lang === 'en' ? 'Arrow pointing to service catalog' : 'Panah mengarah ke katalog layanan'}
+                  fallbackLabel="↓"
+                  className="w-full h-full object-contain rotate-[135deg] mix-blend-multiply dark:mix-blend-normal"
+                />
+              </span>
+            </a>
           </div>
 
           <div
-            className={`mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
+            id="katalog-layanan-grid"
+            className={`scroll-mt-24 mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
               visibleServiceUnits.length === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-6'
             } gap-3.5`}
           >
-            {visibleServiceUnits.map((unit) => {
+            {visibleServiceUnits.map((unit, idx) => {
               const Icon = SERVICE_ICONS[unit.id] || Building2;
               const coverSrc = SERVICE_IMAGES[unit.id];
               const theme = SERVICE_MODERN_THEMES[unit.id] || SERVICE_MODERN_THEMES.sekretariat;
               return (
-                <button
+                <div
                   key={unit.id}
-                  type="button"
-                  onClick={() => onSelectService(unit)}
-                  className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[220px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
+                  style={{ animationDelay: `${idx * 150}ms` }}
+                  className="animate-catalog-card-pulse h-full"
                 >
+                  <button
+                    type="button"
+                    onClick={() => onSelectService(unit)}
+                    className={`group relative w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[220px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
+                  >
                   {/* Full-Bleed Category Background with Service Officer */}
                   <SafeImage
                     src={coverSrc}
@@ -399,7 +455,8 @@ export function BerandaView({
                       </span>
                     </div>
                   </div>
-                </button>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -429,7 +486,7 @@ export function BerandaView({
       </section>
 
       {/* SECTION 2: Zona Integritas — Apa Kata Mereka */}
-      <section className="py-12 lg:py-16 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800">
+      <section className="py-12 lg:py-16 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b-2 border-slate-300 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-400">
@@ -438,6 +495,10 @@ export function BerandaView({
             <h2 className="mt-2 text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
               Apa Kata Mereka
             </h2>
+            <div
+              aria-hidden="true"
+              className="mt-3 mx-auto h-[3px] w-24 bg-emerald-700 dark:bg-emerald-400"
+            />
             <p className="mt-3 text-xs sm:text-sm font-medium text-slate-600 dark:text-zinc-300">
               Komitmen dan pesan inspiratif dari para pimpinan untuk memperkuat layanan umat di
               Kabupaten Murung Raya.
@@ -455,12 +516,12 @@ export function BerandaView({
               return (
                 <article
                   key={leader.id}
-                  className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-xs"
+                  className="bg-white dark:bg-slate-900 border-2 border-emerald-700/85 dark:border-emerald-500/75 hover:border-emerald-800 dark:hover:border-emerald-400 rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-colors duration-200"
                 >
                   <div className="text-center space-y-3">
                     <span
                       aria-hidden="true"
-                      className="block text-3xl font-serif-editorial text-emerald-600/45 dark:text-emerald-400/50 leading-none"
+                      className="block text-3xl font-serif-editorial text-emerald-700/80 dark:text-emerald-400/85 leading-none"
                     >
                       “
                     </span>
@@ -471,8 +532,8 @@ export function BerandaView({
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-5 border-t border-slate-100 dark:border-white/10 flex flex-col items-center text-center">
-                    <div className="w-14 h-14 rounded-full bg-emerald-700 dark:bg-emerald-800 text-white font-bold text-base flex items-center justify-center border-2 border-white dark:border-zinc-700 shadow-md ring-2 ring-emerald-500/20 dark:ring-emerald-400/25">
+                  <div className="mt-6 pt-5 border-t-2 border-emerald-700/40 dark:border-emerald-400/40 flex flex-col items-center text-center">
+                    <div className="w-14 h-14 rounded-full bg-emerald-700 dark:bg-emerald-800 text-white font-bold text-base flex items-center justify-center border-2 border-white dark:border-zinc-700 ring-2 ring-emerald-700/40 dark:ring-emerald-400/40">
                       {initials}
                     </div>
                     <h3 className="mt-3 text-sm font-black text-slate-900 dark:text-white">

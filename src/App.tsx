@@ -81,15 +81,17 @@ function OperatorNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
 }
 
 function ServiceCatalogRedirectWatcher({
+  activeView,
   onRedirect,
   onResetKepegawaianSelection,
 }: {
+  activeView: PageView;
   onRedirect: () => void;
   onResetKepegawaianSelection: () => void;
 }) {
   const { serviceCatalogRedirectCount, isMasyarakatLogin } = useAuthRole();
   useEffect(() => {
-    if (serviceCatalogRedirectCount > 0) {
+    if (serviceCatalogRedirectCount > 0 && activeView !== 'e-pengaduan') {
       onRedirect();
     }
   }, [serviceCatalogRedirectCount]);
@@ -269,7 +271,18 @@ export default function App() {
     setActiveInfoSectionId(targetSection.id);
     setServiceSidebarOpen(false);
     setActiveView('informasi');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (sectionId) {
+      window.setTimeout(() => {
+        const panel = document.getElementById('seksi-data-panel');
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 110);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleNavigateToKepegawaian = () => {
@@ -541,6 +554,7 @@ export default function App() {
       <SuperAdminNavigationWatcher onTrigger={handleOpenAdminConsole} />
       <OperatorNavigationWatcher onTrigger={handleOpenOperatorConsole} />
       <ServiceCatalogRedirectWatcher
+        activeView={activeView}
         onRedirect={handleBackToKatalogLayanan}
         onResetKepegawaianSelection={() => {
           if (activeServiceUnitId === 'kepegawaian') {

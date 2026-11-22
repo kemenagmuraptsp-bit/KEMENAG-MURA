@@ -36,6 +36,22 @@ service cloud.firestore {
       );
     }
 
+    function isGoogleSignInAccount() {
+      return isSignedIn()
+        && 'email_verified' in request.auth.token
+        && request.auth.token.email_verified == true
+        && 'email' in request.auth.token
+        && request.auth.token.email is string
+        && 'firebase' in request.auth.token
+        && request.auth.token.firebase is map
+        && 'sign_in_provider' in request.auth.token.firebase
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function hasRegisteredUserProfile() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function isAdmin() {
       return isSignedIn()
         && 'email_verified' in request.auth.token
@@ -590,6 +606,151 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidPublicComplaint(data, complaintId) {
+      return data.keys().hasAll([
+          'id',
+          'ticketNo',
+          'userId',
+          'userEmail',
+          'category',
+          'subject',
+          'details',
+          'reporter',
+          'anonymous',
+          'submittedAtLabel',
+          'status',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'ticketNo',
+          'userId',
+          'userEmail',
+          'category',
+          'subject',
+          'details',
+          'reporter',
+          'contact',
+          'anonymous',
+          'submittedAtLabel',
+          'status',
+          'createdAt'
+        ])
+        && data.id is string && data.id == complaintId && isValidId(data.id)
+        && data.ticketNo is string && data.ticketNo.size() >= 6 && data.ticketNo.size() <= 40 && data.ticketNo.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 160
+        && data.category is string && data.category.size() >= 2 && data.category.size() <= 100
+        && data.subject is string && data.subject.size() >= 3 && data.subject.size() <= 200
+        && data.details is string && data.details.size() >= 15 && data.details.size() <= 2000
+        && data.reporter is string && data.reporter.size() >= 2 && data.reporter.size() <= 120
+        && (!('contact' in data) || (data.contact is string && data.contact.size() <= 120))
+        && data.anonymous is bool
+        && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
+        && data.status is string && data.status == 'Diterima Inspektorat Internal'
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSpanLaporSubmission(data, submissionId) {
+      return data.keys().hasAll([
+          'id',
+          'trackingNo',
+          'userId',
+          'userEmail',
+          'userName',
+          'reportType',
+          'topic',
+          'summary',
+          'smsDraft',
+          'submittedAtLabel',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'trackingNo',
+          'userId',
+          'userEmail',
+          'userName',
+          'reportType',
+          'topic',
+          'summary',
+          'smsDraft',
+          'submittedAtLabel',
+          'createdAt'
+        ])
+        && data.id is string && data.id == submissionId && isValidId(data.id)
+        && data.trackingNo is string && data.trackingNo.size() >= 6 && data.trackingNo.size() <= 40 && data.trackingNo.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.userId is string && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 160
+        && data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 120
+        && data.reportType is string && (
+          data.reportType == 'Pengaduan' ||
+          data.reportType == 'Aspirasi' ||
+          data.reportType == 'Permintaan Informasi'
+        )
+        && data.topic is string && data.topic.size() >= 2 && data.topic.size() <= 120
+        && data.summary is string && data.summary.size() >= 15 && data.summary.size() <= 2000
+        && data.smsDraft is string && data.smsDraft.size() >= 10 && data.smsDraft.size() <= 2200
+        && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSkmResponse(data, responseId) {
+      return data.keys().hasAll([
+          'id',
+          'userId',
+          'userEmail',
+          'userName',
+          'unitTitle',
+          'ageGroup',
+          'education',
+          'scores',
+          'ikmScore',
+          'grade',
+          'submittedAtLabel',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'userId',
+          'userEmail',
+          'userName',
+          'unitTitle',
+          'ageGroup',
+          'education',
+          'scores',
+          'ikmScore',
+          'grade',
+          'feedback',
+          'submittedAtLabel',
+          'createdAt'
+        ])
+        && data.id is string && data.id == responseId && isValidId(data.id)
+        && data.userId is string && isValidId(data.userId)
+        && data.userEmail is string && data.userEmail.size() >= 3 && data.userEmail.size() <= 160
+        && data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 120
+        && data.unitTitle is string && data.unitTitle.size() >= 2 && data.unitTitle.size() <= 120
+        && data.ageGroup is string && data.ageGroup.size() >= 3 && data.ageGroup.size() <= 40
+        && data.education is string && data.education.size() >= 2 && data.education.size() <= 40
+        && data.scores is map
+        && data.scores.keys().hasAll(['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9'])
+        && data.scores.keys().hasOnly(['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9'])
+        && data.scores.U1 is int && data.scores.U1 >= 1 && data.scores.U1 <= 4
+        && data.scores.U2 is int && data.scores.U2 >= 1 && data.scores.U2 <= 4
+        && data.scores.U3 is int && data.scores.U3 >= 1 && data.scores.U3 <= 4
+        && data.scores.U4 is int && data.scores.U4 >= 1 && data.scores.U4 <= 4
+        && data.scores.U5 is int && data.scores.U5 >= 1 && data.scores.U5 <= 4
+        && data.scores.U6 is int && data.scores.U6 >= 1 && data.scores.U6 <= 4
+        && data.scores.U7 is int && data.scores.U7 >= 1 && data.scores.U7 <= 4
+        && data.scores.U8 is int && data.scores.U8 >= 1 && data.scores.U8 <= 4
+        && data.scores.U9 is int && data.scores.U9 >= 1 && data.scores.U9 <= 4
+        && data.ikmScore is number && data.ikmScore >= 25 && data.ikmScore <= 100
+        && data.grade is string && (data.grade == 'A' || data.grade == 'B' || data.grade == 'C' || data.grade == 'D')
+        && (!('feedback' in data) || (data.feedback is string && data.feedback.size() <= 1000))
+        && data.submittedAtLabel is string && data.submittedAtLabel.size() >= 4 && data.submittedAtLabel.size() <= 50
+        && data.createdAt is timestamp;
+    }
+
     match /users/{userId} {
       allow get: if isValidId(userId) && isVerifiedUser() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
@@ -939,6 +1100,60 @@ service cloud.firestore {
       allow delete: if isValidId(docId)
         && isVerifiedUser()
         && (isAdmin() || isOperatorSeksiForUnit(existing().seksiUnitId));
+    }
+
+    match /publicComplaints/{complaintId} {
+      allow get: if isValidId(complaintId)
+        && isVerifiedUser()
+        && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(complaintId)
+        && isGoogleSignInAccount()
+        && isValidPublicComplaint(incoming(), complaintId)
+        && incoming().userId == request.auth.uid
+        && incoming().userEmail == request.auth.token.email
+        && incoming().createdAt == request.time
+        && hasRegisteredUserProfile();
+
+      allow update, delete: if false;
+    }
+
+    match /spanLaporSubmissions/{submissionId} {
+      allow get: if isValidId(submissionId)
+        && isVerifiedUser()
+        && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(submissionId)
+        && isGoogleSignInAccount()
+        && isValidSpanLaporSubmission(incoming(), submissionId)
+        && incoming().userId == request.auth.uid
+        && incoming().userEmail == request.auth.token.email
+        && incoming().createdAt == request.time
+        && hasRegisteredUserProfile();
+
+      allow update, delete: if false;
+    }
+
+    match /skmResponses/{responseId} {
+      allow get: if isValidId(responseId)
+        && isVerifiedUser()
+        && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isValidId(responseId)
+        && isGoogleSignInAccount()
+        && isValidSkmResponse(incoming(), responseId)
+        && incoming().userId == request.auth.uid
+        && incoming().userEmail == request.auth.token.email
+        && incoming().createdAt == request.time
+        && hasRegisteredUserProfile();
+
+      allow update, delete: if false;
     }
   }
 }

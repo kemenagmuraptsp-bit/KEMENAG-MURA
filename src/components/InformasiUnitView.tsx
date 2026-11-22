@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Building2,
+  ChevronDown,
   ExternalLink,
-  FileText,
+  Layers,
   Network,
   Search,
   Users,
@@ -23,10 +24,10 @@ export function InformasiUnitView({
   selectedUnitId,
   selectedSectionId,
   onSelectUnit,
-  onNavigate,
 }: InformasiUnitViewProps) {
   const { infoUnits, isAdmin, isOperatorSeksi, assignedUnitId } = useAuthRole();
   const [tableQuery, setTableQuery] = useState('');
+  const sectionDataRef = useRef<HTMLDivElement | null>(null);
 
   const activeUnit =
     infoUnits.find((u) => u.id === selectedUnitId) || infoUnits[0];
@@ -56,6 +57,11 @@ export function InformasiUnitView({
   const handleSectionChange = (sectionId: string) => {
     setTableQuery('');
     onSelectUnit(activeUnit.id, sectionId);
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        sectionDataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 40);
+    });
   };
 
   return (
@@ -88,42 +94,102 @@ export function InformasiUnitView({
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
-        {/* Top Unit Switcher */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-2 flex flex-wrap items-center gap-2 shadow-2xs">
-          {infoUnits.map((unit) => {
-            const isSelected = unit.id === activeUnit.id;
-            return (
-              <button
-                key={unit.id}
-                type="button"
-                onClick={() => handleUnitChange(unit.id)}
-                className={`group menu-expand-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-md shadow-emerald-900/20'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:bg-emerald-50/90 dark:hover:bg-slate-800 hover:text-emerald-900 dark:hover:text-emerald-300 hover:shadow-xs'
-                }`}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
+        {/* SATU BORDER TERPADU: Menu Informasi Seksi (Tier 1) + Pembatas + Menu Data Seksi (Tier 2) */}
+        <div className="rounded-2xl border-2 border-[#0b1d3d]/30 dark:border-sky-300/25 shadow-sm overflow-hidden">
+          {/* TIER 1: Menu Informasi Seksi (Transparan Navy Jelas) */}
+          <div className="bg-[#0b1d3d]/75 dark:bg-[#071226]/80 backdrop-blur-md p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/20 pb-2.5">
+              <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-sky-200">
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span>Menu Informasi Seksi / Satuan Kerja</span>
+              </div>
+              <p className="text-xs text-sky-100/85">
+                Seksi Terpilih:{' '}
+                <strong className="text-white font-bold">
+                  {activeUnit.shortTitle}
+                </strong>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {infoUnits.map((unit) => {
+                const isSelected = unit.id === activeUnit.id;
+                return (
+                  <button
+                    key={unit.id}
+                    type="button"
+                    onClick={() => handleUnitChange(unit.id)}
+                    className={`group menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                      isSelected
+                        ? 'bg-emerald-500/90 border-emerald-400 text-slate-950 shadow-xs'
+                        : 'bg-white/15 border-sky-200/30 text-white hover:bg-white/25 hover:border-sky-200/55'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                    <span className="menu-expand-label">{unit.shortTitle}</span>
+                  </button>
+                );
+              })}
+
+              <span
+                aria-hidden="true"
+                className="hidden sm:block h-6 w-px bg-sky-200/30 mx-0.5"
+              />
+
+              <a
+                href="https://sipendismura.my.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-amber-300/60 bg-amber-400/20 text-amber-100 hover:bg-amber-400/30 hover:border-amber-300 whitespace-nowrap transition-all"
               >
-                <Building2 className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
-                <span className="menu-expand-label">{unit.shortTitle}</span>
-              </button>
-            );
-          })}
+                <span className="menu-expand-label">SIPENDISMURA</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </a>
+            </div>
+          </div>
 
-          <span
-            aria-hidden="true"
-            className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-700 mx-0.5"
-          />
+          {/* Garis Pembatas Pembeda dalam Satu Border */}
+          <div className="px-4 sm:px-5 py-1.5 bg-[#0b1d3d]/20 dark:bg-slate-900/80 border-y border-emerald-700/25 dark:border-sky-300/20 flex items-center gap-2">
+            <ChevronDown className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0b1d3d] dark:text-sky-200">
+              Menu Data Seksi · {activeUnit.shortTitle}
+            </span>
+          </div>
 
-          <a
-            href="https://sipendismura.my.id"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group menu-expand-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-600/50 dark:border-emerald-500/50 bg-emerald-50/90 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 hover:border-emerald-600 hover:shadow-xs whitespace-nowrap"
-          >
-            <span className="menu-expand-label">SIPENDISMURA</span>
-            <ExternalLink className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </a>
+          {/* TIER 2: Menu Data di Dalam Seksi (Transparan Emerald Jelas) */}
+          <div className="bg-emerald-700/20 dark:bg-emerald-900/45 backdrop-blur-md p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              {activeUnit.sections.map((section, idx) => {
+                const isTabActive = section.id === activeSection.id;
+                const isOrgTab = Boolean(section.orgNodes && section.orgNodes.length > 0);
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => handleSectionChange(section.id)}
+                    className={`menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border whitespace-nowrap transition-all ${
+                      isTabActive
+                        ? 'bg-emerald-700/90 dark:bg-emerald-600 border-emerald-800 dark:border-emerald-500 text-white shadow-xs'
+                        : 'border-emerald-700/30 dark:border-emerald-400/30 bg-white/85 dark:bg-slate-950/75 text-slate-800 dark:text-slate-100 hover:border-emerald-600 hover:bg-white dark:hover:bg-slate-900 hover:text-emerald-800 dark:hover:text-emerald-300'
+                    }`}
+                  >
+                    <span
+                      className={`font-mono-tabular text-[11px] ${
+                        isTabActive
+                          ? 'text-emerald-200'
+                          : 'text-emerald-700/80 dark:text-emerald-400/80'
+                      }`}
+                    >
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    {isOrgTab && <Network className="w-3.5 h-3.5 shrink-0 opacity-85" />}
+                    <span className="menu-expand-label">{section.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Role-scoped Excel & Data Management Panel for Super Admin & Authorized Operator Seksi */}
@@ -135,42 +201,12 @@ export function InformasiUnitView({
           />
         )}
 
-        {/* Sub-Data Category Tabs for Selected Unit */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {activeUnit.sections.map((section) => {
-                const isTabActive = section.id === activeSection.id;
-                return (
-                  <button
-                    key={section.id}
-                    type="button"
-                    onClick={() => handleSectionChange(section.id)}
-                    className={`menu-expand-btn px-4 py-2 rounded-xl text-xs font-bold border whitespace-nowrap ${
-                      isTabActive
-                        ? 'border-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/80 dark:to-teal-950/60 text-emerald-900 dark:text-emerald-300 shadow-xs ring-1 ring-emerald-600/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:bg-emerald-50/60 dark:hover:bg-slate-800 hover:text-emerald-800 dark:hover:text-emerald-300 hover:shadow-xs'
-                    }`}
-                  >
-                    <span className="menu-expand-label">{section.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onNavigate('ppid')}
-              className="menu-expand-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shrink-0"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="menu-expand-label">Daftar Informasi Publik (PPID) →</span>
-            </button>
-          </div>
-        </div>
-
         {/* Active Section Detail Card */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 space-y-6 shadow-xs">
+        <div
+          id="seksi-data-panel"
+          ref={sectionDataRef}
+          className="scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 space-y-6 shadow-xs"
+        >
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
             <div className="space-y-1.5 max-w-3xl">
               <span className="inline-block text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">

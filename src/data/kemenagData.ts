@@ -1265,6 +1265,27 @@ export const EXTERNAL_APPS: ExternalApp[] = [
     url: 'https://simkah4.kemenag.go.id/',
     domain: 'simkah4.kemenag.go.id',
   },
+  {
+    id: 'app-sipdar',
+    name: 'SIPDAR',
+    description: "Sistem Informasi Pelayanan Tanda Daftar Lembaga Pendidikan Al-Qur'an (LPQ/TPQ) Kemenag RI.",
+    url: 'https://sipdarlpq.kemenag.go.id/',
+    domain: 'sipdarlpq.kemenag.go.id',
+  },
+  {
+    id: 'app-sitren',
+    name: 'SITREN',
+    description: 'Sistem Informasi Pesantren dan pengajuan izin operasional pendidikan keagamaan Islam.',
+    url: 'https://sitren.kemenag.go.id/izopmdt/',
+    domain: 'sitren.kemenag.go.id',
+  },
+  {
+    id: 'app-siaga',
+    name: 'SIAGA',
+    description: 'Sistem Informasi dan Administrasi Guru Agama pada Direktorat Pendidikan Agama Islam.',
+    url: 'https://siagapendis.kemenag.go.id/login',
+    domain: 'siagapendis.kemenag.go.id',
+  },
 ];
 
 export const PPID_DOCUMENTS: PPIDDocument[] = [

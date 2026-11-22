@@ -28,6 +28,9 @@ import {
   BarChart3,
   MessageSquareWarning,
   ClipboardCheck,
+  Loader2,
+  UserCheck,
+  LogIn,
 } from 'lucide-react';
 import {
   OFFICE_INFO,
@@ -58,8 +61,17 @@ import {
 import {
   fetchTicketAttachments,
   subscribePtspTickets,
+  submitCloudPublicComplaint,
+  subscribePublicComplaints,
+  submitCloudSpanLapor,
+  subscribeSpanLaporSubmissions,
+  submitCloudSkmResponse,
+  subscribeSkmResponses,
   type CloudPtspTicketAttachment,
   type CloudPtspTicketRecord,
+  type CloudPublicComplaintRecord,
+  type CloudSpanLaporRecord,
+  type CloudSkmResponseRecord,
 } from '@/src/firebase';
 
 function PageHeader({
@@ -1445,6 +1457,101 @@ function getIkmGrade(ikm: number): { grade: 'A' | 'B' | 'C' | 'D'; label: string
   return { grade: 'D', label: 'Tidak Baik' };
 }
 
+function GoogleVisitorGateCard({
+  channelTitle,
+  channelDescription,
+  userEmail,
+  hasSession,
+  hasGoogleProvider,
+  isNipSession,
+  profilePending,
+  busy,
+  errorMsg,
+  onSignInGoogle,
+  onOpenAccountModal,
+}: {
+  channelTitle: string;
+  channelDescription: string;
+  userEmail?: string | null;
+  hasSession: boolean;
+  hasGoogleProvider: boolean;
+  isNipSession: boolean;
+  profilePending: boolean;
+  busy: boolean;
+  errorMsg: string;
+  onSignInGoogle: () => void;
+  onOpenAccountModal: () => void;
+}) {
+  return (
+    <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 bg-slate-50 dark:bg-slate-900 space-y-4">
+      <div className="flex items-start gap-3.5">
+        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shrink-0">
+          <Lock className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            Verifikasi Akun Pengunjung Google
+          </p>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            {channelTitle}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            {channelDescription}
+          </p>
+        </div>
+      </div>
+
+      {profilePending ? (
+        <div className="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          <span>Memverifikasi pendaftaran akun Google pengunjung Anda di sistem...</span>
+        </div>
+      ) : hasSession && !hasGoogleProvider ? (
+        <div className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg p-3.5 space-y-1">
+          <p className="font-bold">
+            Sesi Aktif Bukan Akun Google Pengunjung ({isNipSession ? 'Sesi NIP Pegawai' : userEmail || 'Non-Google'})
+          </p>
+          <p>
+            Pengiriman pada Formulir E-Pengaduan, SPAN LAPOR, dan Survei Kepuasan Masyarakat hanya dibuka untuk akun pengunjung yang masuk dan terdaftar menggunakan <strong>Akun Google</strong> pada web Kemenag Kabupaten Murung Raya.
+          </p>
+        </div>
+      ) : null}
+
+      {errorMsg && (
+        <div className="flex items-start gap-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {!profilePending && (
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onSignInGoogle}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white transition-colors"
+          >
+            {busy ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+            <span>Masuk / Daftar dengan Akun Google</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenAccountModal}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+          >
+            <span>Buka Panel Login</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PengaduanView({
   complaints,
   onAddComplaint,
@@ -1452,9 +1559,31 @@ export function PengaduanView({
   complaints: ComplaintSubmission[];
   onAddComplaint: (c: ComplaintSubmission) => void;
 }) {
+  const {
+    user,
+    isAdmin,
+    hasGoogleProvider,
+    isNipSession,
+    isRegisteredGoogleVisitor,
+    myUserProfile,
+    signInWithGoogle,
+    openLoginModal,
+    authError,
+    authLoading,
+  } = useAuthRole();
+
   const [activeAnchor, setActiveAnchor] = useState<
     'formulir-pengaduan' | 'span-lapor' | 'survei-skm'
   >('formulir-pengaduan');
+
+  // Google sign-in helper state
+  const [googleAuthBusy, setGoogleAuthBusy] = useState(false);
+  const [localGoogleError, setLocalGoogleError] = useState('');
+
+  // Cloud Firestore records for registered Google visitor / admin
+  const [cloudComplaints, setCloudComplaints] = useState<CloudPublicComplaintRecord[]>([]);
+  const [cloudSpanList, setCloudSpanList] = useState<CloudSpanLaporRecord[]>([]);
+  const [cloudSkmList, setCloudSkmList] = useState<CloudSkmResponseRecord[]>([]);
 
   // Internal E-Pengaduan state
   const [category, setCategory] = useState('Pelayanan PTSP / KUA');
@@ -1464,6 +1593,7 @@ export function PengaduanView({
   const [contact, setContact] = useState('');
   const [anonymous, setAnonymous] = useState(false);
   const [error, setError] = useState('');
+  const [complaintBusy, setComplaintBusy] = useState(false);
   const [latestTicket, setLatestTicket] = useState<ComplaintSubmission | null>(null);
 
   // SPAN LAPOR (Integrasi Pusat) assistant state
@@ -1472,6 +1602,9 @@ export function PengaduanView({
   );
   const [spanTopic, setSpanTopic] = useState('Pelayanan Publik PTSP');
   const [spanSummary, setSpanSummary] = useState('');
+  const [spanBusy, setSpanBusy] = useState(false);
+  const [spanError, setSpanError] = useState('');
+  const [latestSpan, setLatestSpan] = useState<CloudSpanLaporRecord | null>(null);
   const [copiedSms, setCopiedSms] = useState(false);
 
   // Survei Kepuasan Masyarakat (SKM) state
@@ -1486,6 +1619,8 @@ export function PengaduanView({
     return initial;
   });
   const [skmFeedback, setSkmFeedback] = useState('');
+  const [skmBusy, setSkmBusy] = useState(false);
+  const [skmError, setSkmError] = useState('');
   const [skmResponses, setSkmResponses] = useState<SkmSubmissionRecord[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_SKM_KEY);
@@ -1495,6 +1630,61 @@ export function PengaduanView({
     }
   });
   const [latestSkm, setLatestSkm] = useState<SkmSubmissionRecord | null>(null);
+
+  const profilePending = Boolean(user && hasGoogleProvider && !myUserProfile);
+  const visitorDisplayName =
+    myUserProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || '';
+  const visitorEmail = myUserProfile?.email || user?.email || '';
+
+  useEffect(() => {
+    if (!isRegisteredGoogleVisitor) return;
+    if (!reporter && visitorDisplayName) {
+      setReporter(visitorDisplayName);
+    }
+    if (!contact && visitorEmail) {
+      setContact(visitorEmail);
+    }
+  }, [isRegisteredGoogleVisitor, visitorDisplayName, visitorEmail]);
+
+  useEffect(() => {
+    if (!user || (!isRegisteredGoogleVisitor && !isAdmin)) {
+      setCloudComplaints([]);
+      setCloudSpanList([]);
+      setCloudSkmList([]);
+      return;
+    }
+
+    const unsubComplaints = subscribePublicComplaints(
+      user,
+      isAdmin,
+      (rows) => setCloudComplaints(rows),
+      () => {
+        // handled inside firebase.ts
+      }
+    );
+    const unsubSpan = subscribeSpanLaporSubmissions(
+      user,
+      isAdmin,
+      (rows) => setCloudSpanList(rows),
+      () => {
+        // handled inside firebase.ts
+      }
+    );
+    const unsubSkm = subscribeSkmResponses(
+      user,
+      isAdmin,
+      (rows) => setCloudSkmList(rows),
+      () => {
+        // handled inside firebase.ts
+      }
+    );
+
+    return () => {
+      unsubComplaints();
+      unsubSpan();
+      unsubSkm();
+    };
+  }, [user, isRegisteredGoogleVisitor, isAdmin]);
 
   useEffect(() => {
     const handleSectionFocus = (event: Event) => {
@@ -1516,8 +1706,30 @@ export function PengaduanView({
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleVisitorGoogleSignIn = async () => {
+    setLocalGoogleError('');
+    setGoogleAuthBusy(true);
+    try {
+      await signInWithGoogle({ skipRedirect: true });
+    } catch (err) {
+      setLocalGoogleError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal masuk dengan Akun Google. Silakan coba kembali.'
+      );
+    } finally {
+      setGoogleAuthBusy(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !isRegisteredGoogleVisitor) {
+      setError(
+        'Hanya akun pengunjung yang sudah terdaftar dan masuk dengan Akun Google pada web Kemenag Murung Raya yang dapat mengirim pengaduan.'
+      );
+      return;
+    }
     if (!subject.trim() || details.trim().length < 15) {
       setError('Mohon isi judul laporan dan kronologi pengaduan minimal 15 karakter.');
       return;
@@ -1527,23 +1739,38 @@ export function PengaduanView({
       return;
     }
     setError('');
-    const num = Math.floor(1000 + Math.random() * 9000);
-    const submission: ComplaintSubmission = {
-      ticketNo: `ADUAN-MURA-2026-${num}`,
-      category,
-      subject: subject.trim(),
-      reporter: anonymous ? 'Anonim (Dirahasiakan)' : reporter.trim(),
-      submittedAt: new Date().toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      }),
-      status: 'Diterima Inspektorat Internal',
-    };
-    onAddComplaint(submission);
-    setLatestTicket(submission);
-    setSubject('');
-    setDetails('');
+    setComplaintBusy(true);
+    try {
+      const saved = await submitCloudPublicComplaint({
+        user,
+        category,
+        subject: subject.trim(),
+        details: details.trim(),
+        reporter: reporter.trim(),
+        contact: contact.trim(),
+        anonymous,
+      });
+      const submission: ComplaintSubmission = {
+        ticketNo: saved.ticketNo,
+        category: saved.category,
+        subject: saved.subject,
+        reporter: saved.reporter,
+        submittedAt: saved.submittedAtLabel,
+        status: saved.status,
+      };
+      onAddComplaint(submission);
+      setLatestTicket(submission);
+      setSubject('');
+      setDetails('');
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal mengirim pengaduan ke server. Pastikan Anda masuk dengan Akun Google.'
+      );
+    } finally {
+      setComplaintBusy(false);
+    }
   };
 
   const formattedSmsDraft = `KEMENAG #MurungRaya [${spanType} - ${spanTopic}] ${
@@ -1551,6 +1778,7 @@ export function PengaduanView({
   }`;
 
   const handleCopySmsFormat = async () => {
+    if (!isRegisteredGoogleVisitor) return;
     try {
       await navigator.clipboard.writeText(formattedSmsDraft);
       setCopiedSms(true);
@@ -1561,43 +1789,145 @@ export function PengaduanView({
     }
   };
 
+  const handleSpanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !isRegisteredGoogleVisitor) {
+      setSpanError(
+        'Hanya akun pengunjung yang sudah terdaftar dan masuk dengan Akun Google pada web Kemenag Murung Raya yang dapat mengirim pengajuan SPAN LAPOR.'
+      );
+      return;
+    }
+    if (spanSummary.trim().length < 15) {
+      setSpanError('Mohon tuliskan ringkasan laporan SPAN LAPOR minimal 15 karakter.');
+      return;
+    }
+    setSpanError('');
+    setSpanBusy(true);
+    try {
+      const saved = await submitCloudSpanLapor({
+        user,
+        reportType: spanType,
+        topic: spanTopic,
+        summary: spanSummary.trim(),
+      });
+      setLatestSpan(saved);
+      setSpanSummary('');
+    } catch (err) {
+      setSpanError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal mencatat pengajuan SPAN LAPOR. Silakan coba kembali.'
+      );
+    } finally {
+      setSpanBusy(false);
+    }
+  };
+
   const currentRespondentAvg =
     SKM_ELEMENTS.reduce((acc, el) => acc + (skmScores[el.code] ?? 4), 0) / SKM_ELEMENTS.length;
   const currentRespondentIkm = Number((currentRespondentAvg * 25).toFixed(2));
   const currentRespondentGrade = getIkmGrade(currentRespondentIkm);
 
-  const handleSkmSubmit = (e: React.FormEvent) => {
+  const handleSkmSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const num = Math.floor(100 + Math.random() * 900);
-    const record: SkmSubmissionRecord = {
-      id: `SKM-${Date.now()}-${num}`,
-      unitTitle: skmUnit,
-      ageGroup: skmAge,
-      education: skmEdu,
-      scores: { ...skmScores },
-      ikmScore: currentRespondentIkm,
-      grade: currentRespondentGrade.grade,
-      feedback: skmFeedback.trim(),
-      submittedAt: new Date().toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      }),
-    };
-    const next = [record, ...skmResponses];
-    setSkmResponses(next);
-    try {
-      localStorage.setItem(STORAGE_SKM_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage quota errors
+    if (!user || !isRegisteredGoogleVisitor) {
+      setSkmError(
+        'Hanya akun pengunjung yang sudah terdaftar dan masuk dengan Akun Google pada web Kemenag Murung Raya yang dapat mengirim Survei Kepuasan Masyarakat.'
+      );
+      return;
     }
-    setLatestSkm(record);
-    setSkmFeedback('');
+    setSkmError('');
+    setSkmBusy(true);
+    try {
+      const saved = await submitCloudSkmResponse({
+        user,
+        unitTitle: skmUnit,
+        ageGroup: skmAge,
+        education: skmEdu,
+        scores: { ...skmScores },
+        ikmScore: currentRespondentIkm,
+        grade: currentRespondentGrade.grade,
+        feedback: skmFeedback.trim(),
+      });
+      const record: SkmSubmissionRecord = {
+        id: saved.id,
+        unitTitle: saved.unitTitle,
+        ageGroup: saved.ageGroup,
+        education: saved.education,
+        scores: saved.scores,
+        ikmScore: saved.ikmScore,
+        grade: saved.grade,
+        feedback: saved.feedback ?? '',
+        submittedAt: saved.submittedAtLabel,
+      };
+      const next = [record, ...skmResponses.filter((r) => r.id !== record.id)];
+      setSkmResponses(next);
+      try {
+        localStorage.setItem(STORAGE_SKM_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage quota errors
+      }
+      setLatestSkm(record);
+      setSkmFeedback('');
+    } catch (err) {
+      setSkmError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal menyimpan penilaian SKM Anda. Pastikan akun Google Anda aktif.'
+      );
+    } finally {
+      setSkmBusy(false);
+    }
   };
 
-  const totalRespondents = BASELINE_SKM_RESPONDENTS + skmResponses.length;
+  // Merge cloud complaints & local session complaints without duplicates
+  const mergedComplaints: ComplaintSubmission[] = (() => {
+    const map = new Map<string, ComplaintSubmission>();
+    cloudComplaints.forEach((c) => {
+      map.set(c.ticketNo, {
+        ticketNo: c.ticketNo,
+        category: c.category,
+        subject: c.subject,
+        reporter: c.reporter,
+        submittedAt: c.submittedAtLabel,
+        status: c.status,
+      });
+    });
+    complaints.forEach((c) => {
+      if (!map.has(c.ticketNo)) {
+        map.set(c.ticketNo, c);
+      }
+    });
+    return Array.from(map.values());
+  })();
+
+  // Merge cloud SKM responses & local SKM responses without duplicates
+  const mergedSkmResponses: SkmSubmissionRecord[] = (() => {
+    const map = new Map<string, SkmSubmissionRecord>();
+    cloudSkmList.forEach((r) => {
+      map.set(r.id, {
+        id: r.id,
+        unitTitle: r.unitTitle,
+        ageGroup: r.ageGroup,
+        education: r.education,
+        scores: r.scores,
+        ikmScore: r.ikmScore,
+        grade: r.grade,
+        feedback: r.feedback ?? '',
+        submittedAt: r.submittedAtLabel,
+      });
+    });
+    skmResponses.forEach((r) => {
+      if (!map.has(r.id)) {
+        map.set(r.id, r);
+      }
+    });
+    return Array.from(map.values());
+  })();
+
+  const totalRespondents = BASELINE_SKM_RESPONDENTS + mergedSkmResponses.length;
   const elementAggregates = SKM_ELEMENTS.map((el) => {
-    const sumAdded = skmResponses.reduce((acc, r) => acc + (r.scores[el.code] ?? 4), 0);
+    const sumAdded = mergedSkmResponses.reduce((acc, r) => acc + (r.scores[el.code] ?? 4), 0);
     const combinedAvg =
       (el.baselineScore * BASELINE_SKM_RESPONDENTS + sumAdded) / totalRespondents;
     return {
@@ -1613,6 +1943,8 @@ export function PengaduanView({
     ).toFixed(2)
   );
   const cumulativeGrade = getIkmGrade(cumulativeIkm);
+
+  const combinedGoogleError = localGoogleError || authError;
 
   return (
     <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
@@ -1668,12 +2000,86 @@ export function PengaduanView({
             })}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Terintegrasi WBS Kemenag RI · SP4N-LAPOR! · PermenPAN-RB 14/2017
+            Khusus Akun Pengunjung Google Terdaftar · SP4N-LAPOR! · PermenPAN-RB 14/2017
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
+        {/* Google Visitor Verification Status Banner */}
+        {isRegisteredGoogleVisitor ? (
+          <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={visitorDisplayName || 'Foto profil pengunjung'}
+                  referrerPolicy="no-referrer"
+                  className="w-11 h-11 rounded-lg object-cover border border-emerald-300 dark:border-emerald-700 shrink-0"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-lg bg-emerald-700 text-white flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+              )}
+              <div className="space-y-0.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Akun Pengunjung Google Terdaftar
+                </p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {visitorDisplayName}{' '}
+                  <span className="font-normal text-slate-600 dark:text-slate-300">
+                    ({visitorEmail})
+                  </span>
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Akun Anda telah terverifikasi pada portal Kemenag Murung Raya dan memiliki akses penuh untuk mengirim E-Pengaduan, SPAN LAPOR, serta Survei Kepuasan Masyarakat.
+                </p>
+              </div>
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Terverifikasi Google</span>
+            </div>
+          </div>
+        ) : (
+          <div className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                <ShieldCheck className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Ketentuan Akses Pengiriman
+                </p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  Pengiriman Formulir E-Pengaduan, SPAN LAPOR & SKM Khusus Akun Pengunjung Google Terdaftar
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
+                  {user && !hasGoogleProvider
+                    ? `Anda sedang masuk dengan sesi ${isNipSession ? 'NIP Pegawai' : user.email || 'non-Google'}. Untuk menjaga validitas pelapor dan responden publik, silakan masuk atau mendaftar terlebih dahulu menggunakan Akun Google.`
+                    : 'Untuk menjaga keabsahan pelaporan masyarakat dan validitas responden Indeks Kepuasan Masyarakat, silakan masuk atau daftar terlebih dahulu dengan Akun Google Anda.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                disabled={googleAuthBusy || authLoading || profilePending}
+                onClick={handleVisitorGoogleSignIn}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white transition-colors whitespace-nowrap"
+              >
+                {googleAuthBusy || profilePending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <LogIn className="w-4 h-4" />
+                )}
+                <span>Masuk / Daftar Akun Google</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* SECTION 01: FORMULIR E-PENGADUAN INTERNAL */}
         <section id="formulir-pengaduan" className="scroll-mt-32 space-y-6">
           <div className="space-y-1.5 border-b border-slate-200 dark:border-slate-800 pb-4">
@@ -1691,7 +2097,21 @@ export function PengaduanView({
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             <div className="lg:col-span-7">
-              {latestTicket ? (
+              {!isRegisteredGoogleVisitor ? (
+                <GoogleVisitorGateCard
+                  channelTitle="Formulir E-Pengaduan Terkunci"
+                  channelDescription="Masuk atau daftarkan akun pengunjung menggunakan Akun Google pada web Kemenag Kabupaten Murung Raya untuk membuka dan mengirim Formulir E-Pengaduan & Whistleblowing System."
+                  userEmail={user?.email}
+                  hasSession={Boolean(user)}
+                  hasGoogleProvider={hasGoogleProvider}
+                  isNipSession={isNipSession}
+                  profilePending={profilePending}
+                  busy={googleAuthBusy || authLoading}
+                  errorMsg={combinedGoogleError}
+                  onSignInGoogle={handleVisitorGoogleSignIn}
+                  onOpenAccountModal={() => openLoginModal('google')}
+                />
+              ) : latestTicket ? (
                 <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-6 space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -1738,11 +2158,16 @@ export function PengaduanView({
                   onSubmit={handleSubmit}
                   className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <MessageSquareWarning className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                      Formulir Pengaduan Masyarakat
-                    </h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <MessageSquareWarning className="w-5 h-5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Formulir Pengaduan Masyarakat
+                      </h3>
+                    </div>
+                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      Pelapor: {visitorEmail}
+                    </span>
                   </div>
 
                   {error && (
@@ -1804,7 +2229,7 @@ export function PengaduanView({
                       onChange={(e) => setAnonymous(e.target.checked)}
                       className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-700"
                     />
-                    <span>Kirim sebagai Pelapor Anonim (Identitas dirahasiakan)</span>
+                    <span>Kirim sebagai Pelapor Anonim (Identitas publik dirahasiakan)</span>
                   </label>
 
                   {!anonymous && (
@@ -1838,10 +2263,15 @@ export function PengaduanView({
 
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                    disabled={complaintBusy}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors"
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Kirim Pengaduan Resmi</span>
+                    {complaintBusy ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    <span>{complaintBusy ? 'Mengirim Pengaduan...' : 'Kirim Pengaduan Resmi'}</span>
                   </button>
                 </form>
               )}
@@ -1868,13 +2298,13 @@ export function PengaduanView({
                 </ul>
               </div>
 
-              {complaints.length > 0 && (
+              {mergedComplaints.length > 0 && (
                 <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Riwayat Pengaduan Terkirim ({complaints.length})
+                    Riwayat Pengaduan Terkirim ({mergedComplaints.length})
                   </h3>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {complaints.map((c) => (
+                    {mergedComplaints.slice(0, 6).map((c) => (
                       <li
                         key={c.ticketNo}
                         className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5"
@@ -1916,25 +2346,37 @@ export function PengaduanView({
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Penyusun Laporan & Akses SP4N-LAPOR! Pusat
+                    Penyusun Laporan & Pengajuan SP4N-LAPOR! Pusat
                   </h3>
                   <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Siapkan draf laporan Anda atau langsung kirim melalui portal nasional{' '}
+                    Kirim dan catat pengajuan laporan Anda untuk diteruskan melalui portal nasional{' '}
                     <span className="font-semibold text-slate-900 dark:text-white">
                       lapor.go.id
                     </span>{' '}
                     dan SMS <span className="font-mono-tabular font-semibold">1708</span>.
                   </p>
                 </div>
-                <a
-                  href="https://www.lapor.go.id/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white transition-colors whitespace-nowrap shrink-0"
-                >
-                  <span>Buka SP4N-LAPOR! Pusat</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                {isRegisteredGoogleVisitor ? (
+                  <a
+                    href="https://www.lapor.go.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white transition-colors whitespace-nowrap shrink-0"
+                  >
+                    <span>Buka SP4N-LAPOR! Pusat</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={googleAuthBusy || authLoading || profilePending}
+                    onClick={handleVisitorGoogleSignIn}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 text-white transition-colors whitespace-nowrap shrink-0"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Masuk Akun Google</span>
+                  </button>
+                )}
               </div>
 
               {/* 3-Step National Integration Flow */}
@@ -1973,107 +2415,196 @@ export function PengaduanView({
                 ))}
               </div>
 
-              {/* Draft Helper for SP4N-LAPOR! / SMS 1708 */}
-              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Klasifikasi Laporan Pusat
-                    </label>
-                    <select
-                      value={spanType}
-                      onChange={(e) =>
-                        setSpanType(
-                          e.target.value as 'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi'
-                        )
-                      }
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
-                    >
-                      <option value="Pengaduan">Pengaduan</option>
-                      <option value="Aspirasi">Aspirasi</option>
-                      <option value="Permintaan Informasi">Permintaan Informasi</option>
-                    </select>
+              {!isRegisteredGoogleVisitor ? (
+                <GoogleVisitorGateCard
+                  channelTitle="Pengajuan SPAN LAPOR Terkunci"
+                  channelDescription="Masuk atau daftarkan akun pengunjung menggunakan Akun Google pada web Kemenag Kabupaten Murung Raya untuk menyusun, mencatat, dan mengirim laporan melalui kanal integrasi SPAN LAPOR."
+                  userEmail={user?.email}
+                  hasSession={Boolean(user)}
+                  hasGoogleProvider={hasGoogleProvider}
+                  isNipSession={isNipSession}
+                  profilePending={profilePending}
+                  busy={googleAuthBusy || authLoading}
+                  errorMsg={combinedGoogleError}
+                  onSignInGoogle={handleVisitorGoogleSignIn}
+                  onOpenAccountModal={() => openLoginModal('google')}
+                />
+              ) : latestSpan ? (
+                <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                        Pengajuan SPAN LAPOR Berhasil Dicatat
+                      </h4>
+                      <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 mt-1">
+                        Draf laporan Anda telah tersimpan pada akun Google Anda. Anda dapat menyalin format dan melanjutkannya ke portal resmi SP4N-LAPOR! Pusat.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Topik Layanan Tujuan
-                    </label>
-                    <select
-                      value={spanTopic}
-                      onChange={(e) => setSpanTopic(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
-                    >
-                      <option>Pelayanan Publik PTSP</option>
-                      <option>Pendidikan Madrasah & Guru Agama</option>
-                      <option>Layanan KUA & Bimbingan Masyarakat</option>
-                      <option>Penyelenggaraan Haji & Umrah</option>
-                      <option>Kepegawaian & Tata Kelola</option>
-                    </select>
+                  <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 text-xs sm:text-sm space-y-1.5">
+                    <p>
+                      <span className="text-slate-500 dark:text-slate-400">Nomor Registrasi Draf: </span>
+                      <strong className="font-mono-tabular text-emerald-800 dark:text-emerald-300">
+                        {latestSpan.trackingNo}
+                      </strong>
+                    </p>
+                    <p>
+                      <span className="text-slate-500 dark:text-slate-400">Klasifikasi & Topik: </span>
+                      <strong className="text-slate-900 dark:text-white">
+                        {latestSpan.reportType} · {latestSpan.topic}
+                      </strong>
+                    </p>
+                    <p className="font-mono text-xs text-slate-700 dark:text-slate-300 pt-1 break-words">
+                      {latestSpan.smsDraft}
+                    </p>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ringkasan Laporan (untuk Disalin ke Portal SP4N-LAPOR! / SMS 1708)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={spanSummary}
-                    onChange={(e) => setSpanSummary(e.target.value)}
-                    placeholder="Contoh: Mohon informasi tindak lanjut verifikasi berkas pengajuan layanan di KUA/PTSP..."
-                    className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
-                  />
-                </div>
-
-                <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Pratinjau Format SMS 1708 / Draf SP4N-LAPOR!
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <a
+                      href="https://www.lapor.go.id/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white transition-colors"
+                    >
+                      <span>Lanjutkan Kirim di lapor.go.id</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                     <button
                       type="button"
-                      onClick={handleCopySmsFormat}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+                      onClick={() => setLatestSpan(null)}
+                      className="px-4 py-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors"
                     >
-                      {copiedSms ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-700 dark:text-emerald-400">Tersalin</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Salin Draf</span>
-                        </>
-                      )}
+                      Buat Pengajuan Lainnya
                     </button>
                   </div>
-                  <p className="font-mono text-xs text-slate-800 dark:text-slate-200 break-words">
-                    {formattedSmsDraft}
-                  </p>
                 </div>
+              ) : (
+                <form
+                  onSubmit={handleSpanSubmit}
+                  className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800"
+                >
+                  {spanError && (
+                    <div className="flex items-start gap-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{spanError}</span>
+                    </div>
+                  )}
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <a
-                    href="https://www.lapor.go.id/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-colors"
-                  >
-                    <span>Lanjutkan Kirim di lapor.go.id</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://wbs.kemenag.go.id/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
-                  >
-                    <span>Portal WBS Kemenag RI</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Klasifikasi Laporan Pusat
+                      </label>
+                      <select
+                        value={spanType}
+                        onChange={(e) =>
+                          setSpanType(
+                            e.target.value as 'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi'
+                          )
+                        }
+                        className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                      >
+                        <option value="Pengaduan">Pengaduan</option>
+                        <option value="Aspirasi">Aspirasi</option>
+                        <option value="Permintaan Informasi">Permintaan Informasi</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Topik Layanan Tujuan
+                      </label>
+                      <select
+                        value={spanTopic}
+                        onChange={(e) => setSpanTopic(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                      >
+                        <option>Pelayanan Publik PTSP</option>
+                        <option>Pendidikan Madrasah & Guru Agama</option>
+                        <option>Layanan KUA & Bimbingan Masyarakat</option>
+                        <option>Penyelenggaraan Haji & Umrah</option>
+                        <option>Kepegawaian & Tata Kelola</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Ringkasan Laporan (min. 15 karakter) *
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={spanSummary}
+                      onChange={(e) => setSpanSummary(e.target.value)}
+                      placeholder="Contoh: Mohon informasi tindak lanjut verifikasi berkas pengajuan layanan di KUA/PTSP..."
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-rose-700"
+                    />
+                  </div>
+
+                  <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Pratinjau Format SMS 1708 / Draf SP4N-LAPOR!
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopySmsFormat}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+                      >
+                        {copiedSms ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700 dark:text-emerald-400">Tersalin</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Salin Draf</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="font-mono text-xs text-slate-800 dark:text-slate-200 break-words">
+                      {formattedSmsDraft}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={spanBusy}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white transition-colors"
+                    >
+                      {spanBusy ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {spanBusy ? 'Mengirim...' : 'Kirim & Catat Pengajuan SPAN LAPOR'}
+                      </span>
+                    </button>
+                    <a
+                      href="https://www.lapor.go.id/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-rose-600 transition-colors"
+                    >
+                      <span>Portal lapor.go.id</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://wbs.kemenag.go.id/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-emerald-600 transition-colors"
+                    >
+                      <span>Portal WBS Kemenag RI</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </form>
+              )}
             </div>
 
             <div className="lg:col-span-5 space-y-5">
@@ -2103,6 +2634,35 @@ export function PengaduanView({
                   ))}
                 </dl>
               </div>
+
+              {cloudSpanList.length > 0 && (
+                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Riwayat Pengajuan SPAN LAPOR Anda ({cloudSpanList.length})
+                  </h3>
+                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {cloudSpanList.slice(0, 5).map((item) => (
+                      <li
+                        key={item.id}
+                        className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5"
+                      >
+                        <p className="font-mono-tabular font-bold text-rose-700 dark:text-rose-400">
+                          {item.trackingNo}
+                        </p>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {item.reportType} · {item.topic}
+                        </p>
+                        <p className="text-slate-600 dark:text-slate-300 line-clamp-2">
+                          {item.summary}
+                        </p>
+                        <p className="text-slate-400 dark:text-slate-500">
+                          {item.submittedAtLabel}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -2125,7 +2685,21 @@ export function PengaduanView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left: Interactive 9-Element SKM Questionnaire */}
             <div className="lg:col-span-7">
-              {latestSkm ? (
+              {!isRegisteredGoogleVisitor ? (
+                <GoogleVisitorGateCard
+                  channelTitle="Kuesioner Survei Kepuasan Masyarakat (SKM) Terkunci"
+                  channelDescription="Masuk atau daftarkan akun pengunjung menggunakan Akun Google pada web Kemenag Kabupaten Murung Raya untuk mengisi dan mengirim penilaian Survei Kepuasan Masyarakat (SKM)."
+                  userEmail={user?.email}
+                  hasSession={Boolean(user)}
+                  hasGoogleProvider={hasGoogleProvider}
+                  isNipSession={isNipSession}
+                  profilePending={profilePending}
+                  busy={googleAuthBusy || authLoading}
+                  errorMsg={combinedGoogleError}
+                  onSignInGoogle={handleVisitorGoogleSignIn}
+                  onOpenAccountModal={() => openLoginModal('google')}
+                />
+              ) : latestSkm ? (
                 <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-6 space-y-4">
                   <div className="flex items-start gap-3">
                     <ClipboardCheck className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -2173,14 +2747,26 @@ export function PengaduanView({
                   className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                      Kuesioner 9 Unsur Pelayanan Publik
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        Kuesioner 9 Unsur Pelayanan Publik
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Responden: {visitorEmail}
+                      </p>
+                    </div>
                     <span className="text-xs font-mono-tabular font-semibold text-emerald-700 dark:text-emerald-400">
                       Estimasi Skor Anda: {currentRespondentIkm.toFixed(2).replace('.', ',')} (Mutu{' '}
                       {currentRespondentGrade.grade})
                     </span>
                   </div>
+
+                  {skmError && (
+                    <div className="flex items-start gap-2 text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{skmError}</span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-1">
@@ -2297,10 +2883,15 @@ export function PengaduanView({
 
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors"
+                    disabled={skmBusy}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors"
                   >
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span>Kirim Penilaian SKM</span>
+                    {skmBusy ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ClipboardCheck className="w-4 h-4" />
+                    )}
+                    <span>{skmBusy ? 'Menyimpan Penilaian...' : 'Kirim Penilaian SKM'}</span>
                   </button>
                 </form>
               )}
@@ -2368,13 +2959,13 @@ export function PengaduanView({
                 </div>
               </div>
 
-              {skmResponses.length > 0 && (
+              {mergedSkmResponses.length > 0 && (
                 <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Partisipasi Survei Anda ({skmResponses.length})
+                    Partisipasi Survei Anda ({mergedSkmResponses.length})
                   </h3>
                   <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {skmResponses.slice(0, 4).map((r) => (
+                    {mergedSkmResponses.slice(0, 4).map((r) => (
                       <li key={r.id} className="py-2.5 first:pt-0 last:pb-0 text-xs space-y-0.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-semibold text-slate-900 dark:text-white">

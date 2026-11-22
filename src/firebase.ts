@@ -321,6 +321,11 @@ export function isEligibleSessionUser(user: User | null): boolean {
   return Boolean(user.emailVerified || isNipEmployeeEmail(user.email));
 }
 
+export function isGoogleAuthUser(user: User | null): boolean {
+  if (!user || !user.emailVerified || isNipEmployeeEmail(user.email)) return false;
+  return Boolean(user.providerData?.some((p) => p.providerId === 'google.com'));
+}
+
 export function mapFirebaseAuthError(
   error: unknown,
   context: 'nip' | 'admin' | 'google' | 'masyarakat' = 'nip'
@@ -2710,6 +2715,462 @@ export function mergeInformasiUnits(
       };
     }),
   }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* GOOGLE-VERIFIED VISITOR PROFILE & E-PENGADUAN / SPAN LAPOR / SKM           */
+/* -------------------------------------------------------------------------- */
+
+export function subscribeMyUserProfile(
+  uid: string,
+  onData: (profile: UserProfileRecord | null) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = `users/${uid}`;
+  return onSnapshot(
+    doc(db, 'users', uid),
+    (snap) => {
+      if (!snap.exists()) {
+        onData(null);
+        return;
+      }
+      const data = snap.data();
+      onData({
+        uid: String(data.uid ?? snap.id),
+        displayName: String(data.displayName ?? ''),
+        email: String(data.email ?? ''),
+        photoURL: data.photoURL ? String(data.photoURL) : undefined,
+        createdAt: (data.createdAt as Timestamp | null) ?? null,
+        lastLoginAt: (data.lastLoginAt as Timestamp | null) ?? null,
+      });
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.GET, path);
+    }
+  );
+}
+
+export interface CloudPublicComplaintRecord {
+  id: string;
+  ticketNo: string;
+  userId: string;
+  userEmail: string;
+  category: string;
+  subject: string;
+  details: string;
+  reporter: string;
+  contact?: string;
+  anonymous: boolean;
+  submittedAtLabel: string;
+  status: 'Diterima Inspektorat Internal';
+  createdAt?: Timestamp | null;
+}
+
+export interface CloudSpanLaporRecord {
+  id: string;
+  trackingNo: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  reportType: 'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi';
+  topic: string;
+  summary: string;
+  smsDraft: string;
+  submittedAtLabel: string;
+  createdAt?: Timestamp | null;
+}
+
+export interface CloudSkmResponseRecord {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  unitTitle: string;
+  ageGroup: string;
+  education: string;
+  scores: Record<'U1' | 'U2' | 'U3' | 'U4' | 'U5' | 'U6' | 'U7' | 'U8' | 'U9', number>;
+  ikmScore: number;
+  grade: 'A' | 'B' | 'C' | 'D';
+  feedback?: string;
+  submittedAtLabel: string;
+  createdAt?: Timestamp | null;
+}
+
+function assertRegisteredGoogleVisitor(user: User | null): User {
+  if (!user || !isGoogleAuthUser(user) || !user.email) {
+    throw new Error(
+      'Hanya akun pengunjung yang sudah masuk dan terdaftar dengan Akun Google pada web Kemenag Murung Raya yang dapat mengirim.'
+    );
+  }
+  return user;
+}
+
+export async function submitCloudPublicComplaint(params: {
+  user: User;
+  category: string;
+  subject: string;
+  details: string;
+  reporter: string;
+  contact?: string;
+  anonymous: boolean;
+}): Promise<CloudPublicComplaintRecord> {
+  const validUser = assertRegisteredGoogleVisitor(params.user);
+  await upsertGoogleUserProfile(validUser);
+
+  const num = Math.floor(1000 + Math.random() * 9000);
+  const id = `cmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const ticketNo = `ADUAN-MURA-2026-${num}`;
+  const submittedAtLabel = formatTodayLabel();
+  const path = `publicComplaints/${id}`;
+
+  const cleanCategory = clampStr(params.category, 100, 'Pelayanan PTSP / KUA');
+  const cleanSubject = clampStr(params.subject, 200);
+  const cleanDetails = clampStr(params.details, 2000);
+  const cleanReporter = params.anonymous
+    ? 'Anonim (Dirahasiakan)'
+    : clampStr(params.reporter || validUser.displayName || validUser.email?.split('@')[0], 120, 'Pengunjung Google');
+  const cleanContact = params.anonymous ? '' : clampStr(params.contact, 120);
+
+  if (cleanSubject.length < 3 || cleanDetails.length < 15) {
+    throw new Error('Mohon isi judul laporan (min. 3 huruf) dan kronologi pengaduan minimal 15 karakter.');
+  }
+
+  const payload: Record<string, unknown> = {
+    id,
+    ticketNo,
+    userId: validUser.uid,
+    userEmail: validUser.email,
+    category: cleanCategory,
+    subject: cleanSubject,
+    details: cleanDetails,
+    reporter: cleanReporter,
+    anonymous: Boolean(params.anonymous),
+    submittedAtLabel,
+    status: 'Diterima Inspektorat Internal',
+    createdAt: serverTimestamp(),
+  };
+
+  if (cleanContact) {
+    payload.contact = cleanContact;
+  }
+
+  try {
+    await validUser.getIdToken();
+    await setDoc(doc(db, 'publicComplaints', id), payload);
+    return {
+      id,
+      ticketNo,
+      userId: validUser.uid,
+      userEmail: validUser.email ?? '',
+      category: cleanCategory,
+      subject: cleanSubject,
+      details: cleanDetails,
+      reporter: cleanReporter,
+      contact: cleanContact || undefined,
+      anonymous: Boolean(params.anonymous),
+      submittedAtLabel,
+      status: 'Diterima Inspektorat Internal',
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export function subscribePublicComplaints(
+  user: User,
+  isAdmin: boolean,
+  onData: (rows: CloudPublicComplaintRecord[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = 'publicComplaints';
+  const colRef = collection(db, path);
+  const q = isAdmin
+    ? query(colRef, limit(100))
+    : query(colRef, where('userId', '==', user.uid), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const rows: CloudPublicComplaintRecord[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: String(data.id ?? d.id),
+          ticketNo: String(data.ticketNo ?? ''),
+          userId: String(data.userId ?? ''),
+          userEmail: String(data.userEmail ?? ''),
+          category: String(data.category ?? ''),
+          subject: String(data.subject ?? ''),
+          details: String(data.details ?? ''),
+          reporter: String(data.reporter ?? ''),
+          contact: data.contact ? String(data.contact) : undefined,
+          anonymous: Boolean(data.anonymous),
+          submittedAtLabel: String(data.submittedAtLabel ?? ''),
+          status: 'Diterima Inspektorat Internal',
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+        };
+      });
+      rows.sort((a, b) => (b.createdAt?.toMillis?.() ?? Date.now()) - (a.createdAt?.toMillis?.() ?? Date.now()));
+      onData(rows);
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function submitCloudSpanLapor(params: {
+  user: User;
+  reportType: 'Pengaduan' | 'Aspirasi' | 'Permintaan Informasi';
+  topic: string;
+  summary: string;
+}): Promise<CloudSpanLaporRecord> {
+  const validUser = assertRegisteredGoogleVisitor(params.user);
+  await upsertGoogleUserProfile(validUser);
+
+  const num = Math.floor(1000 + Math.random() * 9000);
+  const id = `span_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const trackingNo = `SPAN-MURA-2026-${num}`;
+  const submittedAtLabel = formatTodayLabel();
+  const path = `spanLaporSubmissions/${id}`;
+
+  const cleanTopic = clampStr(params.topic, 120, 'Pelayanan Publik PTSP');
+  const cleanSummary = clampStr(params.summary, 2000);
+  if (cleanSummary.length < 15) {
+    throw new Error('Mohon tuliskan ringkasan laporan SPAN LAPOR minimal 15 karakter.');
+  }
+
+  const userName = clampStr(
+    validUser.displayName || validUser.email?.split('@')[0],
+    120,
+    'Pengunjung Google'
+  );
+  const smsDraft = clampStr(
+    `KEMENAG #MurungRaya [${params.reportType} - ${cleanTopic}] ${cleanSummary}`,
+    2200
+  );
+
+  const payload = {
+    id,
+    trackingNo,
+    userId: validUser.uid,
+    userEmail: validUser.email,
+    userName,
+    reportType: params.reportType,
+    topic: cleanTopic,
+    summary: cleanSummary,
+    smsDraft,
+    submittedAtLabel,
+    createdAt: serverTimestamp(),
+  };
+
+  try {
+    await validUser.getIdToken();
+    await setDoc(doc(db, 'spanLaporSubmissions', id), payload);
+    return {
+      id,
+      trackingNo,
+      userId: validUser.uid,
+      userEmail: validUser.email ?? '',
+      userName,
+      reportType: params.reportType,
+      topic: cleanTopic,
+      summary: cleanSummary,
+      smsDraft,
+      submittedAtLabel,
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export function subscribeSpanLaporSubmissions(
+  user: User,
+  isAdmin: boolean,
+  onData: (rows: CloudSpanLaporRecord[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = 'spanLaporSubmissions';
+  const colRef = collection(db, path);
+  const q = isAdmin
+    ? query(colRef, limit(100))
+    : query(colRef, where('userId', '==', user.uid), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const rows: CloudSpanLaporRecord[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        const rt = String(data.reportType ?? 'Pengaduan');
+        const reportType: CloudSpanLaporRecord['reportType'] =
+          rt === 'Aspirasi' || rt === 'Permintaan Informasi' ? rt : 'Pengaduan';
+        return {
+          id: String(data.id ?? d.id),
+          trackingNo: String(data.trackingNo ?? ''),
+          userId: String(data.userId ?? ''),
+          userEmail: String(data.userEmail ?? ''),
+          userName: String(data.userName ?? ''),
+          reportType,
+          topic: String(data.topic ?? ''),
+          summary: String(data.summary ?? ''),
+          smsDraft: String(data.smsDraft ?? ''),
+          submittedAtLabel: String(data.submittedAtLabel ?? ''),
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+        };
+      });
+      rows.sort((a, b) => (b.createdAt?.toMillis?.() ?? Date.now()) - (a.createdAt?.toMillis?.() ?? Date.now()));
+      onData(rows);
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function submitCloudSkmResponse(params: {
+  user: User;
+  unitTitle: string;
+  ageGroup: string;
+  education: string;
+  scores: Record<string, number>;
+  ikmScore: number;
+  grade: 'A' | 'B' | 'C' | 'D';
+  feedback?: string;
+}): Promise<CloudSkmResponseRecord> {
+  const validUser = assertRegisteredGoogleVisitor(params.user);
+  await upsertGoogleUserProfile(validUser);
+
+  const id = `skm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const submittedAtLabel = formatTodayLabel();
+  const path = `skmResponses/${id}`;
+
+  const clampRating = (val: unknown): number => {
+    const num = Math.round(Number(val ?? 4));
+    if (Number.isNaN(num)) return 4;
+    return Math.min(4, Math.max(1, num));
+  };
+
+  const normalizedScores = {
+    U1: clampRating(params.scores.U1),
+    U2: clampRating(params.scores.U2),
+    U3: clampRating(params.scores.U3),
+    U4: clampRating(params.scores.U4),
+    U5: clampRating(params.scores.U5),
+    U6: clampRating(params.scores.U6),
+    U7: clampRating(params.scores.U7),
+    U8: clampRating(params.scores.U8),
+    U9: clampRating(params.scores.U9),
+  };
+
+  const userName = clampStr(
+    validUser.displayName || validUser.email?.split('@')[0],
+    120,
+    'Pengunjung Google'
+  );
+  const cleanUnit = clampStr(params.unitTitle, 120, 'Sekretariat / Subbag TU');
+  const cleanAge = clampStr(params.ageGroup, 40, '26–40 Tahun');
+  const cleanEdu = clampStr(params.education, 40, 'S1 / D-IV');
+  const cleanFeedback = clampStr(params.feedback, 1000);
+  const clampedIkm = Math.min(100, Math.max(25, Number(params.ikmScore.toFixed(2))));
+
+  const payload: Record<string, unknown> = {
+    id,
+    userId: validUser.uid,
+    userEmail: validUser.email,
+    userName,
+    unitTitle: cleanUnit,
+    ageGroup: cleanAge,
+    education: cleanEdu,
+    scores: normalizedScores,
+    ikmScore: clampedIkm,
+    grade: params.grade,
+    submittedAtLabel,
+    createdAt: serverTimestamp(),
+  };
+
+  if (cleanFeedback) {
+    payload.feedback = cleanFeedback;
+  }
+
+  try {
+    await validUser.getIdToken();
+    await setDoc(doc(db, 'skmResponses', id), payload);
+    return {
+      id,
+      userId: validUser.uid,
+      userEmail: validUser.email ?? '',
+      userName,
+      unitTitle: cleanUnit,
+      ageGroup: cleanAge,
+      education: cleanEdu,
+      scores: normalizedScores,
+      ikmScore: clampedIkm,
+      grade: params.grade,
+      feedback: cleanFeedback || undefined,
+      submittedAtLabel,
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+export function subscribeSkmResponses(
+  user: User,
+  isAdmin: boolean,
+  onData: (rows: CloudSkmResponseRecord[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  const path = 'skmResponses';
+  const colRef = collection(db, path);
+  const q = isAdmin
+    ? query(colRef, limit(100))
+    : query(colRef, where('userId', '==', user.uid), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const rows: CloudSkmResponseRecord[] = snapshot.docs.map((d) => {
+        const data = d.data();
+        const rawScores = (data.scores as Record<string, unknown>) || {};
+        const gradeRaw = String(data.grade ?? 'A');
+        const grade: CloudSkmResponseRecord['grade'] =
+          gradeRaw === 'B' || gradeRaw === 'C' || gradeRaw === 'D' ? gradeRaw : 'A';
+        return {
+          id: String(data.id ?? d.id),
+          userId: String(data.userId ?? ''),
+          userEmail: String(data.userEmail ?? ''),
+          userName: String(data.userName ?? ''),
+          unitTitle: String(data.unitTitle ?? ''),
+          ageGroup: String(data.ageGroup ?? ''),
+          education: String(data.education ?? ''),
+          scores: {
+            U1: Number(rawScores.U1 ?? 4),
+            U2: Number(rawScores.U2 ?? 4),
+            U3: Number(rawScores.U3 ?? 4),
+            U4: Number(rawScores.U4 ?? 4),
+            U5: Number(rawScores.U5 ?? 4),
+            U6: Number(rawScores.U6 ?? 4),
+            U7: Number(rawScores.U7 ?? 4),
+            U8: Number(rawScores.U8 ?? 4),
+            U9: Number(rawScores.U9 ?? 4),
+          },
+          ikmScore: Number(data.ikmScore ?? 100),
+          grade,
+          feedback: data.feedback ? String(data.feedback) : undefined,
+          submittedAtLabel: String(data.submittedAtLabel ?? ''),
+          createdAt: (data.createdAt as Timestamp | null) ?? null,
+        };
+      });
+      rows.sort((a, b) => (b.createdAt?.toMillis?.() ?? Date.now()) - (a.createdAt?.toMillis?.() ?? Date.now()));
+      onData(rows);
+    },
+    (error) => {
+      onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
 }
 
 
