@@ -85,7 +85,8 @@ interface AuthRoleContextValue {
   cloudInfoSections: CloudInfoSectionRecord[];
   loginModalOpen: boolean;
   loginModalTab: 'google' | 'pegawai';
-  openLoginModal: (tab?: 'google' | 'pegawai') => void;
+  loginModalPrompt: string;
+  openLoginModal: (tab?: 'google' | 'pegawai', promptMessage?: string) => void;
   closeLoginModal: () => void;
   superAdminModalOpen: boolean;
   openSuperAdminModal: () => void;
@@ -175,6 +176,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
 
   const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
   const [loginModalTab, setLoginModalTab] = useState<'google' | 'pegawai'>('google');
+  const [loginModalPrompt, setLoginModalPrompt] = useState<string>('');
   const [superAdminModalOpen, setSuperAdminModalOpen] = useState<boolean>(false);
   const [adminConsoleTriggerCount, setAdminConsoleTriggerCount] = useState<number>(0);
   const [operatorModalOpen, setOperatorModalOpen] = useState<boolean>(false);
@@ -415,16 +417,22 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onGlobalKeyDown);
   }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan]);
 
-  const openLoginModal = (tab: 'google' | 'pegawai' = 'google') => {
+  const openLoginModal = (tab: 'google' | 'pegawai' = 'google', promptMessage?: string) => {
     setAuthError('');
     setSuperAdminModalOpen(false);
     setOperatorModalOpen(false);
     setLoginModalTab(tab);
+    if (promptMessage !== undefined) {
+      setLoginModalPrompt(promptMessage);
+    } else if (!loginModalOpen) {
+      setLoginModalPrompt('');
+    }
     setLoginModalOpen(true);
   };
 
   const closeLoginModal = () => {
     setLoginModalOpen(false);
+    setLoginModalPrompt('');
   };
 
   const openSuperAdminModal = () => {
@@ -871,6 +879,7 @@ export function AuthRoleProvider({ children }: { children: ReactNode }) {
         cloudInfoSections,
         loginModalOpen,
         loginModalTab,
+        loginModalPrompt,
         openLoginModal,
         closeLoginModal,
         superAdminModalOpen,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
   Search,
   CheckCircle2,
   FileText,
@@ -84,10 +85,10 @@ function PageHeader({
   description: string;
 }) {
   return (
-    <div className="bg-emerald-950 text-white border-b border-emerald-900 pt-24 sm:pt-28">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+    <div className="bg-emerald-950 text-white border-b border-emerald-900 pt-20 sm:pt-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
         <div className="max-w-3xl space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-emerald-300">
             {kicker}
           </p>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
@@ -119,7 +120,7 @@ export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }
         description="Mengenal sejarah pengabdian, visi misi pelayanan, struktur organisasi, dan profil kepemimpinan di Bumi Tana Malai Tolung Lingu."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 space-y-10 sm:space-y-16">
         {/* Sejarah & Kedudukan */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
           <div className="lg:col-span-7 space-y-4">
@@ -169,19 +170,19 @@ export function ProfilView({ onNavigate }: { onNavigate: (v: PageView) => void }
         </section>
 
         {/* Visi & Misi */}
-        <section className="border-t border-slate-200 pt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-5 bg-emerald-950 text-white rounded-xl p-7 space-y-3">
+        <section className="border-t border-slate-200 pt-8 sm:pt-12 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+          <div className="lg:col-span-5 bg-emerald-950 text-white rounded-xl p-5 sm:p-7 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
               Visi Kementerian Agama
             </p>
-            <h2 className="text-xl font-serif-editorial italic leading-relaxed">
+            <h2 className="text-lg sm:text-xl font-serif-editorial italic leading-relaxed">
               “Kementerian Agama yang profesional dan andal dalam membangun masyarakat yang saleh,
               moderat, cerdas, dan unggul untuk mewujudkan Indonesia maju yang berdaulat, mandiri,
               dan berkepribadian berdasarkan gotong royong.”
             </h2>
           </div>
 
-          <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-7 space-y-4">
+          <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-5 sm:p-7 space-y-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
               Misi & Arah Pelayanan Daerah
             </p>
@@ -263,6 +264,8 @@ export function LayananView({
   onSelectUnitId,
   onOpenServiceSidebar,
   onTicketCreated,
+  onBackHome,
+  onBackToKatalog,
 }: {
   tickets: PTSPTicket[];
   selectedUnitId: string;
@@ -270,10 +273,13 @@ export function LayananView({
   onSelectUnitId?: (unitId: string) => void;
   onOpenServiceSidebar: () => void;
   onTicketCreated: (ticket: PTSPTicket) => void;
+  onBackHome?: () => void;
+  onBackToKatalog?: () => void;
 }) {
   const {
     user,
     isEligibleUser,
+    authLoading,
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
@@ -281,6 +287,7 @@ export function LayananView({
     isNipSession,
     isMasyarakatLogin,
     myVerifiedEmployee,
+    openLoginModal,
     adminConsoleTriggerCount,
     operatorConsoleTriggerCount,
   } = useAuthRole();
@@ -390,6 +397,78 @@ export function LayananView({
       )
     : tickets;
 
+  if (!authLoading && (!user || !isEligibleUser)) {
+    return (
+      <div className="bg-white dark:bg-slate-950">
+        <PageHeader
+          kicker="Pelayanan Terpadu Satu Pintu (PTSP)"
+          title="Daftar Layanan & Permohonan PTSP"
+          description="Akses ke layanan PTSP memerlukan verifikasi akun terlebih dahulu agar setiap permohonan, berkas persyaratan, dan notifikasi progres tercatat secara aman."
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-6 sm:p-8 space-y-5 shadow-xs">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Autentikasi Diperlukan
+                </p>
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
+                  Silakan Login Sebagai Masyarakat atau Pegawai
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Untuk mengakses layanan PTSP dan mengajukan permohonan, silakan masuk terlebih
+                  dahulu menggunakan <strong>Akun Masyarakat (Google / Email)</strong> atau{' '}
+                  <strong>Akun Pegawai Kemenag (NIP)</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() =>
+                  openLoginModal(
+                    'google',
+                    'Untuk mengakses layanan PTSP Kementerian Agama Kab. Murung Raya, silakan login melalui Akun Masyarakat (Google/Email) atau Login Pegawai (NIP).'
+                  )
+                }
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Login Akun Masyarakat (Google)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  openLoginModal(
+                    'pegawai',
+                    'Silakan login menggunakan NIP & Password pegawai untuk mengakses layanan PTSP dan Kepegawaian.'
+                  )
+                }
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold transition-colors"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Login Pegawai (NIP)</span>
+              </button>
+              {onBackHome && (
+                <button
+                  type="button"
+                  onClick={onBackHome}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors"
+                >
+                  <span>Kembali ke Beranda</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white dark:bg-slate-950">
       <PageHeader
@@ -398,7 +477,21 @@ export function LayananView({
         description="Pilih bidang layanan melalui Beranda atau menu sidebar di sisi kiri layar untuk melihat seluruh layanan, persyaratan, waktu dan biaya, format template dokumen, serta mengajukan permohonan daring."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6">
+        {/* Mobile Back to Catalog Button (Desktop uses floating right-edge bar) */}
+        {(onBackToKatalog || onBackHome) && (
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={onBackToKatalog || onBackHome}
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[40px] rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 border border-yellow-600/80 text-xs font-extrabold shadow-xs transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+              <span>Kembali ke Katalog Layanan</span>
+            </button>
+          </div>
+        )}
+
         {/* 3-Tier Access Mode Banner */}
         <AccountAccessBanner
           showAdminPanel={showAdminPanel}
@@ -409,21 +502,21 @@ export function LayananView({
 
         {/* Super Admin Console */}
         {isAdmin && showAdminPanel && (
-          <div id="admin-console" className="scroll-mt-28">
+          <div id="admin-console" className="scroll-mt-24 sm:scroll-mt-28">
             <AdminVerificationPanel />
           </div>
         )}
 
         {/* Operator PTSP / Operator Seksi / Pimpinan TTE Console */}
         {!isAdmin && (isOperatorPtsp || isOperatorSeksi || isPimpinan) && showOperatorPanel && (
-          <div id="operator-console" className="scroll-mt-28">
+          <div id="operator-console" className="scroll-mt-24 sm:scroll-mt-28">
             <OperatorTicketConsole />
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-5 sm:space-y-6">
           {onSelectUnitId && (
-            <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-2 flex flex-wrap items-center gap-2 shadow-2xs">
+            <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-1.5 sm:p-2 flex flex-nowrap sm:flex-wrap items-center gap-1.5 sm:gap-2 overflow-x-auto shadow-2xs">
               {availableUnits.map((unit) => {
                 const isSelected = unit.id === activeUnit.id;
                 return (
@@ -431,7 +524,7 @@ export function LayananView({
                     key={unit.id}
                     type="button"
                     onClick={() => onSelectUnitId(unit.id)}
-                    className={`group menu-expand-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap ${
+                    className={`group menu-expand-btn shrink-0 inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[40px] rounded-xl text-xs font-bold whitespace-nowrap ${
                       isSelected
                         ? 'bg-gradient-to-r from-emerald-800 to-teal-700 text-white shadow-md shadow-emerald-900/20'
                         : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:bg-emerald-50/90 dark:hover:bg-slate-800 hover:text-emerald-900 dark:hover:text-emerald-300 hover:shadow-xs'
@@ -469,7 +562,7 @@ export function LayananView({
           {!isSelfServiceInfo && (
             <div
               id="riwayat-layanan"
-              className="scroll-mt-28 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/70 dark:bg-slate-900 space-y-5"
+              className="scroll-mt-24 sm:scroll-mt-28 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 bg-slate-50/70 dark:bg-slate-900 space-y-4 sm:space-y-5"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -773,7 +866,7 @@ export function BeritaView({ onSelectArticle }: { onSelectArticle: (a: NewsArtic
         description="Liputan kegiatan kantor, informasi layanan keagamaan, pendidikan madrasah, kerukunan umat, dan berita kebijakan Kementerian Agama."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6 sm:space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200">
           <div className="flex flex-wrap items-center gap-1.5">
             {categories.map((cat) => (
@@ -870,12 +963,12 @@ export function GaleriView({ onSelectGallery }: { onSelectGallery: (g: GalleryIt
         description="Dokumentasi visual pelaksanaan tugas, pelayanan masyarakat, kegiatan lintas iman, dan edukasi publik Kankemenag Kabupaten Murung Raya."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-        <div className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6 sm:space-y-8">
+        <div className="flex flex-wrap sm:inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
           <button
             type="button"
             onClick={() => setTab('foto')}
-            className={`menu-expand-btn px-4 py-1.5 text-xs font-semibold rounded-md ${
+            className={`menu-expand-btn flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md ${
               tab === 'foto' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
             }`}
           >
@@ -884,7 +977,7 @@ export function GaleriView({ onSelectGallery }: { onSelectGallery: (g: GalleryIt
           <button
             type="button"
             onClick={() => setTab('video')}
-            className={`menu-expand-btn px-4 py-1.5 text-xs font-semibold rounded-md ${
+            className={`menu-expand-btn flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md ${
               tab === 'video' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
             }`}
           >
@@ -985,15 +1078,15 @@ export function PPIDView({ onNavigate }: { onNavigate: (v: PageView) => void }) 
         description="Pejabat Pengelola Informasi dan Dokumentasi (PPID) menyediakan akses informasi publik berkala, serta merta, dan tersedia setiap saat sesuai UU No. 14 Tahun 2008."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-6 sm:space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
+          <div className="flex flex-wrap sm:inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
             {['Semua', 'Berkala', 'Serta Merta', 'Setiap Saat'].map((c) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => setCat(c)}
-                className={`menu-expand-btn px-3.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap ${
+                className={`menu-expand-btn px-3 sm:px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md whitespace-nowrap ${
                   cat === c ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-emerald-800'
                 }`}
               >
@@ -1134,13 +1227,13 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
         description="Komitmen mewujudkan Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM) melalui 6 area perubahan serta Maklumat Pelayanan."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 sm:space-y-12">
         {/* Quick Anchor Navigation */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
           <button
             type="button"
             onClick={() => scrollToSection('pilar-zi')}
-            className="menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="menu-expand-btn inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-lg text-xs font-bold bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
             <span className="menu-expand-label">6 Pilar WBK / WBBM</span>
@@ -1148,7 +1241,7 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
           <button
             type="button"
             onClick={() => scrollToSection('maklumat-pelayanan')}
-            className="menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white"
+            className="menu-expand-btn inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[40px] rounded-lg text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white"
           >
             <Award className="w-3.5 h-3.5 text-amber-300" />
             <span className="menu-expand-label">Maklumat Pelayanan</span>
@@ -1156,7 +1249,7 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
         </div>
 
         {/* Section 1: 6 Pilar WBK / WBBM */}
-        <section id="pilar-zi" className="scroll-mt-28 space-y-6">
+        <section id="pilar-zi" className="scroll-mt-24 sm:scroll-mt-28 space-y-6">
           <div className="space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
               Area Perubahan
@@ -1166,11 +1259,11 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {pillars.map((p) => (
               <div
                 key={p.num}
-                className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-2.5 bg-white dark:bg-slate-900"
+                className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-2.5 bg-white dark:bg-slate-900"
               >
                 <span className="font-mono-tabular text-xs font-bold text-emerald-700 dark:text-emerald-400">
                   Pilar {p.num}
@@ -1187,7 +1280,7 @@ export function ZonaIntegritasView({ onNavigate }: { onNavigate: (v: PageView) =
         {/* Section 2: Maklumat Pelayanan */}
         <section
           id="maklumat-pelayanan"
-          className="scroll-mt-28 rounded-2xl border-2 border-emerald-800/20 dark:border-emerald-700/40 bg-emerald-50/40 dark:bg-slate-900/80 p-6 sm:p-8 lg:p-10 space-y-8"
+          className="scroll-mt-24 sm:scroll-mt-28 rounded-2xl border-2 border-emerald-800/20 dark:border-emerald-700/40 bg-emerald-50/40 dark:bg-slate-900/80 p-4 sm:p-8 lg:p-10 space-y-6 sm:space-y-8"
         >
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-emerald-900/15 dark:border-slate-800 pb-6">
             <div className="space-y-2 max-w-3xl">
@@ -1956,8 +2049,8 @@ export function PengaduanView({
 
       {/* Sticky Sub-Menu Quick Jump Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="w-full sm:w-auto flex flex-nowrap sm:flex-wrap items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
             {[
               {
                 id: 'formulir-pengaduan' as const,
@@ -1981,7 +2074,7 @@ export function PengaduanView({
                   key={tab.id}
                   type="button"
                   onClick={() => jumpToSection(tab.id)}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2 border ${
+                  className={`px-3 sm:px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2 border ${
                     active
                       ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                       : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400'
@@ -1999,13 +2092,13 @@ export function PengaduanView({
               );
             })}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
             Khusus Akun Pengunjung Google Terdaftar · SP4N-LAPOR! · PermenPAN-RB 14/2017
           </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-10 sm:space-y-16">
         {/* Google Visitor Verification Status Banner */}
         {isRegisteredGoogleVisitor ? (
           <div className="border border-emerald-200 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2156,7 +2249,7 @@ export function PengaduanView({
               ) : (
                 <form
                   onSubmit={handleSubmit}
-                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
@@ -2341,8 +2434,8 @@ export function PengaduanView({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-xl p-6 bg-white dark:bg-slate-900 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+            <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 bg-white dark:bg-slate-900 space-y-5 sm:space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -2744,7 +2837,7 @@ export function PengaduanView({
               ) : (
                 <form
                   onSubmit={handleSkmSubmit}
-                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5 bg-white dark:bg-slate-900"
+                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div>
@@ -2839,7 +2932,7 @@ export function PengaduanView({
                               {el.question}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 shrink-0">
                             {SKM_RATING_OPTIONS.map((opt) => {
                               const active = selectedVal === opt.value;
                               return (
@@ -2852,7 +2945,7 @@ export function PengaduanView({
                                       [el.code]: opt.value,
                                     }))
                                   }
-                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors whitespace-nowrap ${
+                                  className={`px-2.5 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-lg text-[11px] font-semibold border transition-colors whitespace-nowrap ${
                                     active
                                       ? 'bg-emerald-700 text-white border-emerald-700'
                                       : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500'
@@ -3019,9 +3112,9 @@ export function KontakView() {
         description="Informasi alamat kantor pusat di Puruk Cahu, saluran komunikasi PTSP, serta direktori Kantor Urusan Agama di Kabupaten Murung Raya."
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+          <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-5 sm:p-6 space-y-5">
             <h2 className="text-lg font-bold text-slate-900">
               {OFFICE_INFO.officialName}
             </h2>
@@ -3030,12 +3123,12 @@ export function KontakView() {
                 <MapPin className="w-4 h-4 text-emerald-700 mt-1 shrink-0" />
                 <span>{OFFICE_INFO.address}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>{OFFICE_INFO.email} · {OFFICE_INFO.ptspEmail}</span>
+              <div className="flex items-start gap-3">
+                <Mail className="w-4 h-4 text-emerald-700 mt-1 shrink-0" />
+                <span className="min-w-0 break-all sm:break-normal">{OFFICE_INFO.email} · {OFFICE_INFO.ptspEmail}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-emerald-700 shrink-0" />
+              <div className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-emerald-700 mt-1 shrink-0" />
                 <span className="font-mono-tabular">
                   {OFFICE_INFO.phone} · WA PTSP: {OFFICE_INFO.whatsapp}
                 </span>
@@ -3050,7 +3143,7 @@ export function KontakView() {
             </div>
           </div>
 
-          <div className="lg:col-span-7 border border-slate-200 rounded-xl p-6">
+          <div className="lg:col-span-7 border border-slate-200 rounded-xl p-5 sm:p-6">
             {sent ? (
               <div className="space-y-3 py-6">
                 <CheckCircle2 className="w-8 h-8 text-emerald-700" />

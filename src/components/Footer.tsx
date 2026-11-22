@@ -10,8 +10,8 @@ interface FooterProps {
 export function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="bg-emerald-950 text-emerald-50 border-t border-emerald-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-emerald-900/80">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 sm:gap-10 pb-10 sm:pb-12 border-b border-emerald-900/80">
           {/* Institutional Brand & Mission */}
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center gap-3.5">
@@ -44,18 +44,18 @@ export function Footer({ onNavigate }: FooterProps) {
               ))}
             </div>
 
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => onNavigate('kontak')}
-                className="px-4 py-2 text-xs font-semibold text-emerald-950 bg-white hover:bg-emerald-50 rounded-lg transition-colors whitespace-nowrap"
+                className="px-4 py-2.5 sm:py-2 min-h-[40px] text-xs font-semibold text-emerald-950 bg-white hover:bg-emerald-50 rounded-lg transition-colors whitespace-nowrap"
               >
                 Hubungi Kami
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate('profil')}
-                className="px-4 py-2 text-xs font-semibold text-emerald-100 border border-emerald-700 hover:bg-emerald-900 rounded-lg transition-colors whitespace-nowrap"
+                className="px-4 py-2.5 sm:py-2 min-h-[40px] text-xs font-semibold text-emerald-100 border border-emerald-700 hover:bg-emerald-900 rounded-lg transition-colors whitespace-nowrap"
               >
                 Profil Kantor
               </button>
@@ -80,7 +80,7 @@ export function Footer({ onNavigate }: FooterProps) {
                 { id: 'e-pengaduan' as PageView, label: 'SPAN LAPOR (Integrasi Pusat)', sectionId: 'span-lapor' },
                 { id: 'e-pengaduan' as PageView, label: 'Survei Kepuasan Masyarakat (SKM)', sectionId: 'survei-skm' },
               ].map((link) => (
-                <li key={`${link.id}-${link.label}`} className="py-1.5 first:pt-0 last:pb-0">
+                <li key={`${link.id}-${link.label}`} className="py-2 sm:py-1.5 first:pt-0 last:pb-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -116,9 +116,9 @@ export function Footer({ onNavigate }: FooterProps) {
                 <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>{OFFICE_INFO.address}</span>
               </div>
-              <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{OFFICE_INFO.email} · {OFFICE_INFO.ptspEmail}</span>
+              <div className="flex items-start gap-2.5">
+                <Mail className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="min-w-0 break-all sm:break-normal">{OFFICE_INFO.email} · {OFFICE_INFO.ptspEmail}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />

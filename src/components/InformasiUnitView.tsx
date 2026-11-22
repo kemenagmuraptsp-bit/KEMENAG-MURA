@@ -73,9 +73,9 @@ export function InformasiUnitView({
   return (
     <div className="bg-white dark:bg-slate-950">
       {/* Header matching SubViews PageHeader */}
-      <section className="bg-emerald-950 text-white border-b border-emerald-900 pt-24 sm:pt-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
+      <section className="bg-emerald-950 text-white border-b border-emerald-900 pt-20 sm:pt-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 space-y-3">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-emerald-300">
             Informasi Publik Satuan Kerja · Kankemenag Kab. Murung Raya
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -87,7 +87,7 @@ export function InformasiUnitView({
                 href={activeUnit.externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-500/40 text-white text-xs font-bold shadow-xs transition-colors self-start"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-500/40 text-white text-xs font-bold shadow-xs transition-colors self-start min-h-[40px]"
               >
                 <span>Buka Aplikasi SIPENDISMURA</span>
                 <ExternalLink className="w-3.5 h-3.5 shrink-0" />
@@ -100,15 +100,15 @@ export function InformasiUnitView({
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-5 sm:space-y-6">
         {/* SATU BORDER TERPADU: Menu Informasi Seksi (Tier 1) + Pembatas + Menu Data Seksi (Tier 2) */}
         <div
           id="menu-data-seksi"
           ref={menuDataSeksiRef}
-          className="scroll-mt-32 rounded-2xl border-2 border-[#0b1d3d]/30 dark:border-sky-300/25 shadow-sm overflow-hidden"
+          className="scroll-mt-24 sm:scroll-mt-32 rounded-2xl border-2 border-[#0b1d3d]/30 dark:border-sky-300/25 shadow-sm overflow-hidden"
         >
           {/* TIER 1: Menu Informasi Seksi (Transparan Navy Jelas) */}
-          <div className="bg-[#0b1d3d]/75 dark:bg-[#071226]/80 backdrop-blur-md p-4 sm:p-5 space-y-3">
+          <div className="bg-[#0b1d3d]/75 dark:bg-[#071226]/80 backdrop-blur-md p-3.5 sm:p-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/20 pb-2.5">
               <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-sky-200">
                 <Layers className="w-3.5 h-3.5 shrink-0" />
@@ -122,7 +122,7 @@ export function InformasiUnitView({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {infoUnits.map((unit) => {
                 const isSelected = unit.id === activeUnit.id;
                 return (
@@ -130,7 +130,7 @@ export function InformasiUnitView({
                     key={unit.id}
                     type="button"
                     onClick={() => handleUnitChange(unit.id)}
-                    className={`group menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                    className={`group menu-expand-btn inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all border ${
                       isSelected
                         ? 'bg-emerald-500/90 border-emerald-400 text-slate-950 shadow-xs'
                         : 'bg-white/15 border-sky-200/30 text-white hover:bg-white/25 hover:border-sky-200/55'
@@ -151,7 +151,7 @@ export function InformasiUnitView({
                 href="https://sipendismura.my.id"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border border-amber-300/60 bg-amber-400/20 text-amber-100 hover:bg-amber-400/30 hover:border-amber-300 whitespace-nowrap transition-all"
+                className="group menu-expand-btn inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-[11px] sm:text-xs font-bold border border-amber-300/60 bg-amber-400/20 text-amber-100 hover:bg-amber-400/30 hover:border-amber-300 whitespace-nowrap transition-all"
               >
                 <span className="menu-expand-label">SIPENDISMURA</span>
                 <ExternalLink className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -160,16 +160,16 @@ export function InformasiUnitView({
           </div>
 
           {/* Garis Pembatas Pembeda dalam Satu Border */}
-          <div className="px-4 sm:px-5 py-1.5 bg-[#0b1d3d]/20 dark:bg-slate-900/80 border-y border-emerald-700/25 dark:border-sky-300/20 flex items-center gap-2">
+          <div className="px-3.5 sm:px-5 py-1.5 bg-[#0b1d3d]/20 dark:bg-slate-900/80 border-y border-emerald-700/25 dark:border-sky-300/20 flex items-center gap-2">
             <ChevronDown className="w-3.5 h-3.5 text-emerald-800 dark:text-emerald-400 shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0b1d3d] dark:text-sky-200">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0b1d3d] dark:text-sky-200 truncate">
               Menu Data Seksi · {activeUnit.shortTitle}
             </span>
           </div>
 
           {/* TIER 2: Menu Data di Dalam Seksi (Transparan Emerald Jelas) */}
-          <div className="bg-emerald-700/20 dark:bg-emerald-900/45 backdrop-blur-md p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-emerald-700/20 dark:bg-emerald-900/45 backdrop-blur-md p-3.5 sm:p-5">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {activeUnit.sections.map((section, idx) => {
                 const isTabActive = section.id === activeSection.id;
                 const isOrgTab = Boolean(section.orgNodes && section.orgNodes.length > 0);
@@ -178,7 +178,7 @@ export function InformasiUnitView({
                     key={section.id}
                     type="button"
                     onClick={() => handleSectionChange(section.id)}
-                    className={`menu-expand-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border whitespace-nowrap transition-all ${
+                    className={`menu-expand-btn inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 min-h-[40px] rounded-xl text-[11px] sm:text-xs font-bold border whitespace-nowrap transition-all ${
                       isTabActive
                         ? 'bg-emerald-700/90 dark:bg-emerald-600 border-emerald-800 dark:border-emerald-500 text-white shadow-xs'
                         : 'border-emerald-700/30 dark:border-emerald-400/30 bg-white/85 dark:bg-slate-950/75 text-slate-800 dark:text-slate-100 hover:border-emerald-600 hover:bg-white dark:hover:bg-slate-900 hover:text-emerald-800 dark:hover:text-emerald-300'
@@ -215,14 +215,14 @@ export function InformasiUnitView({
         <div
           id="seksi-data-panel"
           ref={sectionDataRef}
-          className="scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 space-y-6 shadow-xs"
+          className="scroll-mt-24 sm:scroll-mt-32 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-7 space-y-5 sm:space-y-6 shadow-xs"
         >
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-5">
             <div className="space-y-1.5 max-w-3xl">
               <span className="inline-block text-[11px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
                 {activeSection.updatedAt}
               </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 dark:text-white">
                 {activeSection.title}
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -232,11 +232,11 @@ export function InformasiUnitView({
           </div>
 
           {/* Summary KPI Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {activeSection.metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-4 space-y-1"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-3.5 sm:p-4 space-y-1"
               >
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {metric.label}
@@ -255,7 +255,7 @@ export function InformasiUnitView({
 
           {/* Tabular Data View */}
           {!hasOrgNodes && activeSection.columns && activeSection.rows && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Menampilkan{' '}
@@ -277,6 +277,10 @@ export function InformasiUnitView({
                 </div>
               </div>
 
+              <p className="sm:hidden text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                Geser tabel ke samping untuk melihat seluruh kolom →
+              </p>
+
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
@@ -284,7 +288,7 @@ export function InformasiUnitView({
                       {activeSection.columns.map((col, colIdx) => (
                         <th
                           key={`${col}-${colIdx}`}
-                          className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                          className="px-3 py-2.5 sm:px-4 sm:py-3 font-bold text-[11px] uppercase tracking-wider whitespace-nowrap"
                         >
                           {col}
                         </th>
@@ -310,7 +314,7 @@ export function InformasiUnitView({
                           {row.map((cell, cIdx) => (
                             <td
                               key={`${activeSection.id}-cell-${rIdx}-${cIdx}`}
-                              className={`px-4 py-3 align-top ${
+                              className={`px-3 py-2.5 sm:px-4 sm:py-3 align-top ${
                                 cIdx === 0
                                   ? 'font-mono-tabular font-semibold text-slate-500 dark:text-slate-400 w-12'
                                   : cIdx === 1

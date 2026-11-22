@@ -270,7 +270,7 @@ export function UnitServicesCatalog({
       sub.id === 'bi-tauliyah-wali-hakim' && !isVerifiedKuaEmployee;
 
     return (
-      <div className="p-5 sm:p-7 space-y-6">
+      <div className="p-4 sm:p-7 space-y-5 sm:space-y-6">
         {/* Detail Header */}
         <div className="space-y-2 pb-5 border-b border-slate-200 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -450,7 +450,7 @@ export function UnitServicesCatalog({
                       : `Tersimpan otomatis ke Akun (${
                           isNipSession ? `NIP ${user.email?.split('@')[0]}` : user.email
                         })`
-                    : 'Mode Pengajuan Biasa (tanpa login)'}
+                    : 'Login akun Masyarakat / Pegawai diperlukan untuk mengirim permohonan'}
                 </p>
               </div>
               <button
@@ -565,18 +565,18 @@ export function UnitServicesCatalog({
               onRequestLogin={() => openLoginModal('google')}
             />
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2.5 sm:gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setPanelMode('detail')}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 whitespace-nowrap shrink-0"
+                className="px-4 py-2.5 sm:py-2 min-h-[40px] text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 whitespace-nowrap shrink-0"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                className="px-5 py-2.5 min-h-[42px] text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors whitespace-nowrap shrink-0 w-full sm:w-auto"
               >
                 {submitting ? 'Menyimpan Tiket...' : 'Kirim & Dapatkan Tiket PTSP'}
               </button>
@@ -711,7 +711,7 @@ export function UnitServicesCatalog({
                   setCreatedTicket(null);
                   setPanelMode('form');
                 }}
-                className="menu-expand-btn inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg whitespace-nowrap shrink-0 shadow-xs"
+                className="menu-expand-btn inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[42px] w-full sm:w-auto text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg whitespace-nowrap shrink-0 shadow-xs"
               >
                 <span className="menu-expand-label">Ajukan Layanan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -726,7 +726,7 @@ export function UnitServicesCatalog({
   return (
     <div className="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
       {/* Compact Institutional Unit Header Strip */}
-      <div className="px-5 py-5 sm:px-7 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white border-b border-emerald-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="px-4 py-4 sm:px-7 sm:py-5 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white border-b border-emerald-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-300 font-semibold">
             <span>Bidang {unit.code}</span>
@@ -735,7 +735,7 @@ export function UnitServicesCatalog({
             <span aria-hidden="true">·</span>
             <span className="font-mono-tabular">{unit.subServices.length} Layanan</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+          <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
             Layanan Seksi / Bidang {unit.title}
           </h2>
         </div>

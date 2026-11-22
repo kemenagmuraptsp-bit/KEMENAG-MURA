@@ -123,6 +123,30 @@
   animation: dropdownReveal 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes headerLogoPopOut {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 1px 2px rgba(2, 6, 23, 0.18));
+  }
+  42%, 58% {
+    transform: translate3d(0, -2px, 0) scale(1.22);
+    filter: drop-shadow(0 8px 14px rgba(16, 185, 129, 0.42));
+  }
+}
+
+.animate-header-logo-pop {
+  animation: headerLogoPopOut 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  transform-origin: center;
+  will-change: transform, filter;
+}
+
+.group:hover .animate-header-logo-pop,
+.group:focus-visible .animate-header-logo-pop {
+  animation-play-state: paused;
+  transform: translate3d(0, -2px, 0) scale(1.24);
+  filter: drop-shadow(0 10px 16px rgba(16, 185, 129, 0.48));
+}
+
 .menu-expand-btn {
   transition:
     transform 200ms cubic-bezier(0.16, 1, 0.3, 1),

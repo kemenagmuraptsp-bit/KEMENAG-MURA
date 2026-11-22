@@ -103,19 +103,19 @@ function CaptchaCanvas({
   }, [code]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <canvas
         ref={canvasRef}
         width={176}
         height={48}
         aria-label="Gambar kode keamanan captcha"
-        className="rounded-lg border border-slate-300 dark:border-slate-700 shrink-0 select-none"
+        className="rounded-lg border border-slate-300 dark:border-slate-700 shrink-0 select-none max-w-full"
       />
       <button
         type="button"
         onClick={onRefresh}
         title="Ganti kode captcha"
-        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors shrink-0"
+        className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors shrink-0"
       >
         <RefreshCw className="w-3.5 h-3.5" />
         <span>Ganti</span>
@@ -128,6 +128,7 @@ export function LoginModal() {
   const {
     loginModalOpen,
     loginModalTab,
+    loginModalPrompt,
     openLoginModal,
     closeLoginModal,
     signInWithGoogle,
@@ -336,7 +337,7 @@ export function LoginModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-modal-title"
@@ -344,9 +345,9 @@ export function LoginModal() {
         if (e.target === e.currentTarget) closeLoginModal();
       }}
     >
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[92dvh] flex flex-col">
         {/* Top Bar */}
-        <div className="px-5 py-4 bg-emerald-950 text-white flex items-center justify-between gap-3 shrink-0">
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 bg-emerald-950 text-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-white/15 border border-white/20 p-1 flex items-center justify-center shrink-0">
               <KemenagEmblem className="w-7 h-7" />
@@ -364,7 +365,7 @@ export function LoginModal() {
             type="button"
             onClick={closeLoginModal}
             aria-label="Tutup jendela login"
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -375,31 +376,38 @@ export function LoginModal() {
           <button
             type="button"
             onClick={() => openLoginModal('google')}
-            className={`py-3 px-3 text-xs font-extrabold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+            className={`py-3 px-2.5 sm:px-3 min-h-[44px] text-[11px] sm:text-xs font-extrabold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               loginModalTab === 'google'
                 ? 'border-emerald-700 text-emerald-800 dark:text-emerald-400 bg-white dark:bg-slate-900'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
             <span>Akun Masyarakat</span>
           </button>
           <button
             type="button"
             onClick={() => openLoginModal('pegawai')}
-            className={`py-3 px-3 text-xs font-extrabold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+            className={`py-3 px-2.5 sm:px-3 min-h-[44px] text-[11px] sm:text-xs font-extrabold border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
               loginModalTab === 'pegawai'
                 ? 'border-indigo-700 text-indigo-800 dark:text-indigo-400 bg-white dark:bg-slate-900'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400'
             }`}
           >
-            <BadgeCheck className="w-3.5 h-3.5" />
+            <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
             <span>Login Pegawai (NIP)</span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+          {loginModalPrompt && (
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 p-3.5 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-amber-700 dark:text-amber-400" />
+              <span className="leading-relaxed font-medium">{loginModalPrompt}</span>
+            </div>
+          )}
+
           {publicSuccessMsg && (
             <div className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 p-3.5 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-200">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
@@ -625,8 +633,8 @@ export function LoginModal() {
               </form>
 
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed text-center pt-1 border-t border-slate-200 dark:border-slate-800">
-                Pengunjung umum yang hanya sesekali berurusan tetap dapat mengajukan layanan PTSP
-                Bidang A–E secara langsung tanpa login.
+                Untuk mengakses dan mengajukan layanan PTSP, silakan login menggunakan Akun
+                Masyarakat (Google/Email) atau tab Login Pegawai (NIP).
               </p>
             </div>
           ) : (

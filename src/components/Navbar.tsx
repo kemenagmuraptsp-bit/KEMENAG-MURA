@@ -304,25 +304,25 @@ export function Navbar({
     >
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
         {/* Top Row: Emblem + Title | Motto + Language + Theme Switch */}
-        <div className="h-16 flex items-center justify-between gap-4">
+        <div className="h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left: Official Emblem & Title */}
           <button
             type="button"
             onClick={() => handleSelect('beranda')}
-            className="flex items-center gap-3 text-left shrink-0 group focus-visible:outline-2 focus-visible:outline-emerald-500 rounded-lg"
+            className="flex items-center gap-2 sm:gap-3 text-left min-w-0 flex-1 lg:flex-initial lg:shrink-0 group focus-visible:outline-2 focus-visible:outline-emerald-500 rounded-lg"
           >
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center p-1 border transition-colors ${
+              className={`relative overflow-visible w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center p-1 border transition-colors shrink-0 ${
                 isTransparentHeroHeader
                   ? 'bg-white/15 border-sky-300/30 shadow-2xs'
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs'
               }`}
             >
-              <KemenagEmblem className="w-8 h-8" />
+              <KemenagEmblem className="w-7 h-7 sm:w-8 sm:h-8 animate-header-logo-pop transition-transform duration-200" />
             </div>
-            <div className="leading-tight">
+            <div className="leading-tight min-w-0">
               <p
-                className={`text-xs sm:text-sm font-extrabold tracking-wide uppercase ${
+                className={`text-[11px] sm:text-sm font-extrabold tracking-wide uppercase truncate ${
                   isTransparentHeroHeader
                     ? 'text-white'
                     : 'text-slate-900 dark:text-white'
@@ -331,7 +331,7 @@ export function Navbar({
                 KEMENTERIAN AGAMA
               </p>
               <p
-                className={`text-[11px] font-medium tracking-wider uppercase ${
+                className={`text-[9.5px] sm:text-[11px] font-medium tracking-wider uppercase truncate ${
                   isTransparentHeroHeader
                     ? 'text-sky-200'
                     : 'text-slate-500 dark:text-slate-400'
@@ -465,18 +465,18 @@ export function Navbar({
           </div>
 
           {/* Mobile Controls */}
-          <div className="flex lg:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-1.5 sm:gap-2 shrink-0">
             {!user ? (
               <button
                 type="button"
                 onClick={() => openLoginModal('google')}
-                className={`inline-flex items-center gap-1.5 px-2.5 h-9 rounded-lg text-xs font-extrabold transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 h-10 rounded-xl text-xs font-extrabold transition-colors whitespace-nowrap shrink-0 ${
                   isTransparentHeroHeader
                     ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
                     : 'bg-emerald-700 hover:bg-emerald-800 text-white'
                 }`}
               >
-                <LogIn className="w-3.5 h-3.5" />
+                <LogIn className="w-3.5 h-3.5 shrink-0" />
                 <span>Login</span>
               </button>
             ) : (
@@ -490,7 +490,7 @@ export function Navbar({
               type="button"
               onClick={onOpenSearch}
               aria-label="Cari layanan atau berita"
-              className={`w-9 h-9 rounded-lg flex items-center justify-center border ${
+              className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                 isTransparentHeroHeader
                   ? 'border-sky-300/25 bg-[#071226]/55 text-white hover:bg-[#0b1d3d]/70'
                   : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200'
@@ -502,14 +502,14 @@ export function Navbar({
               type="button"
               onClick={() => setMobileOpen((prev) => !prev)}
               aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
-              className={`inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border text-xs font-bold ${
+              className={`inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-10 min-w-[40px] rounded-xl border text-xs font-bold shrink-0 ${
                 isTransparentHeroHeader
                   ? 'border-sky-300/25 bg-[#071226]/55 text-white hover:bg-[#0b1d3d]/70'
                   : 'border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white'
               }`}
             >
               {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              <span>Menu</span>
+              <span className="hidden min-[390px]:inline">Menu</span>
             </button>
           </div>
         </div>
@@ -729,13 +729,13 @@ export function Navbar({
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="lg:hidden bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 px-4 py-4 space-y-2 max-h-[75vh] overflow-y-auto">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="lg:hidden bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 px-4 pt-4 pb-6 space-y-2 max-h-[calc(100dvh-3.5rem)] overflow-y-auto shadow-2xl">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-900 p-1">
               <button
                 type="button"
                 onClick={() => onChangeLang('id')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
                   lang === 'id' ? 'bg-emerald-700 text-white' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
@@ -744,7 +744,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={() => onChangeLang('en')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
                   lang === 'en' ? 'bg-emerald-700 text-white' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
@@ -754,7 +754,7 @@ export function Navbar({
             <button
               type="button"
               onClick={() => onToggleDark(!isDark)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200"
             >
               {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
               <span>{isDark ? 'Mode Terang' : 'Mode Gelap'}</span>
@@ -773,110 +773,136 @@ export function Navbar({
                 (item.id === 'media' && (activeView === 'berita' || activeView === 'galeri')) ||
                 (item.id === 'zi' && activeView === 'zona-integritas'));
 
+            const hasMobileChildren = Boolean(item.children && item.children.length > 0);
+            const mobileGroupKey = `group:${item.id}`;
+            const isGroupExpanded = expandedMobileSub?.startsWith(`${mobileGroupKey}`) || expandedMobileSub === item.id;
+
             return (
-              <div key={item.id} className="space-y-1 border-b border-slate-100 dark:border-slate-800/70 pb-1 last:border-b-0">
-                <button
-                  type="button"
-                  onClick={() => item.view && handleSelect(item.view)}
-                  className={`menu-expand-btn-left w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                    isMobileItemActive
-                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                      : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-50/70 dark:hover:bg-slate-900 hover:text-emerald-800 dark:hover:text-emerald-300'
-                  }`}
-                >
-                  <span className="menu-expand-label">{lang === 'en' ? item.labelEn : item.labelId}</span>
-                </button>
-                {(item.id === 'informasi' || item.id === 'zi' || item.id === 'pengaduan') &&
-                  item.children && (
-                    <div className="mt-1.5 rounded-xl bg-[#0b1d3d]/90 dark:bg-[#071226]/90 backdrop-blur-md border border-sky-300/25 p-1.5 divide-y divide-sky-200/15">
-                      {item.children.map((sub) => {
-                        const hasNested = Boolean(sub.children && sub.children.length > 0);
-                        const mobileSubKey = `${item.id}:${sub.label}`;
-                        const isExpanded = expandedMobileSub === mobileSubKey;
+              <div key={item.id} className="space-y-1 border-b border-slate-100 dark:border-slate-800/70 pb-1.5 last:border-b-0">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => item.view && handleSelect(item.view)}
+                    className={`menu-expand-btn-left flex-1 text-left px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center ${
+                      isMobileItemActive
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-50/70 dark:hover:bg-slate-900 hover:text-emerald-800 dark:hover:text-emerald-300'
+                    }`}
+                  >
+                    <span className="menu-expand-label">{lang === 'en' ? item.labelEn : item.labelId}</span>
+                  </button>
+                  {hasMobileChildren && (
+                    <button
+                      type="button"
+                      aria-label={`Tampilkan sub-menu ${item.labelId}`}
+                      aria-expanded={isGroupExpanded}
+                      onClick={() =>
+                        setExpandedMobileSub((prev) =>
+                          prev === mobileGroupKey || prev?.startsWith(`${item.id}:`)
+                            ? null
+                            : mobileGroupKey
+                        )
+                      }
+                      className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    >
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform duration-200 ${
+                          isGroupExpanded ? 'rotate-180 text-emerald-700 dark:text-emerald-400' : ''
+                        }`}
+                      />
+                    </button>
+                  )}
+                </div>
+                {hasMobileChildren && isGroupExpanded && (
+                  <div className="mt-1.5 rounded-xl bg-[#0b1d3d]/90 dark:bg-[#071226]/90 backdrop-blur-md border border-sky-300/25 p-1.5 divide-y divide-sky-200/15">
+                    {item.children!.map((sub) => {
+                      const hasNested = Boolean(sub.children && sub.children.length > 0);
+                      const mobileSubKey = `${item.id}:${sub.label}`;
+                      const isExpanded = expandedMobileSub === mobileSubKey;
 
-                        if (sub.href) {
-                          return (
-                            <a
-                              key={sub.label}
-                              href={sub.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => setMobileOpen(false)}
-                              className="group/item w-full flex items-center justify-between gap-2 text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
-                            >
-                              <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.06] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
-                                {sub.label}
-                              </span>
-                              <ExternalLink className="w-3.5 h-3.5 shrink-0 text-sky-200/75" />
-                            </a>
-                          );
-                        }
-
-                        if (hasNested) {
-                          return (
-                            <div key={sub.label} className="py-0.5">
-                              <div className="flex items-center justify-between gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleSelectDropdownItem(sub)}
-                                  className="group/item flex-1 text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
-                                >
-                                  <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.06] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
-                                    {sub.label}
-                                  </span>
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={`Tampilkan submenu ${sub.label}`}
-                                  onClick={() =>
-                                    setExpandedMobileSub((prev) =>
-                                      prev === mobileSubKey ? null : mobileSubKey
-                                    )
-                                  }
-                                  className="p-1.5 rounded-lg text-sky-200 hover:bg-white/10"
-                                >
-                                  <ChevronDown
-                                    className={`w-3.5 h-3.5 transition-transform ${
-                                      isExpanded ? 'rotate-180 text-emerald-300' : ''
-                                    }`}
-                                  />
-                                </button>
-                              </div>
-                              {isExpanded && (
-                                <div className="mt-1 ml-3 pl-2 border-l border-sky-300/25 divide-y divide-sky-200/15">
-                                  {sub.children!.map((nested) => (
-                                    <button
-                                      key={`${sub.label}-${nested.label}`}
-                                      type="button"
-                                      onClick={() => handleSelectDropdownItem(nested)}
-                                      className="group/sub w-full text-left px-3 py-2 text-xs font-medium text-slate-100 hover:bg-white/10 transition-colors"
-                                    >
-                                      <span className="inline-block origin-left transition-transform duration-200 group-hover/sub:scale-[1.06] group-hover/sub:translate-x-1 group-hover/sub:text-emerald-300">
-                                        {nested.label}
-                                      </span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
+                      if (sub.href) {
                         return (
-                          <button
+                          <a
                             key={sub.label}
-                            type="button"
-                            onClick={() => handleSelectDropdownItem(sub)}
-                            className="group/item w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
+                            href={sub.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setMobileOpen(false)}
+                            className="group/item w-full flex items-center justify-between gap-2 text-left px-3 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
                           >
-                            <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.06] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
+                            <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
                               {sub.label}
                             </span>
-                          </button>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0 text-sky-200/75" />
+                          </a>
                         );
-                      })}
-                    </div>
-                  )}
+                      }
+
+                      if (hasNested) {
+                        return (
+                          <div key={sub.label} className="py-0.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectDropdownItem(sub)}
+                                className="group/item flex-1 text-left px-3 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
+                              >
+                                <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
+                                  {sub.label}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Tampilkan submenu ${sub.label}`}
+                                onClick={() =>
+                                  setExpandedMobileSub((prev) =>
+                                    prev === mobileSubKey ? mobileGroupKey : mobileSubKey
+                                  )
+                                }
+                                className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-sky-200 hover:bg-white/10"
+                              >
+                                <ChevronDown
+                                  className={`w-3.5 h-3.5 transition-transform ${
+                                    isExpanded ? 'rotate-180 text-emerald-300' : ''
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                            {isExpanded && (
+                              <div className="mt-1 ml-3 pl-2 border-l border-sky-300/25 divide-y divide-sky-200/15">
+                                {sub.children!.map((nested) => (
+                                  <button
+                                    key={`${sub.label}-${nested.label}`}
+                                    type="button"
+                                    onClick={() => handleSelectDropdownItem(nested)}
+                                    className="group/sub w-full text-left px-3 py-2.5 min-h-[40px] text-xs font-medium text-slate-100 hover:bg-white/10 transition-colors"
+                                  >
+                                    <span className="inline-block origin-left transition-transform duration-200 group-hover/sub:scale-[1.04] group-hover/sub:translate-x-1 group-hover/sub:text-emerald-300">
+                                      {nested.label}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={sub.label}
+                          type="button"
+                          onClick={() => handleSelectDropdownItem(sub)}
+                          className="group/item w-full text-left px-3 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
+                        >
+                          <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
+                            {sub.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

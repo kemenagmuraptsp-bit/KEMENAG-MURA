@@ -145,41 +145,41 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="service-modal-title"
     >
-      <div className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-10">
-          <div>
-            <p className="text-xs font-mono-tabular text-emerald-700 font-semibold">
+      <div className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between gap-3 sm:gap-4 z-10">
+          <div className="min-w-0">
+            <p className="text-xs font-mono-tabular text-emerald-700 font-semibold truncate">
               {unit.code} · {unit.officer}
             </p>
-            <h2 id="service-modal-title" className="text-lg font-bold text-slate-900">
+            <h2 id="service-modal-title" className="text-base sm:text-lg font-bold text-slate-900 truncate">
               {unit.title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+            className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
             aria-label="Tutup detail layanan"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           {/* Mode Segmented Toggle */}
-          <div className="inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
+          <div className="flex flex-wrap sm:inline-flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
             <button
               type="button"
               onClick={() => {
                 setMode('info');
                 setSubmittedTicket(null);
               }}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+              className={`flex-1 sm:flex-initial px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
                 mode === 'info'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -190,7 +190,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
             <button
               type="button"
               onClick={() => setMode('request')}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
+              className={`flex-1 sm:flex-initial px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
                 mode === 'request'
                   ? 'bg-white text-emerald-800 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -236,7 +236,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
           </div>
 
           {mode === 'info' ? (
-            <div className="border border-slate-200 rounded-xl p-5 space-y-5 bg-slate-50/50">
+            <div className="border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4 sm:space-y-5 bg-slate-50/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-slate-200">
                 <div className="flex items-start gap-2.5">
                   <Clock className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
@@ -281,7 +281,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                 <button
                   type="button"
                   onClick={() => setMode('request')}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                  className="px-4 py-2.5 sm:py-2 min-h-[42px] text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0 w-full sm:w-auto"
                 >
                   Ajukan Layanan Ini ({Object.keys(attachmentsByReq).length}/{activeSub.requirements.length} berkas)
                 </button>
@@ -435,18 +435,18 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                 onRequestLogin={() => openLoginModal('google')}
               />
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setMode('info')}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                  className="px-4 py-2.5 sm:py-2 min-h-[40px] text-xs font-semibold text-slate-600 hover:text-slate-900"
                 >
                   Kembali
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors"
+                  className="px-4 py-2.5 sm:py-2 min-h-[42px] text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors w-full sm:w-auto"
                 >
                   {submitting ? 'Menyimpan Tiket...' : 'Dapatkan Nomor Tiket PTSP'}
                 </button>
@@ -481,14 +481,14 @@ export function ArticleReaderModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="article-modal-title"
     >
-      <article className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4 z-10">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+      <article className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3 z-10">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 min-w-0">
             <span className="font-semibold text-emerald-800">{article.category}</span>
             <span aria-hidden="true">·</span>
             <span>{article.date}</span>
@@ -498,22 +498,22 @@ export function ArticleReaderModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+            className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
             aria-label="Tutup berita"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="p-4 sm:p-8 space-y-5 sm:space-y-6">
           <h1
             id="article-modal-title"
-            className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight"
+            className="text-xl sm:text-3xl font-bold text-slate-900 leading-tight"
           >
             {article.title}
           </h1>
 
-          <div className="flex items-center gap-3 text-xs text-slate-500 pb-4 border-b border-slate-200">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 pb-4 border-b border-slate-200">
             <span>Humas Kankemenag Kab. Murung Raya</span>
             <span aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1 font-mono-tabular">
@@ -592,22 +592,22 @@ export function GalleryLightboxModal({ item, onClose }: GalleryLightboxProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="gallery-modal-title"
     >
-      <div className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full overflow-hidden shadow-2xl">
-        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between gap-4">
-          <div className="text-xs text-slate-500">
+      <div className="bg-white border border-slate-200 rounded-xl max-w-3xl w-full max-h-[92dvh] overflow-y-auto shadow-2xl">
+        <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-slate-200 flex items-center justify-between gap-3">
+          <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
             <span className="font-semibold text-emerald-800">{item.category}</span>
-            <span aria-hidden="true" className="mx-2">·</span>
+            <span aria-hidden="true">·</span>
             <span>{item.date}</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 shrink-0"
             aria-label="Tutup pratinjau foto"
           >
             <X className="w-4 h-4" />
@@ -618,12 +618,12 @@ export function GalleryLightboxModal({ item, onClose }: GalleryLightboxProps) {
           <SafeImage src={item.image} alt={item.title} className="w-full h-full object-cover" />
         </div>
 
-        <div className="p-5 space-y-1.5">
+        <div className="p-4 sm:p-5 space-y-1.5">
           <h3 id="gallery-modal-title" className="text-base font-bold text-slate-900">
             {item.title}
           </h3>
           <p className="text-xs text-slate-600 inline-flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-emerald-700" />
+            <MapPin className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
             <span>{item.location}</span>
           </p>
         </div>
@@ -671,31 +671,31 @@ export function GlobalSearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-start justify-center pt-20 p-4"
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-start justify-center pt-14 sm:pt-20 p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Pencarian cepat portal Kemenag Murung Raya"
     >
       <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-3">
+        <div className="p-3 sm:p-4 border-b border-slate-200 flex items-center gap-2 sm:gap-3">
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari layanan PTSP, berita, KUA, madrasah, wakaf..."
-            className="flex-1 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            placeholder="Cari layanan PTSP, berita, KUA, madrasah..."
+            className="flex-1 min-w-0 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg"
+            className="px-3 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg shrink-0"
           >
             Tutup
           </button>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto p-5 space-y-6">
+        <div className="max-h-[70dvh] sm:max-h-[65vh] overflow-y-auto p-4 sm:p-5 space-y-5 sm:space-y-6">
           <div className="space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700">
               Layanan PTSP ({matchedServices.length})

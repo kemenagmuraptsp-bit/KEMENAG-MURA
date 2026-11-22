@@ -231,7 +231,7 @@ export function BerandaView({
   return (
     <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* SECTION 0: Full-Screen Hero dengan Background Utama Web & Scrim Biru Navy */}
-      <section className="relative min-h-screen w-full overflow-hidden bg-[#09152b] flex flex-col justify-between pt-28 sm:pt-36 pb-8">
+      <section className="relative min-h-[92vh] sm:min-h-screen w-full overflow-hidden bg-[#09152b] flex flex-col justify-between pt-20 sm:pt-36 pb-6 sm:pb-8">
         {/* Background Utama Web + Lapisan Scrim Biru Navy Transparan */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <SafeImage
@@ -245,9 +245,9 @@ export function BerandaView({
         </div>
 
         {/* Center-Upper Hero Typography */}
-        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-16 mt-2 sm:mt-4 mb-auto">
-          <div className="mx-auto max-w-5xl text-center flex flex-col items-center px-6 py-4">
-            <p className="text-xs sm:text-sm md:text-base font-extrabold uppercase tracking-[0.2em] text-sky-200 drop-shadow-[0_2px_10px_rgba(7,18,38,0.92)]">
+        <div className="relative z-10 w-full px-3 sm:px-8 lg:px-16 mt-2 sm:mt-4 mb-auto">
+          <div className="mx-auto max-w-5xl text-center flex flex-col items-center px-2 sm:px-6 py-3 sm:py-4">
+            <p className="text-[11px] sm:text-sm md:text-base font-extrabold uppercase tracking-[0.16em] sm:tracking-[0.2em] text-sky-200 drop-shadow-[0_2px_10px_rgba(7,18,38,0.92)]">
               {lang === 'en'
                 ? 'Ministry of Religious Affairs of the Republic of Indonesia'
                 : 'Kementerian Agama Republik Indonesia'}
@@ -256,7 +256,7 @@ export function BerandaView({
               </span>
             </p>
 
-            <h1 className="mt-4 sm:mt-6 w-full text-center min-h-[2.7em] text-[clamp(1.75rem,4.4vw,3.75rem)] font-black tracking-tight leading-[1.2] drop-shadow-[0_4px_16px_rgba(7,18,38,0.88)]">
+            <h1 className="mt-4 sm:mt-6 w-full text-center min-h-[2.7em] text-[clamp(1.35rem,4.4vw,3.75rem)] font-black tracking-tight leading-[1.2] drop-shadow-[0_4px_16px_rgba(7,18,38,0.88)]">
               <span className="block bg-gradient-to-r from-white via-sky-100 to-sky-300 bg-clip-text text-transparent">
                 {typedLine1 || '\u00A0'}
                 {!onSecondLine && (
@@ -394,7 +394,7 @@ export function BerandaView({
                   <button
                     type="button"
                     onClick={() => onSelectService(unit)}
-                    className={`group relative w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[220px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
+                    className={`group relative w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[195px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
                   >
                   {/* Full-Bleed Category Background with Service Officer */}
                   <SafeImage
@@ -461,25 +461,25 @@ export function BerandaView({
             })}
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={onOpenServiceSidebar}
-              className="menu-expand-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider shadow-sm"
+              className="menu-expand-btn w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-2.5 min-h-[44px] rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-sm"
             >
               <span className="menu-expand-label">
                 Buka Menu Sidebar Layanan (
                 {visibleServiceUnits.reduce((sum, u) => sum + u.subServices.length, 0)} Sub-Menu)
               </span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
             <button
               type="button"
               onClick={() => onNavigate('layanan')}
-              className="menu-expand-btn inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-white/10"
+              className="menu-expand-btn w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-white/10"
             >
               <span className="menu-expand-label">Halaman Layanan & Lacak Tiket</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
           </div>
         </div>
@@ -585,8 +585,8 @@ export function BerandaView({
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
+                <div className="p-4 sm:p-6 space-y-3">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-zinc-400">
                     <span className="font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                       Berita Hari Ini
                     </span>
@@ -629,9 +629,9 @@ export function BerandaView({
               {secondaryToday.map((item) => (
                 <article
                   key={item.id}
-                  className="border border-slate-200/85 dark:border-white/12 rounded-2xl p-4 flex gap-4 items-start bg-white/95 dark:bg-slate-900/90 backdrop-blur-md hover:border-emerald-500/70 shadow-2xs transition-colors"
+                  className="border border-slate-200/85 dark:border-white/12 rounded-2xl p-3.5 sm:p-4 flex gap-3 sm:gap-4 items-start bg-white/95 dark:bg-slate-900/90 backdrop-blur-md hover:border-emerald-500/70 shadow-2xs transition-colors"
                 >
-                  <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shrink-0">
                     <SafeImage
                       src={item.image}
                       alt={item.title}
@@ -639,7 +639,7 @@ export function BerandaView({
                     />
                   </div>
                   <div className="space-y-1.5 min-w-0">
-                    <div className="text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
+                    <div className="text-xs text-slate-500 dark:text-zinc-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className="font-bold text-emerald-700 dark:text-emerald-400">
                         {item.category}
                       </span>
@@ -821,8 +821,8 @@ export function BerandaView({
             </h2>
           </div>
 
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-slate-200/90 dark:border-white/15 bg-slate-50/90 dark:bg-zinc-800/80 backdrop-blur-sm p-1.5">
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <div className="inline-flex flex-wrap justify-center items-center gap-1 rounded-2xl sm:rounded-full border border-slate-200/90 dark:border-white/15 bg-slate-50/90 dark:bg-zinc-800/80 backdrop-blur-sm p-1.5 w-full sm:w-auto">
               {INFOGRAFIS_TABS.map((tab) => {
                 const active = tab.id === activeInfografis;
                 return (
@@ -830,7 +830,7 @@ export function BerandaView({
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveInfografis(tab.id)}
-                    className={`menu-expand-btn px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-full whitespace-nowrap ${
+                    className={`menu-expand-btn px-3 sm:px-4 py-2 min-h-[38px] text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xl sm:rounded-full whitespace-nowrap ${
                       active
                         ? 'bg-emerald-700 dark:bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-700/80 hover:text-slate-900 dark:hover:text-white'
@@ -843,7 +843,7 @@ export function BerandaView({
             </div>
           </div>
 
-          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-3xl p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start shadow-xs">
+          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-2xl sm:rounded-3xl p-4 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start shadow-xs">
             <div className="lg:col-span-7 space-y-5">
               <div>
                 <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
@@ -877,7 +877,7 @@ export function BerandaView({
               </div>
             </div>
 
-            <div className="lg:col-span-5 bg-slate-50/90 dark:bg-zinc-900/80 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-2xl p-6 space-y-4">
+            <div className="lg:col-span-5 bg-slate-50/90 dark:bg-zinc-900/80 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-2xl p-4 sm:p-6 space-y-4">
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-zinc-400">
                 Informasi Ringkas
               </h4>
@@ -943,8 +943,8 @@ export function BerandaView({
                   </span>
                 </a>
               </div>
-              <div className="p-6 space-y-2">
-                <div className="text-xs text-emerald-300 flex items-center gap-2">
+              <div className="p-4 sm:p-6 space-y-2">
+                <div className="text-xs text-emerald-300 flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-bold">Sedang Diputar</span>
                   <span aria-hidden="true">·</span>
                   <span>{activeVideo.category}</span>
@@ -958,7 +958,7 @@ export function BerandaView({
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+            <div className="lg:col-span-2 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/85 dark:border-white/12 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/10">
                   <h3 className="text-sm font-black text-slate-900 dark:text-white">
@@ -1027,9 +1027,9 @@ export function BerandaView({
       </section>
 
       {/* SECTION 8: Link Aplikasi Eksternal Terkait */}
-      <section className="py-14 lg:py-20 bg-white/95 dark:bg-slate-950 backdrop-blur-md">
+      <section className="py-12 lg:py-20 bg-white/95 dark:bg-slate-950 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mb-10 space-y-2">
+          <div className="max-w-3xl mb-8 sm:mb-10 space-y-2">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-400">
               Link Aplikasi
             </p>
@@ -1042,7 +1042,7 @@ export function BerandaView({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {EXTERNAL_APPS.map((app) => {
               const badgeColor = APP_ACCENTS[app.id] || 'bg-emerald-700 text-white';
               const shortCode = app.name.slice(0, 2);
@@ -1052,24 +1052,24 @@ export function BerandaView({
                   href={app.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group border border-slate-200/85 dark:border-white/12 hover:border-emerald-500 rounded-3xl p-5 flex flex-col items-center text-center justify-between bg-white/95 dark:bg-slate-900/85 backdrop-blur-md shadow-xs hover:shadow-lg transition-all duration-200"
+                  className="group border border-slate-200/85 dark:border-white/12 hover:border-emerald-500 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 flex flex-col items-center text-center justify-between bg-white/95 dark:bg-slate-900/85 backdrop-blur-md shadow-xs hover:shadow-lg transition-all duration-200"
                 >
-                  <div className="flex flex-col items-center space-y-3">
+                  <div className="flex flex-col items-center space-y-2.5 sm:space-y-3">
                     <div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center font-black text-lg tracking-tight shadow-md ${badgeColor}`}
+                      className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-black text-base sm:text-lg tracking-tight shadow-md ${badgeColor}`}
                     >
                       {shortCode}
                     </div>
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
                       {app.name}
                     </h3>
-                    <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed line-clamp-2">
+                    <p className="text-[11px] sm:text-xs text-slate-600 dark:text-zinc-300 leading-relaxed line-clamp-2">
                       {app.description}
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 w-full flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-white/10 w-full flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-300">
                     <span>Akses Portal</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   </div>
                 </a>
               );

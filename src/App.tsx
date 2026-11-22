@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, LayoutGrid, X } from 'lucide-react';
 import {
   PageView,
@@ -55,55 +55,18 @@ const VIEW_TITLES: Record<PageView, string> = {
   kontak: 'Kontak & KUA | Kemenag Kabupaten Murung Raya',
 };
 
-function SuperAdminNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
-  const { isAdmin, adminConsoleTriggerCount } = useAuthRole();
-  useEffect(() => {
-    if (isAdmin && adminConsoleTriggerCount > 0) {
-      onTrigger();
-    }
-  }, [isAdmin, adminConsoleTriggerCount]);
-  return null;
-}
+type PendingServiceAction =
+  | { type: 'view-layanan' }
+  | { type: 'open-sidebar' }
+  | { type: 'select-unit'; unit: ServiceUnit }
+  | { type: 'select-unit-id'; unitId: string }
+  | { type: 'select-sub'; unit: ServiceUnit; sub: SubService };
 
-function OperatorNavigationWatcher({ onTrigger }: { onTrigger: () => void }) {
-  const { isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount } =
-    useAuthRole();
-  useEffect(() => {
-    if (
-      !isAdmin &&
-      (isOperatorPtsp || isOperatorSeksi || isPimpinan) &&
-      operatorConsoleTriggerCount > 0
-    ) {
-      onTrigger();
-    }
-  }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount]);
-  return null;
-}
+const DEFAULT_SERVICE_LOGIN_PROMPT =
+  'Untuk mengakses layanan PTSP Kementerian Agama Kab. Murung Raya, silakan login terlebih dahulu melalui menu Akun Masyarakat (Google/Email) atau Login Pegawai (NIP).';
 
-function ServiceCatalogRedirectWatcher({
-  activeView,
-  onRedirect,
-  onResetKepegawaianSelection,
-}: {
-  activeView: PageView;
-  onRedirect: () => void;
-  onResetKepegawaianSelection: () => void;
-}) {
-  const { serviceCatalogRedirectCount, isMasyarakatLogin } = useAuthRole();
-  useEffect(() => {
-    if (serviceCatalogRedirectCount > 0 && activeView !== 'e-pengaduan') {
-      onRedirect();
-    }
-  }, [serviceCatalogRedirectCount]);
-
-  useEffect(() => {
-    if (isMasyarakatLogin) {
-      onResetKepegawaianSelection();
-    }
-  }, [isMasyarakatLogin]);
-
-  return null;
-}
+const KEPEGAWAIAN_LOGIN_PROMPT =
+  'Menu Layanan Kepegawaian khusus untuk Pegawai Kemenag. Silakan masuk melalui tab Login Pegawai (NIP), atau gunakan Akun Masyarakat untuk layanan publik Bidang A–E.';
 
 function LiveGlobalSearchModal({
   open,
@@ -134,7 +97,28 @@ function LiveGlobalSearchModal({
   );
 }
 
-export default function App() {
+function AppContent() {
+  const {
+    user,
+    isEligibleUser,
+    authLoading,
+    isAdmin,
+    isOperatorPtsp,
+    isOperatorSeksi,
+    isPimpinan,
+    isMasyarakatLogin,
+    loginModalOpen,
+    openLoginModal,
+    adminConsoleTriggerCount,
+    operatorConsoleTriggerCount,
+    serviceCatalogRedirectCount,
+  } = useAuthRole();
+
+  const isAuthenticatedForService = Boolean(user && isEligibleUser);
+  const [pendingServiceAction, setPendingServiceAction] = useState<PendingServiceAction | null>(
+    null
+  );
+  const lastRedirectCountRef = useRef(serviceCatalogRedirectCount);
   const [activeView, setActiveView] = useState<PageView>('beranda');
   const [lang, setLang] = useState<'id' | 'en'>('id');
   const [isDark, setIsDark] = useState<boolean>(false);
@@ -201,13 +185,45 @@ export default function App() {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
+  const requireServiceAuth = (
+    action: PendingServiceAction,
+    preferredTab: 'google' | 'pegawai' = 'google',
+    promptMessage = DEFAULT_SERVICE_LOGIN_PROMPT
+  ): boolean => {
+    if (isAuthenticatedForService) {
+      return true;
+    }
+    setPendingServiceAction(action);
+    setServiceSidebarOpen(false);
+    openLoginModal(preferredTab, promptMessage);
+    return false;
+  };
+
   const handleNavigate = (view: PageView) => {
+    if (view === 'layanan') {
+      if (!requireServiceAuth({ type: 'view-layanan' }, 'google')) {
+        return;
+      }
+    }
     setActiveView(view);
     setServiceSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleOpenServiceSidebar = () => {
+    if (!requireServiceAuth({ type: 'open-sidebar' }, 'google')) {
+      return;
+    }
+    setServiceSidebarOpen(true);
+  };
+
   const handleSelectServiceItem = (unit: ServiceUnit, sub: SubService) => {
+    const preferredTab = unit.id === 'kepegawaian' ? 'pegawai' : 'google';
+    const prompt =
+      unit.id === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
+    if (!requireServiceAuth({ type: 'select-sub', unit, sub }, preferredTab, prompt)) {
+      return;
+    }
     setActiveServiceUnitId(unit.id);
     setActiveSubServiceId(sub.id);
     setServiceSidebarOpen(false);
@@ -218,6 +234,12 @@ export default function App() {
   };
 
   const handleOpenServiceFromBeranda = (unit: ServiceUnit) => {
+    const preferredTab = unit.id === 'kepegawaian' ? 'pegawai' : 'google';
+    const prompt =
+      unit.id === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
+    if (!requireServiceAuth({ type: 'select-unit', unit }, preferredTab, prompt)) {
+      return;
+    }
     setActiveServiceUnitId(unit.id);
     setActiveSubServiceId(unit.subServices[0].id);
     setServiceSidebarOpen(false);
@@ -239,6 +261,9 @@ export default function App() {
   };
 
   const handleNavigateToHistory = () => {
+    if (!requireServiceAuth({ type: 'view-layanan' }, 'google')) {
+      return;
+    }
     setServiceSidebarOpen(false);
     setActiveView('layanan');
     window.setTimeout(() => {
@@ -252,6 +277,12 @@ export default function App() {
   };
 
   const handleSelectServiceUnitById = (unitId: string) => {
+    const preferredTab = unitId === 'kepegawaian' ? 'pegawai' : 'google';
+    const prompt =
+      unitId === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
+    if (!requireServiceAuth({ type: 'select-unit-id', unitId }, preferredTab, prompt)) {
+      return;
+    }
     const targetUnit = SERVICE_UNITS.find((u) => u.id === unitId);
     if (targetUnit) {
       setActiveServiceUnitId(targetUnit.id);
@@ -322,6 +353,116 @@ export default function App() {
     }, 90);
   };
 
+  useEffect(() => {
+    if (isAdmin && adminConsoleTriggerCount > 0) {
+      handleOpenAdminConsole();
+    }
+  }, [isAdmin, adminConsoleTriggerCount]);
+
+  useEffect(() => {
+    if (
+      !isAdmin &&
+      (isOperatorPtsp || isOperatorSeksi || isPimpinan) &&
+      operatorConsoleTriggerCount > 0
+    ) {
+      handleOpenOperatorConsole();
+    }
+  }, [isAdmin, isOperatorPtsp, isOperatorSeksi, isPimpinan, operatorConsoleTriggerCount]);
+
+  useEffect(() => {
+    if (isMasyarakatLogin) {
+      if (activeServiceUnitId === 'kepegawaian') {
+        setActiveServiceUnitId(SERVICE_UNITS[0].id);
+        setActiveSubServiceId(SERVICE_UNITS[0].subServices[0].id);
+      }
+      setSelectedService((prev) => (prev?.id === 'kepegawaian' ? null : prev));
+    }
+  }, [isMasyarakatLogin, activeServiceUnitId]);
+
+  useEffect(() => {
+    if (!loginModalOpen && !isAuthenticatedForService && !authLoading && pendingServiceAction) {
+      setPendingServiceAction(null);
+    }
+  }, [loginModalOpen, isAuthenticatedForService, authLoading, pendingServiceAction]);
+
+  useEffect(() => {
+    if (!isAuthenticatedForService) return;
+
+    if (pendingServiceAction) {
+      const action = pendingServiceAction;
+      setPendingServiceAction(null);
+      lastRedirectCountRef.current = serviceCatalogRedirectCount;
+
+      if (action.type === 'open-sidebar') {
+        setServiceSidebarOpen(true);
+        return;
+      }
+      if (action.type === 'view-layanan') {
+        setServiceSidebarOpen(false);
+        setActiveView('layanan');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      if (action.type === 'select-unit') {
+        const targetUnit =
+          isMasyarakatLogin && action.unit.id === 'kepegawaian'
+            ? SERVICE_UNITS[0]
+            : action.unit;
+        setActiveServiceUnitId(targetUnit.id);
+        setActiveSubServiceId(targetUnit.subServices[0]?.id || '');
+        setServiceSidebarOpen(false);
+        setActiveView('layanan');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      if (action.type === 'select-unit-id') {
+        const resolvedId =
+          isMasyarakatLogin && action.unitId === 'kepegawaian'
+            ? SERVICE_UNITS[0].id
+            : action.unitId;
+        const targetUnit =
+          SERVICE_UNITS.find((u) => u.id === resolvedId) || SERVICE_UNITS[0];
+        setActiveServiceUnitId(targetUnit.id);
+        setActiveSubServiceId(targetUnit.subServices[0]?.id || '');
+        setServiceSidebarOpen(false);
+        setActiveView('layanan');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      if (action.type === 'select-sub') {
+        const targetUnit =
+          isMasyarakatLogin && action.unit.id === 'kepegawaian'
+            ? SERVICE_UNITS[0]
+            : action.unit;
+        const targetSub =
+          targetUnit.id === action.unit.id ? action.sub : targetUnit.subServices[0];
+        setActiveServiceUnitId(targetUnit.id);
+        setActiveSubServiceId(targetSub.id);
+        setServiceSidebarOpen(false);
+        setActiveView('layanan');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
+    if (
+      serviceCatalogRedirectCount > lastRedirectCountRef.current &&
+      activeView !== 'e-pengaduan' &&
+      activeView !== 'layanan'
+    ) {
+      lastRedirectCountRef.current = serviceCatalogRedirectCount;
+      handleBackToKatalogLayanan();
+    } else {
+      lastRedirectCountRef.current = serviceCatalogRedirectCount;
+    }
+  }, [
+    isAuthenticatedForService,
+    pendingServiceAction,
+    serviceCatalogRedirectCount,
+    isMasyarakatLogin,
+    activeView,
+  ]);
+
   const handleTicketCreated = (ticket: PTSPTicket) => {
     setPtspTickets((prev) => {
       const updated = [ticket, ...prev];
@@ -383,8 +524,7 @@ export default function App() {
   };
 
   return (
-    <AuthRoleProvider>
-      <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col overflow-x-clip bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <Navbar
         activeView={activeView}
         onNavigate={handleNavigate}
@@ -399,11 +539,11 @@ export default function App() {
         onOpenSearch={() => setSearchOpen(true)}
       />
 
-      {/* Left-Edge Floating Trigger: Sidebar Khusus Layanan */}
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-30">
+      {/* Desktop/Tablet Left-Edge Floating Trigger: Sidebar Khusus Layanan */}
+      <div className="hidden md:block fixed left-0 top-1/2 -translate-y-1/2 z-30">
         <button
           type="button"
-          onClick={() => setServiceSidebarOpen(true)}
+          onClick={handleOpenServiceSidebar}
           aria-label="Buka Sidebar Menu Layanan PTSP"
           title="Menu Layanan PTSP Kemenag Murung Raya"
           className="px-2.5 py-3.5 rounded-r-2xl bg-emerald-800 hover:bg-emerald-700 text-white flex flex-col items-center gap-1.5 shadow-xl border border-l-0 border-emerald-600/50 transition-all hover:pl-3.5"
@@ -415,9 +555,22 @@ export default function App() {
         </button>
       </div>
 
-      {/* Right-Edge Floating Sidebar Button: Kembali ke Katalog Layanan */}
+      {/* Mobile Thumb-Zone Quick Trigger: Layanan PTSP (compact corner pill) */}
+      <div className="md:hidden fixed bottom-4 right-4 z-30">
+        <button
+          type="button"
+          onClick={handleOpenServiceSidebar}
+          aria-label="Buka Menu Layanan PTSP"
+          className="h-11 px-4 rounded-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white flex items-center gap-2 shadow-xl border border-emerald-500/40 text-xs font-extrabold uppercase tracking-wider transition-all"
+        >
+          <LayoutGrid className="w-4 h-4 text-emerald-200 shrink-0" />
+          <span>Layanan PTSP</span>
+        </button>
+      </div>
+
+      {/* Desktop/Tablet Right-Edge Floating Sidebar Button: Kembali ke Katalog Layanan */}
       {activeView === 'layanan' && (
-        <div className="fixed right-0 top-1/2 -translate-y-1/2 z-30">
+        <div className="hidden md:block fixed right-0 top-1/2 -translate-y-1/2 z-30">
           <button
             type="button"
             onClick={handleBackToKatalogLayanan}
@@ -448,7 +601,7 @@ export default function App() {
           aria-modal="true"
           aria-label="Sidebar Menu Layanan PTSP Kemenag Murung Raya"
         >
-          <div className="w-full max-w-[390px] bg-slate-50 dark:bg-slate-950 h-full overflow-y-auto p-3.5 space-y-3 shadow-2xl border-r border-slate-200 dark:border-slate-800">
+          <div className="w-[88vw] max-w-[390px] bg-slate-50 dark:bg-slate-950 h-full overflow-y-auto p-3.5 space-y-3 shadow-2xl border-r border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between px-2 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 flex items-center justify-center shrink-0">
@@ -494,7 +647,7 @@ export default function App() {
             lang={lang}
             onNavigate={handleNavigate}
             onSelectService={handleOpenServiceFromBeranda}
-            onOpenServiceSidebar={() => setServiceSidebarOpen(true)}
+            onOpenServiceSidebar={handleOpenServiceSidebar}
             onSelectArticle={setSelectedArticle}
             onSelectGallery={setSelectedGallery}
           />
@@ -506,8 +659,10 @@ export default function App() {
             selectedUnitId={activeServiceUnitId}
             selectedSubId={activeSubServiceId}
             onSelectUnitId={handleSelectServiceUnitById}
-            onOpenServiceSidebar={() => setServiceSidebarOpen(true)}
+            onOpenServiceSidebar={handleOpenServiceSidebar}
             onTicketCreated={handleTicketCreated}
+            onBackHome={() => handleNavigate('beranda')}
+            onBackToKatalog={handleBackToKatalogLayanan}
           />
         )}
         {activeView === 'informasi' && (
@@ -558,20 +713,14 @@ export default function App() {
       <LoginModal />
       <SuperAdminModal />
       <OperatorModal />
-      <SuperAdminNavigationWatcher onTrigger={handleOpenAdminConsole} />
-      <OperatorNavigationWatcher onTrigger={handleOpenOperatorConsole} />
-      <ServiceCatalogRedirectWatcher
-        activeView={activeView}
-        onRedirect={handleBackToKatalogLayanan}
-        onResetKepegawaianSelection={() => {
-          if (activeServiceUnitId === 'kepegawaian') {
-            setActiveServiceUnitId(SERVICE_UNITS[0].id);
-            setActiveSubServiceId(SERVICE_UNITS[0].subServices[0].id);
-          }
-          setSelectedService((prev) => (prev?.id === 'kepegawaian' ? null : prev));
-        }}
-      />
-      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthRoleProvider>
+      <AppContent />
     </AuthRoleProvider>
   );
 }

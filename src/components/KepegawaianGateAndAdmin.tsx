@@ -292,7 +292,7 @@ export function AccountAccessBanner({
                   ? 'Akun NIP Terhubung — Menunggu Verifikasi Super Admin'
                   : user
                   ? 'Akun Google Terhubung (Masyarakat)'
-                  : 'Mode Pengajuan Biasa (Masyarakat Umum)'}
+                  : 'Akses Layanan PTSP (Login Diperlukan)'}
               </span>
               {myVerifiedEmployee?.status === 'active' && !isAdmin && (
                 <span className="text-[11px] font-mono-tabular font-semibold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300">
@@ -368,10 +368,9 @@ export function AccountAccessBanner({
                 </>
               ) : (
                 <>
-                  Masyarakat yang hanya sesekali berurusan dapat langsung mengajukan permohonan biasa
-                  tanpa login. Gunakan menu <strong>Login</strong> (pojok kanan atas) untuk masuk
-                  dengan <strong>Akun Google</strong> agar riwayat & lonceng aktif, atau{' '}
-                  <strong>Login Pegawai (NIP & Password)</strong> untuk mengakses menu{' '}
+                  Silakan masuk menggunakan <strong>Akun Google / Masyarakat</strong> untuk layanan
+                  publik Bidang A–E serta pelacakan tiket &amp; notifikasi, atau{' '}
+                  <strong>Login Pegawai (NIP &amp; Password)</strong> untuk mengakses menu{' '}
                   <strong>Kepegawaian</strong>.
                 </>
               )}

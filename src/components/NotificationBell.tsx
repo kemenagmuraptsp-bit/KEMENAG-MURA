@@ -121,7 +121,7 @@ export function HeaderAccountControls({
           }}
           aria-label={`Notifikasi (${unreadCount} belum dibaca)`}
           title="Notifikasi Pembaruan Berkas & Pesan Petugas"
-          className={`relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
+          className={`relative w-10 h-10 sm:w-9 sm:h-9 rounded-full flex items-center justify-center border transition-colors ${
             isTransparentHeroHeader
               ? 'bg-[#071226]/55 border-sky-300/25 text-white hover:bg-[#0b1d3d]/70'
               : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
@@ -136,7 +136,7 @@ export function HeaderAccountControls({
         </button>
 
         {bellOpen && (
-          <div className="absolute right-0 top-full mt-2 w-[330px] sm:w-[370px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden z-50">
+          <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[370px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden z-50">
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
@@ -237,7 +237,7 @@ export function HeaderAccountControls({
             setAccountOpen((prev) => !prev);
             setBellOpen(false);
           }}
-          className={`inline-flex items-center gap-2 pl-2 pr-2.5 h-9 rounded-full border text-xs font-bold transition-colors ${
+          className={`inline-flex items-center gap-1.5 sm:gap-2 pl-2 pr-2 sm:pr-2.5 h-10 sm:h-9 rounded-full border text-xs font-bold transition-colors ${
             isTransparentHeroHeader
               ? 'bg-[#071226]/55 border-sky-300/25 text-white hover:bg-[#0b1d3d]/70'
               : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-800'
@@ -276,7 +276,7 @@ export function HeaderAccountControls({
         </button>
 
         {accountOpen && (
-          <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden z-50">
+          <div className="fixed right-3 top-16 w-[calc(100vw-1.5rem)] max-w-xs sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-64 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden z-50">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-1">
               <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
                 {displayName}
