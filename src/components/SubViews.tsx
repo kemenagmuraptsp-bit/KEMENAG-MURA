@@ -279,7 +279,6 @@ export function LayananView({
   const {
     user,
     isEligibleUser,
-    authLoading,
     isAdmin,
     isOperatorPtsp,
     isOperatorSeksi,
@@ -287,7 +286,6 @@ export function LayananView({
     isNipSession,
     isMasyarakatLogin,
     myVerifiedEmployee,
-    openLoginModal,
     adminConsoleTriggerCount,
     operatorConsoleTriggerCount,
   } = useAuthRole();
@@ -396,78 +394,6 @@ export function LayananView({
           t.serviceTitle.toLowerCase().includes(queryLower)
       )
     : tickets;
-
-  if (!authLoading && (!user || !isEligibleUser)) {
-    return (
-      <div className="bg-white dark:bg-slate-950">
-        <PageHeader
-          kicker="Pelayanan Terpadu Satu Pintu (PTSP)"
-          title="Daftar Layanan & Permohonan PTSP"
-          description="Akses ke layanan PTSP memerlukan verifikasi akun terlebih dahulu agar setiap permohonan, berkas persyaratan, dan notifikasi progres tercatat secara aman."
-        />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-6 sm:p-8 space-y-5 shadow-xs">
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                  Autentikasi Diperlukan
-                </p>
-                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">
-                  Silakan Login Sebagai Masyarakat atau Pegawai
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Untuk mengakses layanan PTSP dan mengajukan permohonan, silakan masuk terlebih
-                  dahulu menggunakan <strong>Akun Masyarakat (Google / Email)</strong> atau{' '}
-                  <strong>Akun Pegawai Kemenag (NIP)</strong>.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() =>
-                  openLoginModal(
-                    'google',
-                    'Untuk mengakses layanan PTSP Kementerian Agama Kab. Murung Raya, silakan login melalui Akun Masyarakat (Google/Email) atau Login Pegawai (NIP).'
-                  )
-                }
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Login Akun Masyarakat (Google)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  openLoginModal(
-                    'pegawai',
-                    'Silakan login menggunakan NIP & Password pegawai untuk mengakses layanan PTSP dan Kepegawaian.'
-                  )
-                }
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold transition-colors"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Login Pegawai (NIP)</span>
-              </button>
-              {onBackHome && (
-                <button
-                  type="button"
-                  onClick={onBackHome}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors"
-                >
-                  <span>Kembali ke Beranda</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white dark:bg-slate-950">

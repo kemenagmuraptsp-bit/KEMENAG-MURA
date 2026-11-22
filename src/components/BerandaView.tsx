@@ -31,6 +31,10 @@ import {
   InfografisCategory,
 } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
+import {
+  WayfindingSignpost,
+  type QuickSignpostAction,
+} from '@/src/components/WayfindingSignpost';
 import kartuSekretariatImg from '@/src/assets/images/katalog_full_sekretariat_1795232127240.jpg';
 import kartuBimasIslamImg from '@/src/assets/images/katalog_full_bimas_islam_1795232127252.jpg';
 import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_1795232126912.jpg';
@@ -228,10 +232,28 @@ export function BerandaView({
   const activeVideo =
     VIDEO_ITEMS.find((v) => v.id === activeVideoId) || VIDEO_ITEMS[0];
 
+  const handleSignpostAction = (action: QuickSignpostAction) => {
+    if (action === 'katalog-ptsp') {
+      document.getElementById('katalog-ptsp')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+    if (action === 'aplikasi-eksternal') {
+      document.getElementById('aplikasi-eksternal')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      return;
+    }
+    onNavigate(action);
+  };
+
   return (
     <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* SECTION 0: Full-Screen Hero dengan Background Utama Web & Scrim Biru Navy */}
-      <section className="relative min-h-[92vh] sm:min-h-screen w-full overflow-hidden bg-[#09152b] flex flex-col justify-between pt-20 sm:pt-36 pb-6 sm:pb-8">
+      <section className="relative min-h-[92vh] sm:min-h-screen w-full overflow-hidden bg-[#09152b] flex flex-col justify-between pt-20 sm:pt-32 lg:pt-36 pb-0 lg:pb-8">
         {/* Background Utama Web + Lapisan Scrim Biru Navy Transparan */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <SafeImage
@@ -244,9 +266,9 @@ export function BerandaView({
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(11,29,61,0.45)_0%,rgba(11,29,61,0.18)_58%,rgba(7,18,38,0.62)_100%)]" />
         </div>
 
-        {/* Center-Upper Hero Typography */}
+        {/* Center-Upper Hero Typography (Position Kept Strictly Centered) */}
         <div className="relative z-10 w-full px-3 sm:px-8 lg:px-16 mt-2 sm:mt-4 mb-auto">
-          <div className="mx-auto max-w-5xl text-center flex flex-col items-center px-2 sm:px-6 py-3 sm:py-4">
+          <div className="mx-auto max-w-4xl xl:max-w-5xl text-center flex flex-col items-center px-2 sm:px-6 py-3 sm:py-4">
             <p className="text-[11px] sm:text-sm md:text-base font-extrabold uppercase tracking-[0.16em] sm:tracking-[0.2em] text-sky-200 drop-shadow-[0_2px_10px_rgba(7,18,38,0.92)]">
               {lang === 'en'
                 ? 'Ministry of Religious Affairs of the Republic of Indonesia'
@@ -256,7 +278,7 @@ export function BerandaView({
               </span>
             </p>
 
-            <h1 className="mt-4 sm:mt-6 w-full text-center min-h-[2.7em] text-[clamp(1.35rem,4.4vw,3.75rem)] font-black tracking-tight leading-[1.2] drop-shadow-[0_4px_16px_rgba(7,18,38,0.88)]">
+            <h1 className="mt-4 sm:mt-6 w-full text-center min-h-[2.7em] text-[clamp(1.35rem,3.9vw,3.55rem)] font-black tracking-tight leading-[1.2] drop-shadow-[0_4px_16px_rgba(7,18,38,0.88)]">
               <span className="block bg-gradient-to-r from-white via-sky-100 to-sky-300 bg-clip-text text-transparent">
                 {typedLine1 || '\u00A0'}
                 {!onSecondLine && (
@@ -286,7 +308,7 @@ export function BerandaView({
         </div>
 
         {/* Bottom Scroll Indicator */}
-        <div className="relative z-10 flex justify-center pt-6">
+        <div className="relative z-10 flex justify-center pt-4 sm:pt-6 pb-3 lg:pb-0">
           <a
             href="#katalog-ptsp"
             className="group flex flex-col items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-yellow-300 hover:text-yellow-200 drop-shadow-[0_2px_8px_rgba(7,18,38,0.95)] transition-colors"
@@ -301,6 +323,11 @@ export function BerandaView({
               <span className="w-1.5 h-2 rounded-full bg-yellow-300 group-hover:bg-yellow-200 animate-scroll-wheel" />
             </span>
           </a>
+        </div>
+
+        {/* Far-Right Edge Docked Signpost (Pole Extends All the Way to Bottom of Hero) */}
+        <div className="relative lg:absolute lg:right-0 lg:top-[27%] xl:top-[29%] lg:bottom-0 z-20 flex justify-end pr-0 pt-6 lg:pt-0 pointer-events-none">
+          <WayfindingSignpost lang={lang} onSelect={handleSignpostAction} />
         </div>
       </section>
 
@@ -1027,7 +1054,10 @@ export function BerandaView({
       </section>
 
       {/* SECTION 8: Link Aplikasi Eksternal Terkait */}
-      <section className="py-12 lg:py-20 bg-white/95 dark:bg-slate-950 backdrop-blur-md">
+      <section
+        id="aplikasi-eksternal"
+        className="scroll-mt-24 py-12 lg:py-20 bg-white/95 dark:bg-slate-950 backdrop-blur-md"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-8 sm:mb-10 space-y-2">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-400">

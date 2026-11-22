@@ -8,7 +8,12 @@ export type PageView =
   | 'ppid'
   | 'zona-integritas'
   | 'e-pengaduan'
-  | 'kontak';
+  | 'kontak'
+  | 'dokumen-penting'
+  | 'sop-ptsp'
+  | 'diagram-alur-ptsp'
+  | 'panduan-ptsp'
+  | 'inovasi-mura';
 
 export interface ServiceTemplate {
   id: string;

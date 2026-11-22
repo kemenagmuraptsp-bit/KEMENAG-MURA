@@ -20,6 +20,8 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
     isVerifiedKuaEmployee,
     myVerifiedEmployee,
     accountTier,
+    loginModalOpen,
+    authLoading,
     openLoginModal,
   } = useAuthRole();
   const [selectedSubId, setSelectedSubId] = useState<string>('');
@@ -36,6 +38,7 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
     (PTSPTicket & { savedToCloud?: boolean; uploadedCount?: number }) | null
   >(null);
   const [formError, setFormError] = useState('');
+  const [pendingRequest, setPendingRequest] = useState(false);
 
   useEffect(() => {
     if (myVerifiedEmployee?.fullName && !applicantName) {
@@ -45,6 +48,15 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
     }
   }, [myVerifiedEmployee?.fullName, user?.displayName]);
 
+  useEffect(() => {
+    if (user && isEligibleUser && pendingRequest) {
+      setMode('request');
+      setPendingRequest(false);
+    } else if (!loginModalOpen && !authLoading && !isEligibleUser && pendingRequest) {
+      setPendingRequest(false);
+    }
+  }, [user, isEligibleUser, pendingRequest, loginModalOpen, authLoading]);
+
   if (!unit) return null;
 
   const activeSub =
@@ -52,6 +64,16 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !isEligibleUser) {
+      setPendingRequest(true);
+      openLoginModal(
+        unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim'
+          ? 'pegawai'
+          : 'google',
+        'Untuk mengajukan permohonan layanan PTSP, silakan login terlebih dahulu menggunakan Akun Masyarakat (Google/Email) atau Akun Pegawai (NIP).'
+      );
+      return;
+    }
     if (unit.id === 'kepegawaian' && !isVerifiedEmployee) {
       setFormError('Menu Kepegawaian hanya dapat diakses melalui halaman Layanan setelah login & diverifikasi Admin.');
       return;
@@ -69,78 +91,52 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
       (a, b) => a.requirementIndex - b.requirementIndex
     );
 
-    if ((!user || !isEligibleUser) && attachmentList.length > 0) {
-      setFormError(
-        'Anda sudah melampirkan berkas persyaratan. Silakan login terlebih dahulu agar berkas dapat dikirim ke Operator PTSP & Seksi.'
-      );
-      return;
-    }
-
     setFormError('');
 
-    if (user && isEligibleUser) {
-      setSubmitting(true);
-      try {
-        const isEmployeeService =
-          unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim';
-        const cloudTicket = await createCloudPtspTicket({
-          user,
-          accountTier: accountTier === 'tamu' ? 'masyarakat' : accountTier,
-          unitId: unit.id,
-          unitTitle: unit.title,
-          subServiceId: activeSub.id,
-          serviceTitle: activeSub.title,
-          applicantName: applicantName.trim(),
-          phone: phone.trim(),
-          institution:
-            nikOrNip.trim() ||
-            (isEmployeeService ? myVerifiedEmployee?.unitKerja : undefined),
-          nip: isEmployeeService ? myVerifiedEmployee?.nip : undefined,
-          notes: notes.trim() || undefined,
-          totalDocsCount: activeSub.requirements.length,
-          attachments: attachmentList,
-        });
-        setSubmittedTicket({
-          ticketNo: cloudTicket.ticketNo,
-          unitTitle: cloudTicket.unitTitle,
-          serviceTitle: cloudTicket.serviceTitle,
-          applicantName: cloudTicket.applicantName,
-          phone: cloudTicket.phone,
-          submittedAt: cloudTicket.submittedAtLabel,
-          status: 'Diproses Verifikasi',
-          savedToCloud: true,
-          uploadedCount: attachmentList.length,
-        });
-        setAttachmentsByReq({});
-      } catch (err) {
-        setFormError(
-          err instanceof Error
-            ? err.message
-            : 'Gagal menyimpan tiket dan berkas ke akun Anda.'
-        );
-      } finally {
-        setSubmitting(false);
-      }
-      return;
+    setSubmitting(true);
+    try {
+      const isEmployeeService =
+        unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim';
+      const cloudTicket = await createCloudPtspTicket({
+        user,
+        accountTier: accountTier === 'tamu' ? 'masyarakat' : accountTier,
+        unitId: unit.id,
+        unitTitle: unit.title,
+        subServiceId: activeSub.id,
+        serviceTitle: activeSub.title,
+        applicantName: applicantName.trim(),
+        phone: phone.trim(),
+        institution:
+          nikOrNip.trim() ||
+          (isEmployeeService ? myVerifiedEmployee?.unitKerja : undefined),
+        nip: isEmployeeService ? myVerifiedEmployee?.nip : undefined,
+        notes: notes.trim() || undefined,
+        totalDocsCount: activeSub.requirements.length,
+        attachments: attachmentList,
+      });
+      const created: PTSPTicket & { savedToCloud?: boolean; uploadedCount?: number } = {
+        ticketNo: cloudTicket.ticketNo,
+        unitTitle: cloudTicket.unitTitle,
+        serviceTitle: cloudTicket.serviceTitle,
+        applicantName: cloudTicket.applicantName,
+        phone: cloudTicket.phone,
+        submittedAt: cloudTicket.submittedAtLabel,
+        status: 'Diproses Verifikasi',
+        savedToCloud: true,
+        uploadedCount: attachmentList.length,
+      };
+      onTicketCreated(created);
+      setSubmittedTicket(created);
+      setAttachmentsByReq({});
+    } catch (err) {
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal menyimpan tiket dan berkas ke akun Anda.'
+      );
+    } finally {
+      setSubmitting(false);
     }
-
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const ticket: PTSPTicket = {
-      ticketNo: `PTSP-MURA-2026-${randomNum}`,
-      unitTitle: unit.title,
-      serviceTitle: activeSub.title,
-      applicantName: applicantName.trim(),
-      phone: phone.trim(),
-      submittedAt: new Date().toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      }),
-      status: 'Diproses Verifikasi',
-    };
-    onTicketCreated(ticket);
-    setSubmittedTicket(ticket);
-    setAttachmentsByReq({});
   };
 
   return (
@@ -189,7 +185,19 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
             </button>
             <button
               type="button"
-              onClick={() => setMode('request')}
+              onClick={() => {
+                if (!user || !isEligibleUser) {
+                  setPendingRequest(true);
+                  openLoginModal(
+                    unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim'
+                      ? 'pegawai'
+                      : 'google',
+                    'Untuk mengajukan permohonan layanan PTSP, silakan login terlebih dahulu menggunakan Akun Masyarakat (Google/Email) atau Akun Pegawai (NIP).'
+                  );
+                  return;
+                }
+                setMode('request');
+              }}
               className={`flex-1 sm:flex-initial px-3.5 py-2 sm:py-1.5 min-h-[38px] text-xs font-semibold rounded-md transition-colors whitespace-nowrap ${
                 mode === 'request'
                   ? 'bg-white text-emerald-800 shadow-xs'
@@ -280,7 +288,19 @@ export function ServiceDetailModal({ unit, onClose, onTicketCreated }: ServiceMo
                 </div>
                 <button
                   type="button"
-                  onClick={() => setMode('request')}
+                  onClick={() => {
+                    if (!user || !isEligibleUser) {
+                      setPendingRequest(true);
+                      openLoginModal(
+                        unit.id === 'kepegawaian' || activeSub.id === 'bi-tauliyah-wali-hakim'
+                          ? 'pegawai'
+                          : 'google',
+                        'Untuk mengajukan permohonan layanan PTSP, silakan login terlebih dahulu menggunakan Akun Masyarakat (Google/Email) atau Akun Pegawai (NIP).'
+                      );
+                      return;
+                    }
+                    setMode('request');
+                  }}
                   className="px-4 py-2.5 sm:py-2 min-h-[42px] text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0 w-full sm:w-auto"
                 >
                   Ajukan Layanan Ini ({Object.keys(attachmentsByReq).length}/{activeSub.requirements.length} berkas)

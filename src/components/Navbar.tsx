@@ -311,14 +311,8 @@ export function Navbar({
             onClick={() => handleSelect('beranda')}
             className="flex items-center gap-2 sm:gap-3 text-left min-w-0 flex-1 lg:flex-initial lg:shrink-0 group focus-visible:outline-2 focus-visible:outline-emerald-500 rounded-lg"
           >
-            <div
-              className={`relative overflow-visible w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center p-1 border transition-colors shrink-0 ${
-                isTransparentHeroHeader
-                  ? 'bg-white/15 border-sky-300/30 shadow-2xs'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xs'
-              }`}
-            >
-              <KemenagEmblem className="w-7 h-7 sm:w-8 sm:h-8 animate-header-logo-pop transition-transform duration-200" />
+            <div className="relative overflow-visible w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center shrink-0">
+              <KemenagEmblem className="w-8 h-8 sm:w-9 sm:h-9 animate-header-logo-pop transition-transform duration-200" />
             </div>
             <div className="leading-tight min-w-0">
               <p

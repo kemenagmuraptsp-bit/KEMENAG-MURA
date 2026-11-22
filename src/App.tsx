@@ -37,6 +37,13 @@ import {
   GalleryLightboxModal,
   GlobalSearchModal,
 } from '@/src/components/Modals';
+import {
+  DokumenPentingView,
+  SopPtspView,
+  DiagramAlurPtspView,
+  PanduanPtspView,
+  InovasiMuraView,
+} from '@/src/components/PtspGuideAndInfoViews';
 
 const STORAGE_TICKETS_KEY = 'kemenag_mura_ptsp_tickets_v1';
 const STORAGE_COMPLAINTS_KEY = 'kemenag_mura_complaints_v1';
@@ -53,6 +60,11 @@ const VIEW_TITLES: Record<PageView, string> = {
   'zona-integritas': 'Zona Integritas | Kemenag Kabupaten Murung Raya',
   'e-pengaduan': 'E-Pengaduan | Kemenag Kabupaten Murung Raya',
   kontak: 'Kontak & KUA | Kemenag Kabupaten Murung Raya',
+  'dokumen-penting': 'Dokumen Penting | Kemenag Kabupaten Murung Raya',
+  'sop-ptsp': 'SOP Layanan PTSP | Kemenag Kabupaten Murung Raya',
+  'diagram-alur-ptsp': 'Diagram Alur Data PTSP | Kemenag Kabupaten Murung Raya',
+  'panduan-ptsp': 'Panduan Layanan PTSP | Kemenag Kabupaten Murung Raya',
+  'inovasi-mura': 'Inovasi Kemenag Murung Raya | Kemenag Kabupaten Murung Raya',
 };
 
 type PendingServiceAction =
@@ -200,30 +212,16 @@ function AppContent() {
   };
 
   const handleNavigate = (view: PageView) => {
-    if (view === 'layanan') {
-      if (!requireServiceAuth({ type: 'view-layanan' }, 'google')) {
-        return;
-      }
-    }
     setActiveView(view);
     setServiceSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenServiceSidebar = () => {
-    if (!requireServiceAuth({ type: 'open-sidebar' }, 'google')) {
-      return;
-    }
     setServiceSidebarOpen(true);
   };
 
   const handleSelectServiceItem = (unit: ServiceUnit, sub: SubService) => {
-    const preferredTab = unit.id === 'kepegawaian' ? 'pegawai' : 'google';
-    const prompt =
-      unit.id === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
-    if (!requireServiceAuth({ type: 'select-sub', unit, sub }, preferredTab, prompt)) {
-      return;
-    }
     setActiveServiceUnitId(unit.id);
     setActiveSubServiceId(sub.id);
     setServiceSidebarOpen(false);
@@ -234,12 +232,6 @@ function AppContent() {
   };
 
   const handleOpenServiceFromBeranda = (unit: ServiceUnit) => {
-    const preferredTab = unit.id === 'kepegawaian' ? 'pegawai' : 'google';
-    const prompt =
-      unit.id === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
-    if (!requireServiceAuth({ type: 'select-unit', unit }, preferredTab, prompt)) {
-      return;
-    }
     setActiveServiceUnitId(unit.id);
     setActiveSubServiceId(unit.subServices[0].id);
     setServiceSidebarOpen(false);
@@ -277,12 +269,6 @@ function AppContent() {
   };
 
   const handleSelectServiceUnitById = (unitId: string) => {
-    const preferredTab = unitId === 'kepegawaian' ? 'pegawai' : 'google';
-    const prompt =
-      unitId === 'kepegawaian' ? KEPEGAWAIAN_LOGIN_PROMPT : DEFAULT_SERVICE_LOGIN_PROMPT;
-    if (!requireServiceAuth({ type: 'select-unit-id', unitId }, preferredTab, prompt)) {
-      return;
-    }
     const targetUnit = SERVICE_UNITS.find((u) => u.id === unitId);
     if (targetUnit) {
       setActiveServiceUnitId(targetUnit.id);
@@ -546,7 +532,7 @@ function AppContent() {
           onClick={handleOpenServiceSidebar}
           aria-label="Buka Sidebar Menu Layanan PTSP"
           title="Menu Layanan PTSP Kemenag Murung Raya"
-          className="px-2.5 py-3.5 rounded-r-2xl bg-emerald-800 hover:bg-emerald-700 text-white flex flex-col items-center gap-1.5 shadow-xl border border-l-0 border-emerald-600/50 transition-all hover:pl-3.5"
+          className="animate-left-ptsp-pulse px-2.5 py-3.5 rounded-r-2xl bg-emerald-800 hover:bg-emerald-700 text-white flex flex-col items-center gap-1.5 shadow-xl border border-l-0 border-emerald-600/50 transition-all hover:pl-3.5"
         >
           <LayoutGrid className="w-4 h-4 text-emerald-200" />
           <span className="text-[10px] font-extrabold uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">
@@ -561,7 +547,7 @@ function AppContent() {
           type="button"
           onClick={handleOpenServiceSidebar}
           aria-label="Buka Menu Layanan PTSP"
-          className="h-11 px-4 rounded-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white flex items-center gap-2 shadow-xl border border-emerald-500/40 text-xs font-extrabold uppercase tracking-wider transition-all"
+          className="animate-catalog-card-pulse h-11 px-4 rounded-full bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white flex items-center gap-2 shadow-xl border border-emerald-500/40 text-xs font-extrabold uppercase tracking-wider transition-all"
         >
           <LayoutGrid className="w-4 h-4 text-emerald-200 shrink-0" />
           <span>Layanan PTSP</span>
@@ -683,6 +669,37 @@ function AppContent() {
           <PengaduanView complaints={complaints} onAddComplaint={handleAddComplaint} />
         )}
         {activeView === 'kontak' && <KontakView />}
+        {activeView === 'dokumen-penting' && (
+          <DokumenPentingView
+            onNavigate={handleNavigate}
+            onBackToKatalog={handleBackToKatalogLayanan}
+          />
+        )}
+        {activeView === 'sop-ptsp' && (
+          <SopPtspView
+            onNavigate={handleNavigate}
+            onSelectService={handleSelectServiceUnitById}
+          />
+        )}
+        {activeView === 'diagram-alur-ptsp' && (
+          <DiagramAlurPtspView
+            onNavigate={handleNavigate}
+            onOpenServiceSidebar={handleOpenServiceSidebar}
+          />
+        )}
+        {activeView === 'panduan-ptsp' && (
+          <PanduanPtspView
+            onNavigate={handleNavigate}
+            onOpenServiceSidebar={handleOpenServiceSidebar}
+            onBackToKatalog={handleBackToKatalogLayanan}
+          />
+        )}
+        {activeView === 'inovasi-mura' && (
+          <InovasiMuraView
+            onNavigate={handleNavigate}
+            onBackToKatalog={handleBackToKatalogLayanan}
+          />
+        )}
       </main>
 
       <Footer onNavigate={handleNavigate} />
