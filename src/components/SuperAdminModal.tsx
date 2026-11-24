@@ -20,20 +20,18 @@ import {
   mapFirebaseAuthError,
   sendSuperAdminPasswordResetEmail,
 } from '@/src/firebase';
+import {
+  checkAuthRateLimit,
+  clearAuthRateLimit,
+  generateSecureCaptchaCode,
+  recordAuthFailure,
+  validateStrongPassword,
+} from '@/src/utils/security';
 
-const FIREBASE_USERS_URL =
-  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/users';
-const FIREBASE_PROVIDERS_URL =
-  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/providers';
-
-const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const FIREBASE_CONSOLE_HOME_URL = 'https://console.firebase.google.com/';
 
 function generateAdminCaptcha(length = 5): string {
-  let out = '';
-  for (let i = 0; i < length; i += 1) {
-    out += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
-  }
-  return out;
+  return generateSecureCaptchaCode(undefined, length);
 }
 
 function AdminCaptchaCanvas({ code, onRefresh }: { code: string; onRefresh: () => void }) {
@@ -171,15 +169,34 @@ export function SuperAdminModal() {
     setLocalError('');
     setInfoMessage('');
     clearAuthError();
-    if (!verifyCaptchaOrSetError()) return;
+
+    const rateBucket = 'superadmin-login';
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Terlalu banyak percobaan login gagal. Silakan tunggu ${rate.retryAfterSeconds} detik sebelum mencoba lagi.`
+      );
+      return;
+    }
+
+    if (!verifyCaptchaOrSetError()) {
+      recordAuthFailure(rateBucket);
+      return;
+    }
 
     setBusy(true);
     try {
       await signInSuperAdminWithEmail(adminEmail, password);
+      clearAuthRateLimit(rateBucket);
       setPassword('');
     } catch (err) {
+      const failState = recordAuthFailure(rateBucket);
+      const baseMsg =
+        err instanceof Error ? err.message : 'Gagal masuk dengan Email & Password Super Admin.';
       setLocalError(
-        err instanceof Error ? err.message : 'Gagal masuk dengan Email & Password Super Admin.'
+        failState.locked
+          ? `${baseMsg} Percobaan dibatasi sementara selama ${failState.retryAfterSeconds} detik.`
+          : baseMsg
       );
       refreshCaptcha();
     } finally {
@@ -191,6 +208,15 @@ export function SuperAdminModal() {
     setLocalError('');
     setInfoMessage('');
     clearAuthError();
+    const rateBucket = 'superadmin-reset';
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Permintaan atur ulang sandi dibatasi sementara. Coba lagi dalam ${rate.retryAfterSeconds} detik.`
+      );
+      return;
+    }
+
     if (adminEmail.trim().toLowerCase() !== ADMIN_EMAIL) {
       setLocalError(`Reset kata sandi hanya berlaku untuk email resmi (${ADMIN_EMAIL}).`);
       return;
@@ -203,6 +229,7 @@ export function SuperAdminModal() {
         `Tautan atur/reset kata sandi telah dikirim ke ${ADMIN_EMAIL}. Cek kotak masuk atau folder Spam Gmail tersebut.`
       );
     } catch (err) {
+      recordAuthFailure(rateBucket);
       setLocalError(mapFirebaseAuthError(err, 'admin'));
     } finally {
       setResetBusy(false);
@@ -213,15 +240,36 @@ export function SuperAdminModal() {
     setLocalError('');
     setInfoMessage('');
     clearAuthError();
-    if (!verifyCaptchaOrSetError()) return;
+
+    const rateBucket = 'superadmin-activate';
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Percobaan aktivasi dibatasi sementara. Coba lagi dalam ${rate.retryAfterSeconds} detik.`
+      );
+      return;
+    }
+
+    if (!verifyCaptchaOrSetError()) {
+      recordAuthFailure(rateBucket);
+      return;
+    }
+
+    const pwErr = validateStrongPassword(password);
+    if (pwErr) {
+      setLocalError(pwErr);
+      return;
+    }
 
     setActivateBusy(true);
     try {
       await activateSuperAdminEmailAccount(adminEmail, password);
+      clearAuthRateLimit(rateBucket);
       setInfoMessage(
         `Akun ${ADMIN_EMAIL} berhasil didaftarkan dengan kata sandi tersebut! Silakan cek kotak masuk Gmail ${ADMIN_EMAIL}, klik tautan verifikasi, lalu klik "Masuk Mode Super Admin".`
       );
     } catch (err) {
+      recordAuthFailure(rateBucket);
       setLocalError(mapFirebaseAuthError(err, 'admin'));
       refreshCaptcha();
     } finally {
@@ -332,15 +380,15 @@ export function SuperAdminModal() {
                     </>
                   )}
                   <a
-                    href={showProviderHelper ? FIREBASE_PROVIDERS_URL : FIREBASE_USERS_URL}
+                    href={FIREBASE_CONSOLE_HOME_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-rose-400/40 text-[11px] font-bold text-rose-100 transition-colors"
                   >
                     <span>
                       {showProviderHelper
-                        ? 'Aktifkan Email/Password di Firebase'
-                        : 'Cek Firebase Auth Users'}
+                        ? 'Buka Firebase Console (Sign-in method)'
+                        : 'Buka Firebase Console (Auth Users)'}
                     </span>
                     <ExternalLink className="w-3 h-3" />
                   </a>

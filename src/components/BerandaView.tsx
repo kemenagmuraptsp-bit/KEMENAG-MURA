@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
-  ArrowDown,
   ArrowRight,
   ChevronRight,
   Church,
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
-  OFFICE_INFO,
   SERVICE_UNITS,
   LEADERSHIP_QUOTES,
   GALLERY_ITEMS,
@@ -26,15 +24,17 @@ import {
 import {
   PageView,
   ServiceUnit,
+  SubService,
   NewsArticle,
   GalleryItem,
   InfografisCategory,
 } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
 import {
-  WayfindingSignpost,
-  type QuickSignpostAction,
-} from '@/src/components/WayfindingSignpost';
+  PtspInteractiveHero,
+  type PtspPortalStage,
+} from '@/src/components/PtspInteractiveHero';
+import { type QuickSignpostAction } from '@/src/components/WayfindingSignpost';
 import kartuSekretariatImg from '@/src/assets/images/katalog_full_sekretariat_1795232127240.jpg';
 import kartuBimasIslamImg from '@/src/assets/images/katalog_full_bimas_islam_1795232127252.jpg';
 import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_1795232126912.jpg';
@@ -44,24 +44,15 @@ import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_17
 
 interface BerandaViewProps {
   lang: 'id' | 'en';
+  ptspStage: PtspPortalStage;
+  onPtspStageChange: (stage: PtspPortalStage) => void;
   onNavigate: (view: PageView) => void;
   onSelectService: (unit: ServiceUnit) => void;
+  onSelectSubService: (unit: ServiceUnit, sub: SubService) => void;
   onOpenServiceSidebar: () => void;
   onSelectArticle: (article: NewsArticle) => void;
   onSelectGallery: (item: GalleryItem) => void;
 }
-
-const HERO_PHRASES_ID = [
-  ['Transformasi Digital Terpadu', 'Pelayanan PTSP Murung Raya'],
-  ['Kemenag Murung Raya', 'Hadir Melayani Sepenuh Hati'],
-  ['Bersama Merawat Harmoni', 'Bumi Tana Malai Tolung Lingu'],
-];
-
-const HERO_PHRASES_EN = [
-  ['Integrated Digital Transformation', 'PTSP Murung Raya Services'],
-  ['Kemenag Murung Raya', 'Serving With Sincere Dedication'],
-  ['Nurturing Religious Harmony', 'Across Murung Raya Regency'],
-];
 
 const SERVICE_ICONS: Record<string, typeof Building2> = {
   sekretariat: Building2,
@@ -164,49 +155,30 @@ const APP_ACCENTS: Record<string, string> = {
 
 export function BerandaView({
   lang,
+  ptspStage,
+  onPtspStageChange,
   onNavigate,
   onSelectService,
+  onSelectSubService,
   onOpenServiceSidebar,
   onSelectArticle,
   onSelectGallery,
 }: BerandaViewProps) {
-  const { isVerifiedEmployee, isMasyarakatLogin, newsArticles } = useAuthRole();
-  const visibleServiceUnits = isMasyarakatLogin
-    ? SERVICE_UNITS.filter((unit) => unit.id !== 'kepegawaian')
-    : SERVICE_UNITS;
+  const { isVerifiedEmployee, openLoginModal, newsArticles } = useAuthRole();
+  const visibleServiceUnits = SERVICE_UNITS;
   const [activeInfografis, setActiveInfografis] = useState<InfografisCategory>('utama');
   const [activeVideoId, setActiveVideoId] = useState<string>(VIDEO_ITEMS[0].id);
 
-  // Typewriter state matching Barito Utara hero headline animation
-  const phrases = lang === 'en' ? HERO_PHRASES_EN : HERO_PHRASES_ID;
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  const [charCount, setCharCount] = useState(phrases[0].join('\n').length);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    const fullText = phrases[phraseIdx].join('\n');
-    let timer: number;
-
-    if (!isDeleting && charCount < fullText.length) {
-      timer = window.setTimeout(() => setCharCount((c) => c + 1), 45);
-    } else if (!isDeleting && charCount >= fullText.length) {
-      timer = window.setTimeout(() => setIsDeleting(true), 3200);
-    } else if (isDeleting && charCount > 0) {
-      timer = window.setTimeout(() => setCharCount((c) => c - 1), 24);
-    } else {
-      timer = window.setTimeout(() => {
-        setIsDeleting(false);
-        setPhraseIdx((idx) => (idx + 1) % phrases.length);
-      }, 250);
+  const handleQuickCatalogClick = (unit: ServiceUnit) => {
+    if (unit.id === 'kepegawaian' && !isVerifiedEmployee) {
+      openLoginModal(
+        'pegawai',
+        'Layanan Kepegawaian dikhususkan untuk ASN & Pegawai Kemenag Kab. Murung Raya. Silakan masuk melalui tab Login Pegawai (NIP).'
+      );
+      return;
     }
-
-    return () => window.clearTimeout(timer);
-  }, [charCount, isDeleting, phraseIdx, phrases]);
-
-  const currentFull = phrases[phraseIdx].join('\n');
-  const typedText = currentFull.slice(0, charCount);
-  const [typedLine1, typedLine2 = ''] = typedText.split('\n');
-  const onSecondLine = typedText.includes('\n');
+    onSelectService(unit);
+  };
 
   const leadArticle = newsArticles[0];
   const secondaryToday = newsArticles.slice(1, 3);
@@ -234,10 +206,8 @@ export function BerandaView({
 
   const handleSignpostAction = (action: QuickSignpostAction) => {
     if (action === 'katalog-ptsp') {
-      document.getElementById('katalog-ptsp')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+      onPtspStageChange('katalog');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (action === 'aplikasi-eksternal') {
@@ -252,88 +222,23 @@ export function BerandaView({
 
   return (
     <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      {/* SECTION 0: Full-Screen Hero dengan Background Utama Web & Scrim Biru Navy */}
-      <section className="relative min-h-[92vh] sm:min-h-screen w-full overflow-hidden bg-[#09152b] flex flex-col justify-between pt-20 sm:pt-32 lg:pt-36 pb-0 lg:pb-8">
-        {/* Background Utama Web + Lapisan Scrim Biru Navy Transparan */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <SafeImage
-            src={OFFICE_INFO.heroImage}
-            alt="Panorama Masjid Agung Al-Istiqlal dan Harmoni Rumah Ibadah Kabupaten Murung Raya"
-            className="w-full h-full object-cover object-bottom sm:object-center opacity-90"
-          />
-          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#071226]/85 via-[#0b1d3d]/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#08152d]/60 via-[#0e2247]/35 to-[#071226]/80" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(11,29,61,0.45)_0%,rgba(11,29,61,0.18)_58%,rgba(7,18,38,0.62)_100%)]" />
-        </div>
+      {/* SECTION 0: Interactive 3-Stage PTSP Portal (Halaman Depan -> BUKA PINTU -> Ruang PTSP -> Katalog Layanan 6 Bidang) */}
+      <PtspInteractiveHero
+        lang={lang}
+        stage={ptspStage}
+        onStageChange={onPtspStageChange}
+        onNavigate={onNavigate}
+        onSelectService={onSelectService}
+        onSelectSubService={onSelectSubService}
+        onOpenServiceSidebar={onOpenServiceSidebar}
+        onSignpostAction={handleSignpostAction}
+        onSelectArticle={onSelectArticle}
+      />
 
-        {/* Center-Upper Hero Typography (Position Kept Strictly Centered) */}
-        <div className="relative z-10 w-full px-3 sm:px-8 lg:px-16 mt-2 sm:mt-4 mb-auto">
-          <div className="mx-auto max-w-4xl xl:max-w-5xl text-center flex flex-col items-center px-2 sm:px-6 py-3 sm:py-4">
-            <p className="text-[11px] sm:text-sm md:text-base font-extrabold uppercase tracking-[0.16em] sm:tracking-[0.2em] text-sky-200 drop-shadow-[0_2px_10px_rgba(7,18,38,0.92)]">
-              {lang === 'en'
-                ? 'Ministry of Religious Affairs of the Republic of Indonesia'
-                : 'Kementerian Agama Republik Indonesia'}
-              <span className="block text-white mt-1">
-                {lang === 'en' ? 'Murung Raya Regency' : 'Kabupaten Murung Raya'}
-              </span>
-            </p>
-
-            <h1 className="mt-4 sm:mt-6 w-full text-center min-h-[2.7em] text-[clamp(1.35rem,3.9vw,3.55rem)] font-black tracking-tight leading-[1.2] drop-shadow-[0_4px_16px_rgba(7,18,38,0.88)]">
-              <span className="block bg-gradient-to-r from-white via-sky-100 to-sky-300 bg-clip-text text-transparent">
-                {typedLine1 || '\u00A0'}
-                {!onSecondLine && (
-                  <span
-                    aria-hidden="true"
-                    className="inline-block w-[3px] h-[0.9em] bg-sky-300 align-middle ml-1 animate-cursor-blink"
-                  />
-                )}
-              </span>
-              <span className="block bg-gradient-to-r from-white via-sky-100 to-sky-300 bg-clip-text text-transparent mt-1">
-                {typedLine2 || '\u00A0'}
-                {onSecondLine && (
-                  <span
-                    aria-hidden="true"
-                    className="inline-block w-[3px] h-[0.9em] bg-sky-300 align-middle ml-1 animate-cursor-blink"
-                  />
-                )}
-              </span>
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-sm sm:text-base md:text-lg text-sky-50/95 leading-relaxed font-medium drop-shadow-[0_2px_10px_rgba(7,18,38,0.92)]">
-              {lang === 'en'
-                ? 'Official portal for religious services and public information that is Professional, Responsive, High-Integrity, Modern, and Accountable for the people of Murung Raya.'
-                : 'Website resmi pelayanan dan informasi keagamaan yang Profesional, Responsif, Integritas, Modern, dan Akuntabel bagi seluruh masyarakat Kabupaten Murung Raya.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom Scroll Indicator */}
-        <div className="relative z-10 flex justify-center pt-4 sm:pt-6 pb-3 lg:pb-0">
-          <a
-            href="#katalog-ptsp"
-            className="group flex flex-col items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.25em] text-yellow-300 hover:text-yellow-200 drop-shadow-[0_2px_8px_rgba(7,18,38,0.95)] transition-colors"
-          >
-            <span>{lang === 'en' ? 'Scroll Down' : 'Gulir ke bawah'}</span>
-            <ArrowDown
-              strokeWidth={2.75}
-              className="w-4 h-4 text-yellow-300 group-hover:text-yellow-200 animate-arrow-down-pulse"
-              aria-hidden="true"
-            />
-            <span className="w-6 h-9 rounded-full border-2 border-yellow-300 group-hover:border-yellow-200 bg-[#071226]/70 flex items-start justify-center p-1.5 shadow-[0_0_16px_rgba(253,224,71,0.4)] transition-colors">
-              <span className="w-1.5 h-2 rounded-full bg-yellow-300 group-hover:bg-yellow-200 animate-scroll-wheel" />
-            </span>
-          </a>
-        </div>
-
-        {/* Far-Right Edge Docked Signpost (Pole Extends All the Way to Bottom of Hero) */}
-        <div className="relative lg:absolute lg:right-0 lg:top-[27%] xl:top-[29%] lg:bottom-0 z-20 flex justify-end pr-0 pt-6 lg:pt-0 pointer-events-none">
-          <WayfindingSignpost lang={lang} onSelect={handleSignpostAction} />
-        </div>
-      </section>
-
-      {/* SECTION 1: Katalog Layanan PTSP */}
+      {/* SECTION 1: Katalog Layanan PTSP (Quick Scroll Section when Hero is on Front Office or Ruang PTSP) */}
+      {ptspStage !== 'katalog' && (
       <section
-        id="katalog-ptsp"
+        id="katalog-layanan-preview"
         className="scroll-mt-20 py-10 lg:py-12 bg-white/95 dark:bg-slate-950 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 relative overflow-hidden"
       >
         <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-14">
@@ -420,7 +325,7 @@ export function BerandaView({
                 >
                   <button
                     type="button"
-                    onClick={() => onSelectService(unit)}
+                    onClick={() => handleQuickCatalogClick(unit)}
                     className={`group relative w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[195px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
                   >
                   {/* Full-Bleed Category Background with Service Officer */}
@@ -511,6 +416,7 @@ export function BerandaView({
           </div>
         </div>
       </section>
+      )}
 
       {/* SECTION 2: Zona Integritas — Apa Kata Mereka */}
       <section className="py-12 lg:py-16 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md border-b-2 border-slate-300 dark:border-slate-700">

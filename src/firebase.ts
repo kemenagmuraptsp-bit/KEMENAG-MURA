@@ -38,6 +38,11 @@ import type {
   InfoSection,
   InformasiUnitConfig,
 } from '@/src/data/informasiData';
+import {
+  isSafeHttpOrRelativeUrl,
+  isSafeHttpsUrl,
+  validateStrongPassword,
+} from '@/src/utils/security';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -352,40 +357,38 @@ export function mapFirebaseAuthError(
   if (code === 'auth/invalid-email') {
     return 'Format alamat email tidak valid. Pastikan penulisan email sudah benar.';
   }
-  if (code === 'auth/user-not-found') {
+  if (
+    code === 'auth/user-not-found' ||
+    code === 'auth/invalid-credential' ||
+    code === 'auth/wrong-password'
+  ) {
     if (context === 'admin') {
-      return `Akun Super Admin (${ADMIN_EMAIL}) belum terdaftar di Firebase Auth. Klik "Aktivasi Akun Pertama Kali" atau tambahkan di Firebase Console.`;
+      return 'Kredensial Super Admin tidak sesuai, atau akun belum diaktifkan/disetel kata sandinya di Firebase Auth.';
     }
     if (context === 'masyarakat') {
-      return 'Email ini belum terdaftar. Silakan pilih "Daftar Akun Baru" untuk membuat akun masyarakat.';
+      return 'Email atau kata sandi yang Anda masukkan tidak sesuai.';
     }
-    return 'NIP belum terdaftar atau tidak ditemukan.';
-  }
-  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
-    if (context === 'admin') {
-      return `Kata sandi Super Admin salah, atau akun ${ADMIN_EMAIL} belum disetel kata sandinya di Firebase Auth.`;
-    }
-    if (context === 'masyarakat') {
-      return 'Email atau kata sandi salah, atau akun tersebut belum terdaftar.';
-    }
-    return 'NIP atau Password yang Anda masukkan salah, atau NIP belum terdaftar.';
+    return 'NIP atau Password yang Anda masukkan tidak sesuai.';
   }
   if (code === 'auth/email-already-in-use') {
     if (context === 'admin') {
-      return `Akun ${ADMIN_EMAIL} sudah terdaftar di Firebase Auth. Gunakan "Kirim Tautan Atur/Reset Sandi" untuk menyetel ulang kata sandi.`;
+      return 'Akun Super Admin sudah terdaftar di Firebase Auth. Gunakan "Kirim Tautan Atur/Reset Sandi" jika perlu menyetel ulang kata sandi.';
     }
     if (context === 'masyarakat') {
-      return 'Alamat email ini sudah terdaftar. Silakan langsung masuk menggunakan email dan kata sandi Anda.';
+      return 'Alamat email ini tidak dapat didaftarkan ulang. Silakan masuk menggunakan akun yang ada atau gunakan fitur Lupa Kata Sandi.';
     }
     return 'NIP ini sudah terdaftar. Silakan langsung masuk menggunakan NIP dan Password Anda.';
   }
   if (code === 'auth/weak-password') {
-    return 'Password terlalu lemah. Gunakan minimal 6 karakter.';
+    return 'Kata sandi terlalu lemah. Gunakan minimal 8 karakter dengan kombinasi huruf dan angka.';
   }
   if (code === 'auth/too-many-requests') {
     return 'Terlalu banyak percobaan login gagal. Silakan tunggu beberapa saat sebelum mencoba lagi.';
   }
-  return msg || 'Terjadi kendala saat proses autentikasi. Silakan coba lagi.';
+  if (msg && !msg.includes('Firebase:') && !msg.includes('auth/')) {
+    return msg;
+  }
+  return 'Terjadi kendala saat proses autentikasi. Silakan coba lagi.';
 }
 
 export async function signInWithGoogleAndRecord(): Promise<User | null> {
@@ -429,7 +432,7 @@ export async function signInPublicWithEmail(
     throw new Error('Masukkan alamat email yang valid.');
   }
   if (cleanEmail === ADMIN_EMAIL) {
-    throw new Error('Akun Super Admin menggunakan panel khusus (tekan Ctrl+Alt+A).');
+    throw new Error('Email atau kata sandi yang Anda masukkan tidak sesuai.');
   }
   if (isNipEmployeeEmail(cleanEmail)) {
     throw new Error('Akun pegawai NIP silakan masuk melalui tab "Login Pegawai (NIP)".');
@@ -474,13 +477,14 @@ export async function registerPublicWithEmail(params: {
     throw new Error('Masukkan alamat email yang valid.');
   }
   if (cleanEmail === ADMIN_EMAIL) {
-    throw new Error('Email ini khusus untuk Super Admin.');
+    throw new Error('Alamat email ini tidak tersedia untuk pendaftaran akun masyarakat.');
   }
   if (isNipEmployeeEmail(cleanEmail)) {
     throw new Error('Email domain pegawai silakan mendaftar melalui tab "Login Pegawai (NIP)".');
   }
-  if (!password || password.length < 6) {
-    throw new Error('Kata sandi wajib diisi minimal 6 karakter.');
+  const passwordErr = validateStrongPassword(password);
+  if (passwordErr) {
+    throw new Error(passwordErr);
   }
 
   const credential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
@@ -498,15 +502,28 @@ export async function sendPublicPasswordResetEmail(email: string): Promise<void>
     throw new Error('Isi alamat email Anda terlebih dahulu untuk mengirim tautan atur ulang kata sandi.');
   }
   if (cleanEmail === ADMIN_EMAIL) {
-    throw new Error('Gunakan panel Super Admin (Ctrl+Alt+A) untuk atur ulang kata sandi Super Admin.');
+    // Do not leak admin panel shortcut or account status in public reset flow
+    return;
   }
-  await sendPasswordResetEmail(auth, cleanEmail);
+  try {
+    await sendPasswordResetEmail(auth, cleanEmail);
+  } catch (err) {
+    const code =
+      typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code?: unknown }).code)
+        : '';
+    // Prevent account enumeration on password reset
+    if (code === 'auth/user-not-found') {
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function signInSuperAdminWithEmail(email: string, password: string): Promise<User> {
   const cleanEmail = email.trim().toLowerCase();
   if (cleanEmail !== ADMIN_EMAIL) {
-    throw new Error(`Email Super Admin harus menggunakan akun resmi (${ADMIN_EMAIL}).`);
+    throw new Error('Kredensial Super Admin tidak sesuai.');
   }
   if (!password || password.length < 6) {
     throw new Error('Password wajib diisi minimal 6 karakter.');
@@ -534,10 +551,11 @@ export async function activateSuperAdminEmailAccount(
 ): Promise<void> {
   const cleanEmail = email.trim().toLowerCase();
   if (cleanEmail !== ADMIN_EMAIL) {
-    throw new Error(`Aktivasi Super Admin hanya berlaku untuk akun resmi (${ADMIN_EMAIL}).`);
+    throw new Error('Aktivasi Super Admin hanya berlaku untuk akun resmi pengelola.');
   }
-  if (!password || password.length < 6) {
-    throw new Error('Isi Kata Sandi minimal 6 karakter pada kolom password terlebih dahulu.');
+  const passwordErr = validateStrongPassword(password);
+  if (passwordErr) {
+    throw new Error(passwordErr);
   }
   const credential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, password);
   try {
@@ -634,8 +652,9 @@ export async function registerEmployeeNipRequest(params: {
   if (cleanFullName.length < 2) {
     throw new Error('Nama lengkap wajib diisi.');
   }
-  if (!password || password.length < 6) {
-    throw new Error('Password wajib minimal 6 karakter.');
+  const passwordErr = validateStrongPassword(password);
+  if (passwordErr) {
+    throw new Error(passwordErr);
   }
 
   const credential = await createUserWithEmailAndPassword(auth, email, password);
@@ -681,8 +700,12 @@ export async function provisionEmployeeAccountByAdmin(params: {
   const email = nipToEmployeeEmail(digits);
   const cleanFullName = clampStr(fullName, 120);
 
-  if (cleanFullName.length < 2 || !password || password.length < 6) {
-    throw new Error('Nama lengkap dan password awal (min. 6 karakter) wajib diisi.');
+  if (cleanFullName.length < 2) {
+    throw new Error('Nama lengkap wajib diisi.');
+  }
+  const passwordErr = validateStrongPassword(password);
+  if (passwordErr) {
+    throw new Error(passwordErr);
   }
 
   const secName = 'kemenag-admin-emp-provisioner';
@@ -744,7 +767,8 @@ export async function upsertGoogleUserProfile(
       'Pengguna Portal'
     );
     const email = clampStr(user.email, 160);
-    const photoURL = clampStr(user.photoURL, 500);
+    const rawPhotoUrl = clampStr(user.photoURL, 500);
+    const photoURL = isSafeHttpsUrl(rawPhotoUrl) ? rawPhotoUrl : '';
 
     if (!email) return;
 
@@ -1730,211 +1754,6 @@ export async function updateCloudTicketStatus(params: {
   }
 }
 
-async function buildPtspTicketUpdateDiag(
-  ticketId: string,
-  payload: Record<string, unknown>
-): Promise<string> {
-  try {
-    if (!auth.currentUser) return '';
-    const [empSnap, ticketSnap, tokenResult] = await Promise.all([
-      getDocFromServer(doc(db, 'verifiedEmployees', auth.currentUser.uid)),
-      getDocFromServer(doc(db, 'ptspTickets', ticketId)).catch(() => null),
-      auth.currentUser.getIdTokenResult().catch(() => null),
-    ]);
-    const empData = empSnap.exists() ? empSnap.data() : null;
-    const tData = ticketSnap && ticketSnap.exists() ? ticketSnap.data() : null;
-    const merged: Record<string, unknown> | null = tData ? { ...tData, ...payload } : null;
-    const allowedKeys = new Set([
-      'id', 'ticketNo', 'userId', 'userEmail', 'accountTier', 'unitId', 'unitTitle',
-      'subServiceId', 'serviceTitle', 'applicantName', 'phone', 'institution', 'nip',
-      'notes', 'status', 'adminNote', 'dispatchedToSeksi', 'dispatchedUnitId',
-      'dispatchedUnitTitle', 'dispatchedBy', 'seksiReviewer', 'tteSentToLeader',
-      'tteLeaderNote', 'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount',
-      'uploadedDocsCount', 'tteDocNumber', 'tteSignerName', 'tteSignerTitle',
-      'tteSignerNip', 'tteSignedAtLabel', 'submittedAtLabel', 'createdAt', 'updatedAt',
-    ]);
-    const requiredKeys = [
-      'id', 'ticketNo', 'userId', 'userEmail', 'accountTier', 'unitId', 'unitTitle',
-      'subServiceId', 'serviceTitle', 'applicantName', 'phone', 'status',
-      'submittedAtLabel', 'createdAt', 'updatedAt',
-    ];
-    const seksiAllowedKeys = new Set([
-      'status', 'adminNote', 'seksiReviewer', 'tteSentToLeader', 'tteLeaderNote',
-      'checkedDocsPattern', 'verifiedDocsCount', 'totalDocsCount', 'updatedAt',
-    ]);
-    const ptspAllowedKeys = new Set([
-      'status', 'adminNote', 'dispatchedToSeksi', 'dispatchedUnitId',
-      'dispatchedUnitTitle', 'dispatchedBy', 'checkedDocsPattern',
-      'verifiedDocsCount', 'totalDocsCount', 'updatedAt',
-    ]);
-    const changedKeys = tData
-      ? Object.keys(payload).filter((k) => !(k in tData) || tData[k] !== payload[k])
-      : Object.keys(payload);
-    const isIdStr = (v: unknown) =>
-      typeof v === 'string' && v.length >= 1 && v.length <= 128 && /^[a-zA-Z0-9_\-]+$/.test(v);
-
-    const checks: Record<string, boolean> = merged
-      ? {
-          noMissingReq: requiredKeys.every((k) => k in merged),
-          noExtraKeys: Object.keys(merged).every((k) => allowedKeys.has(k)),
-          idOk: merged.id === ticketId && isIdStr(merged.id),
-          ticketNoOk:
-            typeof merged.ticketNo === 'string' &&
-            merged.ticketNo.length >= 6 &&
-            merged.ticketNo.length <= 40 &&
-            /^[a-zA-Z0-9_\-]+$/.test(merged.ticketNo),
-          userIdOk: isIdStr(merged.userId),
-          userEmailOk:
-            typeof merged.userEmail === 'string' &&
-            merged.userEmail.length >= 3 &&
-            merged.userEmail.length <= 160,
-          unitTitleOk:
-            typeof merged.unitTitle === 'string' &&
-            merged.unitTitle.length >= 2 &&
-            merged.unitTitle.length <= 100,
-          serviceTitleOk:
-            typeof merged.serviceTitle === 'string' &&
-            merged.serviceTitle.length >= 2 &&
-            merged.serviceTitle.length <= 200,
-          applicantNameOk:
-            typeof merged.applicantName === 'string' &&
-            merged.applicantName.length >= 2 &&
-            merged.applicantName.length <= 120,
-          phoneOk:
-            typeof merged.phone === 'string' &&
-            merged.phone.length >= 6 &&
-            merged.phone.length <= 30,
-          instOk:
-            !('institution' in merged) ||
-            (typeof merged.institution === 'string' && merged.institution.length <= 160),
-          nipOk:
-            !('nip' in merged) ||
-            (typeof merged.nip === 'string' && merged.nip.length <= 30),
-          notesOk:
-            !('notes' in merged) ||
-            (typeof merged.notes === 'string' && merged.notes.length <= 1000),
-          statusValid: VALID_TICKET_STATUSES.has(merged.status as PtspTicketStatus),
-          adminNoteOk:
-            !('adminNote' in merged) ||
-            (typeof merged.adminNote === 'string' && merged.adminNote.length <= 300),
-          dispTitleOk:
-            !('dispatchedUnitTitle' in merged) ||
-            (typeof merged.dispatchedUnitTitle === 'string' &&
-              merged.dispatchedUnitTitle.length <= 100),
-          dispByOk:
-            !('dispatchedBy' in merged) ||
-            (typeof merged.dispatchedBy === 'string' && merged.dispatchedBy.length <= 160),
-          seksiRevOk:
-            !('seksiReviewer' in merged) ||
-            (typeof merged.seksiReviewer === 'string' && merged.seksiReviewer.length <= 160),
-          tteBoolOk:
-            !('tteSentToLeader' in merged) ||
-            typeof merged.tteSentToLeader === 'boolean',
-          tteNoteOk:
-            !('tteLeaderNote' in merged) ||
-            (typeof merged.tteLeaderNote === 'string' && merged.tteLeaderNote.length <= 300),
-          patternOk:
-            !('checkedDocsPattern' in merged) ||
-            (typeof merged.checkedDocsPattern === 'string' &&
-              merged.checkedDocsPattern.length <= 40 &&
-              /^[01]{0,40}$/.test(merged.checkedDocsPattern)),
-          verifiedIntOk:
-            !('verifiedDocsCount' in merged) ||
-            (typeof merged.verifiedDocsCount === 'number' &&
-              merged.verifiedDocsCount >= 0 &&
-              merged.verifiedDocsCount <= 40),
-          totalIntOk:
-            !('totalDocsCount' in merged) ||
-            (typeof merged.totalDocsCount === 'number' &&
-              merged.totalDocsCount >= 0 &&
-              merged.totalDocsCount <= 40),
-          uploadedDocsOk:
-            !('uploadedDocsCount' in merged) ||
-            (typeof merged.uploadedDocsCount === 'number' &&
-              merged.uploadedDocsCount >= 0 &&
-              merged.uploadedDocsCount <= 40),
-          tteDocNumOk:
-            !('tteDocNumber' in merged) ||
-            (typeof merged.tteDocNumber === 'string' && merged.tteDocNumber.length <= 100),
-          tteSignerNameOk:
-            !('tteSignerName' in merged) ||
-            (typeof merged.tteSignerName === 'string' && merged.tteSignerName.length <= 120),
-          tteSignerTitleOk:
-            !('tteSignerTitle' in merged) ||
-            (typeof merged.tteSignerTitle === 'string' && merged.tteSignerTitle.length <= 120),
-          tteSignerNipOk:
-            !('tteSignerNip' in merged) ||
-            (typeof merged.tteSignerNip === 'string' && merged.tteSignerNip.length <= 30),
-          tteSignedAtOk:
-            !('tteSignedAtLabel' in merged) ||
-            (typeof merged.tteSignedAtLabel === 'string' && merged.tteSignedAtLabel.length <= 50),
-          submittedAtOk:
-            typeof merged.submittedAtLabel === 'string' &&
-            merged.submittedAtLabel.length >= 4 &&
-            merged.submittedAtLabel.length <= 50,
-          accountTierOk:
-            merged.accountTier === 'masyarakat' ||
-            merged.accountTier === 'pegawai' ||
-            merged.accountTier === 'admin',
-          unitIdOk:
-            typeof merged.unitId === 'string' &&
-            merged.unitId.length >= 1 &&
-            merged.unitId.length <= 40 &&
-            /^[a-z0-9\-]+$/.test(merged.unitId),
-          subServiceIdOk:
-            typeof merged.subServiceId === 'string' &&
-            merged.subServiceId.length >= 1 &&
-            merged.subServiceId.length <= 60 &&
-            /^[a-z0-9\-]+$/.test(merged.subServiceId),
-          dispBoolOk:
-            !('dispatchedToSeksi' in merged) ||
-            typeof merged.dispatchedToSeksi === 'boolean',
-          dispUnitOk:
-            !('dispatchedUnitId' in merged) ||
-            VALID_SEKSI_UNITS.has(merged.dispatchedUnitId as SeksiUnitId),
-          createdAtIsTs: tData?.createdAt instanceof Timestamp,
-          updatedAtIsTs: tData?.updatedAt instanceof Timestamp,
-          seksiKeysOk: changedKeys.every((k) => seksiAllowedKeys.has(k)),
-          ptspKeysOk: changedKeys.every((k) => ptspAllowedKeys.has(k)),
-        }
-      : {};
-
-    const failedChecks = Object.entries(checks)
-      .filter(([, ok]) => !ok)
-      .map(([name]) => name);
-
-    return ` | diag=${JSON.stringify({
-      failedChecks,
-      missingReq: merged ? requiredKeys.filter((k) => !(k in merged)) : null,
-      extraKeys: merged ? Object.keys(merged).filter((k) => !allowedKeys.has(k)) : null,
-      emp: {
-        exists: empSnap.exists(),
-        status: empData?.status ?? null,
-        role: empData?.operatorRole ?? null,
-        unit: empData?.assignedUnitId ?? null,
-      },
-      token: {
-        email: tokenResult?.claims?.email ?? null,
-        verified: tokenResult?.claims?.email_verified ?? null,
-      },
-      ticket: {
-        exists: ticketSnap ? ticketSnap.exists() : null,
-        status: tData?.status ?? null,
-        dispatched: tData?.dispatchedToSeksi ?? null,
-        dUnit: tData?.dispatchedUnitId ?? null,
-        unitMatch:
-          empData?.assignedUnitId && tData?.dispatchedUnitId
-            ? empData.assignedUnitId === tData.dispatchedUnitId
-            : null,
-      },
-      status: payload.status,
-      changedKeys,
-    })}`;
-  } catch {
-    return '';
-  }
-}
-
 export async function ptspVerifyAndDispatchTicket(params: {
   ticketId: string;
   status:
@@ -2029,12 +1848,7 @@ export async function ptspVerifyAndDispatchTicket(params: {
       }
     }
   } catch (error) {
-    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
-    const wrapped =
-      error instanceof Error
-        ? new Error(`${error.message}${diag}`)
-        : new Error(`${String(error)}${diag}`);
-    handleFirestoreError(wrapped, OperationType.UPDATE, path);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
@@ -2101,12 +1915,7 @@ export async function seksiInspectAndSendTteTicket(params: {
       }
     }
   } catch (error) {
-    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
-    const wrapped =
-      error instanceof Error
-        ? new Error(`${error.message}${diag}`)
-        : new Error(`${String(error)}${diag}`);
-    handleFirestoreError(wrapped, OperationType.UPDATE, path);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
@@ -2160,12 +1969,7 @@ export async function pimpinanEndorseTteTicket(params: {
     }
     await updateDoc(doc(db, 'ptspTickets', ticketId), payload);
   } catch (error) {
-    const diag = await buildPtspTicketUpdateDiag(ticketId, payload);
-    const wrapped =
-      error instanceof Error
-        ? new Error(`${error.message}${diag}`)
-        : new Error(`${String(error)}${diag}`);
-    handleFirestoreError(wrapped, OperationType.UPDATE, path);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 
@@ -2286,6 +2090,12 @@ export async function saveNewsArticle(params: {
 
   if (cleanTitle.length < 3 || cleanExcerpt.length < 5 || cleanContent.length === 0 || !cleanImage) {
     throw new Error('Judul, ringkasan, gambar, dan minimal 1 paragraf isi berita wajib diisi.');
+  }
+  if (
+    !isSafeHttpOrRelativeUrl(cleanImage) ||
+    !(cleanImage.startsWith('https://') || cleanImage.startsWith('/') || cleanImage.startsWith('assets/'))
+  ) {
+    throw new Error('URL gambar berita harus menggunakan tautan HTTPS yang valid atau aset lokal portal.');
   }
 
   const articleId =

@@ -41,6 +41,7 @@ import {
   PPID_DOCUMENTS,
   KUA_BRANCHES,
 } from '@/src/data/kemenagData';
+import { isSafeAttachmentDataUrl, sanitizeDownloadFileName } from '@/src/utils/security';
 import {
   NewsArticle,
   GalleryItem,
@@ -734,14 +735,17 @@ export function LayananView({
                         <Eye className="w-3 h-3" />
                         <span>Lihat</span>
                       </button>
-                      <a
-                        href={att.dataUrl}
-                        download={att.fileName}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>Unduh</span>
-                      </a>
+                      {isSafeAttachmentDataUrl(att.dataUrl, att.mimeType) && (
+                        <a
+                          href={att.dataUrl}
+                          download={sanitizeDownloadFileName(att.fileName)}
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Unduh</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))

@@ -14,6 +14,7 @@ import { INFORMASI_UNITS, InformasiUnitId } from '@/src/data/informasiData';
 import { Navbar } from '@/src/components/Navbar';
 import { Footer } from '@/src/components/Footer';
 import { BerandaView } from '@/src/components/BerandaView';
+import { type PtspPortalStage } from '@/src/components/PtspInteractiveHero';
 import { ServiceSidebar } from '@/src/components/ServiceSidebar';
 import { KemenagEmblem } from '@/src/components/KemenagEmblem';
 import { AuthRoleProvider, useAuthRole } from '@/src/context/AuthRoleContext';
@@ -132,6 +133,7 @@ function AppContent() {
   );
   const lastRedirectCountRef = useRef(serviceCatalogRedirectCount);
   const [activeView, setActiveView] = useState<PageView>('beranda');
+  const [ptspStage, setPtspStage] = useState<PtspPortalStage>('depan');
   const [lang, setLang] = useState<'id' | 'en'>('id');
   const [isDark, setIsDark] = useState<boolean>(false);
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
@@ -152,23 +154,19 @@ function AppContent() {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [selectedGallery, setSelectedGallery] = useState<GalleryItem | null>(null);
 
-  const [ptspTickets, setPtspTickets] = useState<PTSPTicket[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_TICKETS_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Keep citizen ticket & complaint records in session memory only (authoritative records live in Firestore)
+  // and purge any legacy localStorage PII entries so shared computers never retain prior visitor data.
+  const [ptspTickets, setPtspTickets] = useState<PTSPTicket[]>([]);
+  const [complaints, setComplaints] = useState<ComplaintSubmission[]>([]);
 
-  const [complaints, setComplaints] = useState<ComplaintSubmission[]>(() => {
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_COMPLAINTS_KEY);
-      return saved ? JSON.parse(saved) : [];
+      localStorage.removeItem(STORAGE_TICKETS_KEY);
+      localStorage.removeItem(STORAGE_COMPLAINTS_KEY);
     } catch {
-      return [];
+      // ignore storage access errors
     }
-  });
+  }, []);
 
   const [articleReactions, setArticleReactions] = useState<
     Record<string, { bermanfaat: number; informatif: number; inspiratif: number }>
@@ -241,6 +239,7 @@ function AppContent() {
 
   const handleBackToKatalogLayanan = () => {
     setServiceSidebarOpen(false);
+    setPtspStage('katalog');
     setActiveView('beranda');
     window.setTimeout(() => {
       const katalogEl = document.getElementById('katalog-ptsp');
@@ -450,27 +449,11 @@ function AppContent() {
   ]);
 
   const handleTicketCreated = (ticket: PTSPTicket) => {
-    setPtspTickets((prev) => {
-      const updated = [ticket, ...prev];
-      try {
-        localStorage.setItem(STORAGE_TICKETS_KEY, JSON.stringify(updated));
-      } catch {
-        // ignore storage quota errors
-      }
-      return updated;
-    });
+    setPtspTickets((prev) => [ticket, ...prev]);
   };
 
   const handleAddComplaint = (complaint: ComplaintSubmission) => {
-    setComplaints((prev) => {
-      const updated = [complaint, ...prev];
-      try {
-        localStorage.setItem(STORAGE_COMPLAINTS_KEY, JSON.stringify(updated));
-      } catch {
-        // ignore storage quota errors
-      }
-      return updated;
-    });
+    setComplaints((prev) => [complaint, ...prev]);
   };
 
   const handleReact = (
@@ -631,8 +614,11 @@ function AppContent() {
         {activeView === 'beranda' && (
           <BerandaView
             lang={lang}
+            ptspStage={ptspStage}
+            onPtspStageChange={setPtspStage}
             onNavigate={handleNavigate}
             onSelectService={handleOpenServiceFromBeranda}
+            onSelectSubService={handleSelectServiceItem}
             onOpenServiceSidebar={handleOpenServiceSidebar}
             onSelectArticle={setSelectedArticle}
             onSelectGallery={setSelectedGallery}

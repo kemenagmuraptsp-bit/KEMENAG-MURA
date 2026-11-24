@@ -5,7 +5,6 @@ import {
   Check,
   CheckCircle2,
   Copy,
-  ExternalLink,
   Eye,
   EyeOff,
   KeyRound,
@@ -24,18 +23,16 @@ import {
   type EmployeeUnitCategory,
 } from '@/src/firebase';
 import { KemenagEmblem } from '@/src/components/KemenagEmblem';
-
-const FIREBASE_AUTH_SETTINGS_URL =
-  'https://console.firebase.google.com/project/gen-lang-client-0965669086/authentication/settings';
-
-const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+import {
+  checkAuthRateLimit,
+  clearAuthRateLimit,
+  generateSecureCaptchaCode,
+  recordAuthFailure,
+  validateStrongPassword,
+} from '@/src/utils/security';
 
 function generateCaptchaCode(length = 5): string {
-  let out = '';
-  for (let i = 0; i < length; i += 1) {
-    out += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
-  }
-  return out;
+  return generateSecureCaptchaCode(undefined, length);
 }
 
 function CaptchaCanvas({
@@ -210,20 +207,38 @@ export function LoginModal() {
     setPublicSuccessMsg('');
     clearAuthError();
 
+    const rateBucket = `public-email:${publicEmailMode}`;
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Terlalu banyak percobaan gagal. Silakan tunggu ${rate.retryAfterSeconds} detik sebelum mencoba lagi.`
+      );
+      return;
+    }
+
     const cleanEmail = publicEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       setLocalError('Masukkan alamat email yang valid.');
       return;
     }
-    if (publicPassword.length < 6) {
-      setLocalError('Kata sandi minimal harus 6 karakter.');
-      return;
+    if (publicEmailMode === 'login') {
+      if (publicPassword.length < 6) {
+        setLocalError('Kata sandi minimal harus 6 karakter.');
+        return;
+      }
+    } else {
+      const pwErr = validateStrongPassword(publicPassword);
+      if (pwErr) {
+        setLocalError(pwErr);
+        return;
+      }
     }
 
     setBusy(true);
     try {
       if (publicEmailMode === 'login') {
         await signInPublicWithEmail(cleanEmail, publicPassword);
+        clearAuthRateLimit(rateBucket);
         setPublicPassword('');
       } else {
         if (publicName.trim().length < 2) {
@@ -236,6 +251,7 @@ export function LoginModal() {
           email: cleanEmail,
           password: publicPassword,
         });
+        clearAuthRateLimit(rateBucket);
         setPublicPassword('');
         setPublicSuccessMsg(
           `Akun masyarakat untuk ${cleanEmail} berhasil dibuat. Tautan verifikasi telah dikirim ke kotak masuk/spam email Anda — klik tautan tersebut lalu masuk menggunakan email & kata sandi Anda.`
@@ -243,7 +259,14 @@ export function LoginModal() {
         setPublicEmailMode('login');
       }
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Gagal memproses login email masyarakat.');
+      const failState = recordAuthFailure(rateBucket);
+      const baseMsg =
+        err instanceof Error ? err.message : 'Gagal memproses login email masyarakat.';
+      setLocalError(
+        failState.locked
+          ? `${baseMsg} Percobaan dibatasi sementara selama ${failState.retryAfterSeconds} detik.`
+          : baseMsg
+      );
     } finally {
       setBusy(false);
     }
@@ -253,13 +276,23 @@ export function LoginModal() {
     setLocalError('');
     setPublicSuccessMsg('');
     clearAuthError();
+    const rateBucket = 'public-reset';
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Permintaan atur ulang sandi dibatasi sementara. Coba lagi dalam ${rate.retryAfterSeconds} detik.`
+      );
+      return;
+    }
+
     setResetBusy(true);
     try {
       await sendPublicPasswordResetEmail(publicEmail);
       setPublicSuccessMsg(
-        `Tautan atur ulang kata sandi telah dikirim ke ${publicEmail.trim().toLowerCase()}. Periksa kotak masuk atau folder spam email Anda.`
+        `Jika email ${publicEmail.trim().toLowerCase()} terdaftar, tautan atur ulang kata sandi telah dikirim. Periksa kotak masuk atau folder spam Anda.`
       );
     } catch (err) {
+      recordAuthFailure(rateBucket);
       setLocalError(err instanceof Error ? err.message : 'Gagal mengirim email atur ulang sandi.');
     } finally {
       setResetBusy(false);
@@ -271,16 +304,34 @@ export function LoginModal() {
     setLocalError('');
     clearAuthError();
 
+    const rateBucket = `employee-nip:${employeeMode}`;
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Terlalu banyak percobaan login gagal. Silakan tunggu ${rate.retryAfterSeconds} detik sebelum mencoba lagi.`
+      );
+      return;
+    }
+
     const cleanNip = sanitizeNipDigits(nip);
     if (cleanNip.length < 8) {
       setLocalError('NIP minimal harus 8 digit angka (contoh: NIP ASN 18 digit).');
       return;
     }
-    if (password.length < 6) {
-      setLocalError('Password minimal harus 6 karakter.');
-      return;
+    if (employeeMode === 'login') {
+      if (password.length < 6) {
+        setLocalError('Password minimal harus 6 karakter.');
+        return;
+      }
+    } else {
+      const pwErr = validateStrongPassword(password);
+      if (pwErr) {
+        setLocalError(pwErr);
+        return;
+      }
     }
     if (captchaInput.trim().toUpperCase() !== captchaCode.toUpperCase()) {
+      recordAuthFailure(rateBucket);
       setLocalError('Kode keamanan (Captcha) tidak sesuai. Silakan periksa dan ketik ulang.');
       refreshCaptcha();
       return;
@@ -290,6 +341,7 @@ export function LoginModal() {
     try {
       if (employeeMode === 'login') {
         await signInWithNip(cleanNip, password);
+        clearAuthRateLimit(rateBucket);
         setPassword('');
         setCaptchaInput('');
       } else {
@@ -306,11 +358,18 @@ export function LoginModal() {
           unitKerja: unitKerja.trim(),
           unitCategory,
         });
+        clearAuthRateLimit(rateBucket);
         setPassword('');
         setCaptchaInput('');
       }
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Gagal masuk dengan akun pegawai.');
+      const failState = recordAuthFailure(rateBucket);
+      const baseMsg = err instanceof Error ? err.message : 'Gagal masuk dengan akun pegawai.';
+      setLocalError(
+        failState.locked
+          ? `${baseMsg} Percobaan dibatasi sementara selama ${failState.retryAfterSeconds} detik.`
+          : baseMsg
+      );
       refreshCaptcha();
     } finally {
       setBusy(false);
@@ -455,17 +514,8 @@ export function LoginModal() {
                       </div>
                     )}
                     <p className="text-[11px] leading-relaxed">
-                      2. Pastikan provider <strong>Google</strong> sudah aktif pada tab <strong>Sign-in method</strong>.
+                      2. Pastikan provider <strong>Google</strong> sudah aktif pada tab <strong>Sign-in method</strong> di Firebase Console pengelola.
                     </p>
-                    <a
-                      href={FIREBASE_AUTH_SETTINGS_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-[11px] font-bold text-red-900 dark:text-red-100 transition-colors"
-                    >
-                      <span>Buka Firebase Authorized Domains</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
                   </div>
                 </details>
               )}
@@ -559,7 +609,7 @@ export function LoginModal() {
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                       {publicEmailMode === 'login'
                         ? 'Kata Sandi *'
-                        : 'Buat Kata Sandi (Min. 6 Karakter) *'}
+                        : 'Buat Kata Sandi (Min. 8 Karakter, Huruf & Angka) *'}
                     </label>
                     {publicEmailMode === 'login' && (
                       <button
@@ -755,7 +805,9 @@ export function LoginModal() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {employeeMode === 'login' ? 'Kata Sandi / Password *' : 'Buat Kata Sandi (Min. 6 Karakter) *'}
+                  {employeeMode === 'login'
+                    ? 'Kata Sandi / Password *'
+                    : 'Buat Kata Sandi (Min. 8 Karakter, Huruf & Angka) *'}
                 </label>
                 <div className="relative">
                   <input

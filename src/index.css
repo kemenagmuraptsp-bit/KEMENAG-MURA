@@ -373,7 +373,840 @@
   animation: grassSwayTip 2.8s ease-in-out -1.8s infinite;
 }
 
+@keyframes ptspDoorGlow {
+  0%, 100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes ptspButtonFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.025);
+  }
+}
+
+@keyframes ptspStageReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ptspLightFlash {
+  0% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes heroLeafSwayLeft {
+  0%, 100% {
+    transform: rotate(-1.4deg);
+  }
+  50% {
+    transform: rotate(1.7deg);
+  }
+}
+
+@keyframes heroLeafSwayRight {
+  0%, 100% {
+    transform: rotate(1.3deg);
+  }
+  50% {
+    transform: rotate(-1.6deg);
+  }
+}
+
+.animate-ptsp-door-glow {
+  animation: ptspDoorGlow 2.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-ptsp-button-float {
+  animation: ptspButtonFloat 2.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-ptsp-button-float:hover,
+.animate-ptsp-button-float:focus-visible {
+  animation-play-state: paused;
+}
+
+.animate-ptsp-stage-reveal {
+  animation: ptspStageReveal 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-ptsp-light-flash {
+  animation: ptspLightFlash 920ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-leaf-sway-left {
+  transform-origin: 0px 24px;
+  animation: heroLeafSwayLeft 5.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-leaf-sway-right {
+  transform-origin: 1672px 24px;
+  animation: heroLeafSwayRight 6.2s ease-in-out -1.4s infinite;
+  will-change: transform;
+}
+
+/* =====================================================================
+   REALISTIC 3D ARCHITECTURAL GLASS DOOR & WALK-THROUGH CAMERA ZOOM
+   ===================================================================== */
+.ptsp-building-stage {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+  transition:
+    transform 1.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 1.0s ease-in-out;
+  will-change: transform, opacity;
+}
+
+.ptsp-building-stage.is-entering {
+  transform: scale(4.6);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ptsp-door-frame {
+  perspective: 680px;
+  transform-style: preserve-3d;
+}
+
+.ptsp-door-leaf-left {
+  transform-origin: left center;
+  transition:
+    transform 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s ease,
+    filter 0.4s ease;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  will-change: transform;
+}
+
+.ptsp-door-leaf-right {
+  transform-origin: right center;
+  transition:
+    transform 1.05s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s ease,
+    filter 0.4s ease;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  will-change: transform;
+}
+
+/* Realistic tempered architectural glass surface & sky reflection */
+.ptsp-glass-pane {
+  background: linear-gradient(
+    145deg,
+    rgba(10, 32, 28, 0.64) 0%,
+    rgba(24, 58, 52, 0.42) 44%,
+    rgba(9, 24, 22, 0.68) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.ptsp-door-zone:hover .ptsp-door-leaf-left,
+.ptsp-door-zone:focus-visible .ptsp-door-leaf-left {
+  transform: rotateY(22deg);
+  box-shadow: 6px 0 14px rgba(0, 0, 0, 0.45);
+}
+
+.ptsp-door-zone:hover .ptsp-door-leaf-right,
+.ptsp-door-zone:focus-visible .ptsp-door-leaf-right {
+  transform: rotateY(-22deg);
+  box-shadow: -6px 0 14px rgba(0, 0, 0, 0.45);
+}
+
+.ptsp-door-zone.doors-opened .ptsp-door-leaf-left {
+  transform: rotateY(104deg) !important;
+  box-shadow: 10px 0 22px rgba(0, 0, 0, 0.6) !important;
+}
+
+.ptsp-door-zone.doors-opened .ptsp-door-leaf-right {
+  transform: rotateY(-104deg) !important;
+  box-shadow: -10px 0 22px rgba(0, 0, 0, 0.6) !important;
+}
+
+.ptsp-interior-glow {
+  background: radial-gradient(
+    circle at 50% 48%,
+    rgba(255, 251, 235, 0.92) 0%,
+    rgba(254, 243, 199, 0.55) 40%,
+    rgba(6, 78, 59, 0.55) 85%,
+    rgba(2, 24, 18, 0.88) 100%
+  );
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+
+.ptsp-door-zone:hover .ptsp-interior-glow {
+  filter: brightness(1.16);
+}
+
+.ptsp-door-zone.doors-opened .ptsp-interior-glow {
+  filter: brightness(1.28);
+}
+
+.ptsp-threshold-spill {
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.ptsp-door-zone:hover .ptsp-threshold-spill {
+  opacity: 0.45;
+}
+
+.ptsp-door-zone.doors-opened .ptsp-threshold-spill {
+  opacity: 0.95;
+  transform: scaleY(1.25);
+}
+
+@keyframes ptspDoorYellowBlink {
+  0%, 100% {
+    opacity: 1;
+    border-color: #fde047;
+    box-shadow:
+      0 0 12px rgba(250, 204, 21, 0.95),
+      0 0 26px rgba(234, 179, 8, 0.65),
+      inset 0 0 8px rgba(254, 240, 138, 0.45);
+  }
+  50% {
+    opacity: 0.22;
+    border-color: #facc15;
+    box-shadow:
+      0 0 3px rgba(250, 204, 21, 0.25),
+      inset 0 0 2px rgba(254, 240, 138, 0.1);
+  }
+}
+
+.ptsp-door-outer-blink {
+  border: 2.5px solid #fde047;
+  animation: ptspDoorYellowBlink 1.15s ease-in-out infinite;
+  will-change: opacity, box-shadow;
+}
+
+.ptsp-door-outer-blink:hover {
+  animation-play-state: paused;
+  opacity: 1;
+  border-color: #fef08a;
+  box-shadow:
+    0 0 16px rgba(250, 204, 21, 1),
+    0 0 32px rgba(234, 179, 8, 0.8),
+    inset 0 0 10px rgba(254, 240, 138, 0.55);
+}
+
+@keyframes welcomeLetterPop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.84);
+    filter: blur(4px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.04);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.welcome-letter-pop {
+  display: inline-block;
+  opacity: 0;
+  animation: welcomeLetterPop 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes welcomeLineDraw {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.welcome-line-draw {
+  transform-origin: left center;
+  opacity: 0;
+  animation: welcomeLineDraw 0.65s cubic-bezier(0.22, 1, 0.36, 1) 1.35s forwards;
+}
+
+/* =====================================================================
+   OUTDOOR LED VIDEOTRON SCREENS (WALL-MOUNTED + SINGLE SUPPORT PILLAR)
+   ===================================================================== */
+.videotron-cabinet {
+  background: linear-gradient(180deg, #1f2937 0%, #0d131c 48%, #070b11 100%);
+  border: 3px solid #1b2430;
+  border-top-color: #334155;
+  border-left-color: #273445;
+  border-bottom-color: #0b1017;
+  border-right-color: #0f1722;
+  border-radius: 4px;
+  padding: 2.5px;
+  box-shadow:
+    5px 8px 15px rgba(8, 15, 12, 0.56),
+    2px 3px 5px rgba(0, 0, 0, 0.62),
+    -1px 1px 3px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7);
+  transition:
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.videotron-cabinet:hover {
+  border-color: #fbbf24;
+  box-shadow:
+    6px 10px 18px rgba(8, 15, 12, 0.65),
+    0 0 18px rgba(251, 191, 36, 0.42),
+    inset 0 1px 0 rgba(254, 240, 138, 0.52);
+}
+
+.videotron-rain-hood {
+  background: linear-gradient(180deg, #475569 0%, #1e293b 55%, #090e15 100%);
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.videotron-wall-bracket {
+  background: linear-gradient(180deg, #475569 0%, #1e293b 50%, #0f172a 100%);
+  box-shadow:
+    1px 2px 4px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.videotron-support-pole {
+  background: linear-gradient(
+    90deg,
+    #111827 0%,
+    #334155 22%,
+    #94a3b8 40%,
+    #64748b 56%,
+    #1e293b 80%,
+    #090d14 100%
+  );
+  box-shadow:
+    3px 4px 8px rgba(4, 12, 10, 0.56),
+    inset 0 2px 3px rgba(0, 0, 0, 0.65);
+}
+
+.videotron-pole-collar {
+  background: linear-gradient(
+    90deg,
+    #0f172a 0%,
+    #334155 25%,
+    #64748b 48%,
+    #1e293b 75%,
+    #090d14 100%
+  );
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.videotron-pole-base {
+  background: linear-gradient(
+    90deg,
+    #1e293b 0%,
+    #475569 28%,
+    #cbd5e1 48%,
+    #475569 72%,
+    #0f172a 100%
+  );
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+@keyframes videotronMarqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.videotron-marquee {
+  width: max-content;
+  animation: videotronMarqueeScroll 18s linear infinite;
+  will-change: transform;
+}
+
+.videotron-marquee-news {
+  width: max-content;
+  animation: videotronMarqueeScroll 55s linear infinite;
+  will-change: transform;
+}
+
+.videotron-cabinet:hover .videotron-marquee,
+.videotron-cabinet:hover .videotron-marquee-news {
+  animation-play-state: paused;
+}
+
+@keyframes videotronNewsSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.videotron-news-slide {
+  animation: videotronNewsSlideIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes videotronSlideProgress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.videotron-slide-progress {
+  transform-origin: left center;
+  animation: videotronSlideProgress 4.5s linear forwards;
+}
+
+/* =====================================================================
+   TERRACE OUTDOOR LED RUNNING TEXT (ANTAR TIANG TERAS KANTOR)
+   ===================================================================== */
+.terrace-led-cabinet {
+  background: linear-gradient(180deg, #111827 0%, #05080f 55%, #0b111c 100%);
+  border: 1.5px solid #263244;
+  border-radius: 3px;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.58),
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.75);
+}
+
+.terrace-led-screen {
+  background-color: #05090e;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.045) 0.75px, transparent 0.75px);
+  background-size: 3px 3px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.9);
+}
+
+.terrace-led-text {
+  color: #fde047;
+  text-shadow:
+    0 0 5px rgba(250, 204, 21, 0.72),
+    0 0 11px rgba(245, 158, 11, 0.36);
+}
+
+@keyframes terraceRunningTextScroll {
+  0% {
+    transform: translate3d(0%, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.terrace-running-track {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  white-space: nowrap;
+  animation: terraceRunningTextScroll 22s linear infinite;
+  will-change: transform;
+}
+
+.terrace-led-cabinet:hover .terrace-running-track {
+  animation-play-state: paused;
+}
+
+/* =====================================================================
+   HONEYCOMB (SARANG LEBAH) SUPER SLOW-MOTION & MINI HONEYCOMB DROPDOWN
+   ===================================================================== */
+.honeycomb-stage {
+  position: relative;
+  perspective: 1400px;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(6, 78, 59, 0.28) 0%,
+    rgba(4, 24, 18, 0.22) 60%,
+    rgba(120, 53, 15, 0.2) 100%
+  );
+  backdrop-filter: blur(2px);
+}
+
+.dark .honeycomb-stage {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(6, 78, 59, 0.36) 0%,
+    rgba(2, 16, 12, 0.34) 60%,
+    rgba(69, 26, 3, 0.28) 100%
+  );
+  backdrop-filter: blur(2px);
+}
+
+.honeycomb-hive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.honeycomb-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .honeycomb-hive {
+    gap: 0;
+    padding: 0.25rem 0 0.65rem 0;
+  }
+  .honeycomb-row {
+    flex-wrap: nowrap;
+    gap: 1.05rem;
+  }
+  .honeycomb-row-offset {
+    margin-top: -3.05rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .honeycomb-row {
+    gap: 1.35rem;
+  }
+  .honeycomb-row-offset {
+    margin-top: -3.35rem;
+  }
+}
+
+@media (min-width: 1280px) and (min-height: 820px) {
+  .honeycomb-row {
+    gap: 1.55rem;
+  }
+  .honeycomb-row-offset {
+    margin-top: -3.6rem;
+  }
+}
+
+.hex-wrapper {
+  width: 218px;
+  height: 244px;
+  position: relative;
+  opacity: 0;
+  transform: scale(0.55) translateY(48px) rotateX(24deg);
+  filter: blur(8px) drop-shadow(0 12px 20px rgba(2, 44, 34, 0.1));
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s ease;
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  .hex-wrapper {
+    width: 236px;
+    height: 262px;
+  }
+}
+
+@media (min-width: 1280px) and (min-height: 820px) {
+  .hex-wrapper {
+    width: 256px;
+    height: 284px;
+  }
+}
+
+@keyframes honeycombSuperSlowReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) translateY(52px) rotateX(24deg);
+    filter: blur(10px) drop-shadow(0 0 0 rgba(217, 119, 6, 0));
+  }
+  45% {
+    opacity: 0.78;
+    filter: blur(2px) drop-shadow(0 18px 34px rgba(245, 158, 11, 0.35));
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-5px) rotateX(0deg);
+    filter: blur(0px) drop-shadow(0 16px 28px rgba(16, 185, 129, 0.22));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0px) rotateX(0deg);
+    filter: blur(0px) drop-shadow(0 12px 20px rgba(2, 44, 34, 0.1));
+  }
+}
+
+.hex-wrapper.hex-animate-in {
+  animation: honeycombSuperSlowReveal 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hex-wrapper:hover {
+  transform: translateY(-8px) scale(1.04) !important;
+  filter: drop-shadow(0 20px 32px rgba(217, 119, 6, 0.32)) !important;
+  z-index: 20;
+}
+
+.hex-wrapper.hex-active {
+  transform: translateY(-6px) scale(1.05) !important;
+  filter: drop-shadow(0 22px 34px rgba(6, 95, 70, 0.35)) !important;
+  z-index: 25;
+}
+
+.hex-wrapper.hex-neighbor-pulse .hex-border {
+  background: linear-gradient(135deg, #f59e0b 0%, #10b981 50%, #f59e0b 100%);
+}
+
+.hex-border {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(
+    145deg,
+    rgba(217, 119, 6, 0.58),
+    rgba(6, 95, 70, 0.5),
+    rgba(245, 158, 11, 0.72)
+  );
+  padding: 3px;
+  transition: background 0.4s ease;
+}
+
+.hex-wrapper:hover .hex-border,
+.hex-wrapper.hex-active .hex-border {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 45%, #059669 100%);
+  padding: 4px;
+}
+
+.hex-inner {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 70%, #ecfdf5 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.25rem 0.9rem;
+  position: relative;
+  transition: background 0.4s ease;
+}
+
+.dark .hex-inner {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 68%, #022c22 100%);
+}
+
+.hex-wrapper.hex-active .hex-inner {
+  background: linear-gradient(180deg, #064e3b 0%, #065f46 65%, #022c22 100%);
+  color: #ffffff;
+}
+
+@keyframes goldenDustFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-14px) scale(1.25);
+    opacity: 0.85;
+  }
+}
+
+.hive-particle {
+  animation: goldenDustFloat 4.5s ease-in-out infinite;
+}
+
+.mini-honeycomb-dropdown {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(254, 243, 199, 0.55) 0%,
+    rgba(236, 253, 245, 0.92) 55%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
+  transform-origin: top center;
+  animation: dropdownHiveUnfold 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dark .mini-honeycomb-dropdown {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(120, 53, 15, 0.28) 0%,
+    rgba(6, 78, 59, 0.35) 50%,
+    rgba(15, 23, 42, 0.96) 100%
+  );
+}
+
+@keyframes dropdownHiveUnfold {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) scaleY(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.mini-hive-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.mini-hive-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .mini-hive-cluster {
+    gap: 0;
+    padding: 0.5rem 0 1.4rem 0;
+  }
+  .mini-hive-row {
+    flex-wrap: nowrap;
+    gap: 0.95rem;
+  }
+  .mini-hive-row-offset {
+    margin-top: -2.45rem;
+  }
+}
+
+.mini-hex-wrapper {
+  width: 212px;
+  height: 238px;
+  position: relative;
+  opacity: 0;
+  transform: scale(0.6) translateY(24px);
+  filter: drop-shadow(0 8px 16px rgba(2, 44, 34, 0.08));
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.4s ease;
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  .mini-hex-wrapper {
+    width: 226px;
+    height: 254px;
+  }
+}
+
+@keyframes miniHexSlowPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(28px);
+    filter: blur(4px) drop-shadow(0 0 0 rgba(217, 119, 6, 0));
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-3px);
+    filter: blur(0px) drop-shadow(0 12px 22px rgba(217, 119, 6, 0.22));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px) drop-shadow(0 8px 16px rgba(2, 44, 34, 0.08));
+  }
+}
+
+.mini-hex-animate {
+  animation: miniHexSlowPop 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mini-hex-wrapper:hover {
+  transform: translateY(-6px) scale(1.05) !important;
+  filter: drop-shadow(0 16px 26px rgba(217, 119, 6, 0.28)) !important;
+  z-index: 20;
+}
+
+.mini-hex-border {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.58), rgba(217, 119, 6, 0.58));
+  padding: 2.5px;
+  transition: background 0.35s ease;
+}
+
+.mini-hex-wrapper:hover .mini-hex-border {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #059669 100%);
+  padding: 3.5px;
+}
+
+.mini-hex-inner {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 75%, #ecfdf5 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.55rem 1.05rem;
+  position: relative;
+  transition: background 0.35s ease;
+}
+
+.dark .mini-hex-inner {
+  background: linear-gradient(180deg, #0f172a 0%, #111827 72%, #064e3b 100%);
+}
+
+.mini-hex-wrapper:hover .mini-hex-inner {
+  background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
+}
+
+.dark .mini-hex-wrapper:hover .mini-hex-inner {
+  background: linear-gradient(180deg, #064e3b 0%, #065f46 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .hex-wrapper,
+  .mini-hex-wrapper,
+  .welcome-letter-pop,
+  .welcome-line-draw {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
   html {
     scroll-behavior: auto;
   }

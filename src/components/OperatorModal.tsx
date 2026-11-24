@@ -11,15 +11,15 @@ import {
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import { sanitizeNipDigits } from '@/src/firebase';
-
-const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+import {
+  checkAuthRateLimit,
+  clearAuthRateLimit,
+  generateSecureCaptchaCode,
+  recordAuthFailure,
+} from '@/src/utils/security';
 
 function generateOperatorCaptcha(length = 5): string {
-  let out = '';
-  for (let i = 0; i < length; i += 1) {
-    out += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
-  }
-  return out;
+  return generateSecureCaptchaCode(undefined, length);
 }
 
 function OperatorCaptchaCanvas({ code, onRefresh }: { code: string; onRefresh: () => void }) {
@@ -143,6 +143,15 @@ export function OperatorModal() {
     setLocalError('');
     clearAuthError();
 
+    const rateBucket = 'operator-nip-login';
+    const rate = checkAuthRateLimit(rateBucket);
+    if (!rate.allowed) {
+      setLocalError(
+        `Terlalu banyak percobaan login gagal. Silakan tunggu ${rate.retryAfterSeconds} detik sebelum mencoba lagi.`
+      );
+      return;
+    }
+
     const cleanNip = sanitizeNipDigits(nip);
     if (cleanNip.length < 8) {
       setLocalError('NIP minimal harus 8 digit angka.');
@@ -153,6 +162,7 @@ export function OperatorModal() {
       return;
     }
     if (captchaInput.trim().toUpperCase() !== captchaCode.toUpperCase()) {
+      recordAuthFailure(rateBucket);
       setLocalError('Kode keamanan (Captcha) tidak cocok. Silakan periksa kembali.');
       refreshCaptcha();
       return;
@@ -161,11 +171,17 @@ export function OperatorModal() {
     setBusy(true);
     try {
       await signInOperatorWithNip(cleanNip, password);
+      clearAuthRateLimit(rateBucket);
       setPassword('');
       setCaptchaInput('');
     } catch (err) {
+      const failState = recordAuthFailure(rateBucket);
+      const baseMsg =
+        err instanceof Error ? err.message : 'Gagal masuk dengan NIP & Password Operator.';
       setLocalError(
-        err instanceof Error ? err.message : 'Gagal masuk dengan NIP & Password Operator.'
+        failState.locked
+          ? `${baseMsg} Percobaan dibatasi sementara selama ${failState.retryAfterSeconds} detik.`
+          : baseMsg
       );
       refreshCaptcha();
     } finally {

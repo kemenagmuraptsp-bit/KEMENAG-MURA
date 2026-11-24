@@ -712,7 +712,7 @@ export const INFORMASI_UNITS: InformasiUnitConfig[] = [
           },
           {
             role: 'Kepala Sub Bagian Tata Usaha (Sekretariat)',
-            name: 'Koordinator Sekretariat / Subbag TU',
+            name: 'Hj. Nina Narly, S.Ag., M.H',
             level: 'koordinator',
             division: 'Urusan Kepegawaian, Keuangan, Perencanaan, Umum & Humas PTSP',
           },

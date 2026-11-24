@@ -48,6 +48,7 @@ import type { NewsArticle } from '@/src/types';
 import { SafeImage } from '@/src/components/SafeImage';
 import { TicketAttachmentPreviewModal } from '@/src/components/RequirementUploadSection';
 import { OfficialTteDocumentModal } from '@/src/components/OfficialTteDocumentModal';
+import { isSafeAttachmentDataUrl, sanitizeDownloadFileName } from '@/src/utils/security';
 import { InformasiManagerPanel } from '@/src/components/InformasiManagerPanel';
 import {
   formatAttachmentBytes,
@@ -1305,14 +1306,17 @@ export function OperatorTicketConsole() {
                                           <Eye className="w-3 h-3" />
                                           <span>Lihat Berkas</span>
                                         </button>
-                                        <a
-                                          href={att.dataUrl}
-                                          download={att.fileName}
-                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-semibold"
-                                        >
-                                          <Download className="w-3 h-3" />
-                                          <span>Unduh</span>
-                                        </a>
+                                        {isSafeAttachmentDataUrl(att.dataUrl, att.mimeType) && (
+                                          <a
+                                            href={att.dataUrl}
+                                            download={sanitizeDownloadFileName(att.fileName)}
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-semibold"
+                                          >
+                                            <Download className="w-3 h-3" />
+                                            <span>Unduh</span>
+                                          </a>
+                                        )}
                                       </div>
                                     </div>
                                   ))}
@@ -1350,14 +1354,17 @@ export function OperatorTicketConsole() {
                                     <Eye className="w-3 h-3" />
                                     <span>Lihat Berkas</span>
                                   </button>
-                                  <a
-                                    href={att.dataUrl}
-                                    download={att.fileName}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 text-slate-700 font-semibold"
-                                  >
-                                    <Download className="w-3 h-3" />
-                                    <span>Unduh</span>
-                                  </a>
+                                  {isSafeAttachmentDataUrl(att.dataUrl, att.mimeType) && (
+                                    <a
+                                      href={att.dataUrl}
+                                      download={sanitizeDownloadFileName(att.fileName)}
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 text-slate-700 font-semibold"
+                                    >
+                                      <Download className="w-3 h-3" />
+                                      <span>Unduh</span>
+                                    </a>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -4587,14 +4594,17 @@ export function AdminVerificationPanel() {
                         <Eye className="w-3 h-3" />
                         <span>Lihat Berkas</span>
                       </button>
-                      <a
-                        href={att.dataUrl}
-                        download={att.fileName}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span>Unduh</span>
-                      </a>
+                      {isSafeAttachmentDataUrl(att.dataUrl, att.mimeType) && (
+                        <a
+                          href={att.dataUrl}
+                          download={sanitizeDownloadFileName(att.fileName)}
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Unduh</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))

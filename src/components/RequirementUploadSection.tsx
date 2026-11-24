@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,6 +16,11 @@ import {
   formatAttachmentBytes,
   prepareRequirementAttachmentFile,
 } from '@/src/utils/serviceDocumentTemplates';
+import {
+  dataUrlToSafeBlobUrl,
+  isSafeAttachmentDataUrl,
+  sanitizeDownloadFileName,
+} from '@/src/utils/security';
 
 interface RequirementUploadSectionProps {
   requirements: string[];
@@ -33,16 +38,43 @@ export function TicketAttachmentPreviewModal({
   attachment: TicketAttachmentDraft | null;
   onClose: () => void;
 }) {
+  const isValidAttachment = useMemo(
+    () => Boolean(attachment && isSafeAttachmentDataUrl(attachment.dataUrl, attachment.mimeType)),
+    [attachment]
+  );
+
+  const safeFileName = useMemo(
+    () => (attachment ? sanitizeDownloadFileName(attachment.fileName) : 'berkas_ptsp'),
+    [attachment]
+  );
+
+  const [blobPreviewUrl, setBlobPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!attachment || !isValidAttachment) {
+      setBlobPreviewUrl(null);
+      return;
+    }
+    const createdUrl = dataUrlToSafeBlobUrl(attachment.dataUrl, attachment.mimeType);
+    setBlobPreviewUrl(createdUrl);
+    return () => {
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [attachment, isValidAttachment]);
+
   if (!attachment) return null;
 
   const isPdf = attachment.mimeType === 'application/pdf';
+  const safeHref = blobPreviewUrl ?? (isValidAttachment ? attachment.dataUrl : undefined);
 
   return (
     <div
       className="fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label={`Pratinjau berkas ${attachment.fileName}`}
+      aria-label={`Pratinjau berkas ${safeFileName}`}
     >
       <div className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
@@ -51,21 +83,24 @@ export function TicketAttachmentPreviewModal({
               Persyaratan #{attachment.requirementIndex + 1} · {formatAttachmentBytes(attachment.fileSize)}
             </p>
             <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
-              {attachment.fileName}
+              {safeFileName}
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
               {attachment.requirementLabel}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <a
-              href={attachment.dataUrl}
-              download={attachment.fileName}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold whitespace-nowrap"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Unduh</span>
-            </a>
+            {safeHref && (
+              <a
+                href={safeHref}
+                download={safeFileName}
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold whitespace-nowrap"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh</span>
+              </a>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -78,16 +113,28 @@ export function TicketAttachmentPreviewModal({
         </div>
 
         <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-4 flex items-center justify-center min-h-[360px]">
-          {isPdf ? (
+          {!isValidAttachment || !safeHref ? (
+            <div className="text-center space-y-2 max-w-md p-6">
+              <AlertCircle className="w-8 h-8 text-rose-600 mx-auto" />
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                Format berkas tidak valid atau diblokir demi keamanan.
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Hanya berkas PDF, JPG, PNG, dan WebP terverifikasi yang dapat ditampilkan.
+              </p>
+            </div>
+          ) : isPdf ? (
             <iframe
-              src={attachment.dataUrl}
-              title={attachment.fileName}
+              src={safeHref}
+              title={safeFileName}
+              referrerPolicy="no-referrer"
               className="w-full h-[68vh] rounded-lg border border-slate-300 dark:border-slate-700 bg-white"
             />
           ) : (
             <img
-              src={attachment.dataUrl}
-              alt={attachment.fileName}
+              src={safeHref}
+              alt={safeFileName}
+              referrerPolicy="no-referrer"
               className="max-w-full max-h-[70vh] object-contain rounded-lg border border-slate-300 dark:border-slate-700 bg-white shadow-sm"
             />
           )}

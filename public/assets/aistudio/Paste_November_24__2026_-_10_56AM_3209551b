@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTSP Kemenag Kabupaten Murung Raya — Pelayanan Terpadu Satu Pintu</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            kemenag: {
+              dark: '#022c22',
+              primary: '#065F46',
+              medium: '#047857',
+              light: '#10B981',
+              soft: '#ECFDF5',
+              gold: '#D97706',
+              goldLight: '#F59E0B',
+              goldSoft: '#FEF3C7',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Architectural & 3D Door Perspective Styles */
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      background-color: #f8fafc;
+    }
+
+    /* Islamic Geometric Subtle Pattern */
+    .islamic-pattern {
+      background-image: radial-gradient(rgba(217, 119, 6, 0.14) 1px, transparent 1px),
+                        radial-gradient(rgba(6, 95, 70, 0.12) 1px, #f8fafc 1px);
+      background-size: 36px 36px;
+      background-position: 0 0, 18px 18px;
+    }
+
+    .islamic-pattern-dark {
+      background-image: linear-gradient(30deg, rgba(255,255,255,0.03) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.03) 87.5%, rgba(255,255,255,0.03)),
+                        linear-gradient(150deg, rgba(255,255,255,0.03) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.03) 87.5%, rgba(255,255,255,0.03)),
+                        linear-gradient(30deg, rgba(255,255,255,0.03) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.03) 87.5%, rgba(255,255,255,0.03)),
+                        linear-gradient(150deg, rgba(255,255,255,0.03) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.03) 87.5%, rgba(255,255,255,0.03));
+      background-size: 48px 84px;
+      background-position: 0 0, 0 0, 24px 42px, 24px 42px;
+    }
+
+    /* 3D Door Scene */
+    .building-stage {
+      perspective: 1400px;
+      transform-style: preserve-3d;
+      transition: transform 1.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 1.1s ease-in-out;
+    }
+
+    /* Zoom-in camera effect when entering */
+    .building-stage.entering {
+      transform: scale(2.85) translateY(8%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .door-frame {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    .door-leaf-left {
+      transform-origin: left center;
+      transition: transform 0.95s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
+      transform-style: preserve-3d;
+    }
+
+    .door-leaf-right {
+      transform-origin: right center;
+      transition: transform 0.95s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
+      transform-style: preserve-3d;
+    }
+
+    /* Subtle hover ajar preview */
+    .door-interactive-zone:hover .door-leaf-left {
+      transform: rotateY(14deg);
+    }
+    .door-interactive-zone:hover .door-leaf-right {
+      transform: rotateY(-14deg);
+    }
+
+    /* Full open inward on click */
+    .door-interactive-zone.doors-opened .door-leaf-left {
+      transform: rotateY(105deg) !important;
+    }
+    .door-interactive-zone.doors-opened .door-leaf-right {
+      transform: rotateY(-105deg) !important;
+    }
+
+    /* Warm light glow inside doorway */
+    .interior-glow {
+      background: radial-gradient(circle at 50% 45%, #ffffff 0%, #fef3c7 35%, #d1fae5 75%, #065f46 100%);
+      transition: opacity 0.6s ease, filter 0.6s ease;
+    }
+
+    .door-interactive-zone:hover .interior-glow {
+      filter: brightness(1.12);
+    }
+
+    /* Floating animation for tooltip */
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: floatBadge 2.6s ease-in-out infinite;
+    }
+
+    /* Smooth Lobby Entrance */
+    .lobby-view {
+      transition: opacity 1.1s ease, transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lobby-hidden {
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      display: none;
+    }
+    .lobby-visible {
+      opacity: 1;
+      transform: scale(1);
+      display: block;
+    }
+
+    /* Super Slow-Motion Lobby Interior Elements Reveal */
+    .lobby-slow-element {
+      opacity: 0;
+      transform: translateY(28px) scale(0.97);
+      filter: blur(6px);
+      transition: opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 1.2s ease-out;
+    }
+    .lobby-slow-element.revealed {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0px);
+    }
+
+    /* =====================================================================
+       HONEYCOMB (SARANG LEBAH) SUPER SLOW-MOTION & INTERACTIVE HEXAGON STYLES
+       ===================================================================== */
+    .honeycomb-stage {
+      position: relative;
+      perspective: 1400px;
+      background: radial-gradient(circle at 50% 0%, rgba(236, 253, 245, 0.95) 0%, rgba(255, 255, 255, 0.85) 60%, rgba(254, 243, 199, 0.45) 100%);
+    }
+
+    /* Responsive Honeycomb Cluster Layout (Desktop Interlocking 3-3 Hive) */
+    .honeycomb-hive {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .honeycomb-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .honeycomb-hive {
+        gap: 0;
+        padding: 1rem 0 2rem 0;
+      }
+      .honeycomb-row {
+        flex-wrap: nowrap;
+        gap: 1.25rem;
+      }
+      /* Interlock second row into the recesses of the first row */
+      .honeycomb-row-offset {
+        margin-top: -3.2rem;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .honeycomb-row {
+        gap: 1.5rem;
+      }
+      .honeycomb-row-offset {
+        margin-top: -3.65rem;
+      }
+    }
+
+    /* Hexagon Outer Golden Border Wrapper */
+    .hex-wrapper {
+      width: 245px;
+      height: 276px;
+      position: relative;
+      opacity: 0;
+      transform: scale(0.55) translateY(48px) rotateX(24deg);
+      filter: blur(8px) drop-shadow(0 12px 20px rgba(2, 44, 34, 0.10));
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), filter 0.55s ease;
+      cursor: pointer;
+    }
+
+    @media (min-width: 1024px) {
+      .hex-wrapper {
+        width: 272px;
+        height: 306px;
+      }
+    }
+
+    /* Super Slow-Motion 1-by-1 Honeycomb Entrance Animation (2.4s per cell) */
+    @keyframes honeycombSuperSlowReveal {
+      0% {
+        opacity: 0;
+        transform: scale(0.55) translateY(52px) rotateX(24deg);
+        filter: blur(10px) drop-shadow(0 0 0 rgba(217, 119, 6, 0));
+      }
+      45% {
+        opacity: 0.78;
+        filter: blur(2px) drop-shadow(0 18px 34px rgba(245, 158, 11, 0.35));
+      }
+      75% {
+        opacity: 1;
+        transform: scale(1.03) translateY(-5px) rotateX(0deg);
+        filter: blur(0px) drop-shadow(0 16px 28px rgba(16, 185, 129, 0.22));
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0px) rotateX(0deg);
+        filter: blur(0px) drop-shadow(0 12px 20px rgba(2, 44, 34, 0.10));
+      }
+    }
+
+    .hex-wrapper.hex-animate-in {
+      animation: honeycombSuperSlowReveal 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Hover & Active Glow States */
+    .hex-wrapper:hover {
+      transform: translateY(-8px) scale(1.04) !important;
+      filter: drop-shadow(0 20px 32px rgba(217, 119, 6, 0.32)) !important;
+      z-index: 20;
+    }
+
+    .hex-wrapper.hex-active {
+      transform: translateY(-6px) scale(1.05) !important;
+      filter: drop-shadow(0 22px 34px rgba(6, 95, 70, 0.35)) !important;
+      z-index: 25;
+    }
+
+    /* Subtle pulse on neighbor cells when hovering another cell */
+    .hex-wrapper.hex-neighbor-pulse .hex-border {
+      background: linear-gradient(135deg, #f59e0b 0%, #10b981 50%, #f59e0b 100%);
+    }
+
+    /* True Pointy-Top Hexagon Clip Path */
+    .hex-border {
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: linear-gradient(145deg, rgba(217, 119, 6, 0.55), rgba(6, 95, 70, 0.45), rgba(245, 158, 11, 0.7));
+      padding: 3px;
+      transition: background 0.4s ease;
+    }
+
+    .hex-wrapper:hover .hex-border,
+    .hex-wrapper.hex-active .hex-border {
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 45%, #059669 100%);
+      padding: 4px;
+    }
+
+    .hex-inner {
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 70%, #ecfdf5 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2.1rem 1.35rem;
+      position: relative;
+      transition: background 0.4s ease;
+    }
+
+    .hex-wrapper.hex-active .hex-inner {
+      background: linear-gradient(180deg, #064e3b 0%, #065f46 65%, #022c22 100%);
+      color: #ffffff;
+    }
+
+    /* Ambient Golden Particle Floating inside Honeycomb Stage */
+    @keyframes goldenDustFloat {
+      0%, 100% { transform: translateY(0px) scale(1); opacity: 0.35; }
+      50% { transform: translateY(-14px) scale(1.25); opacity: 0.85; }
+    }
+    .hive-particle {
+      animation: goldenDustFloat 4.5s ease-in-out infinite;
+    }
+
+    /* =====================================================================
+       MINI HONEYCOMB DROPDOWN (PILIHAN LAYANAN DALAM BENTUK SARANG LEBAH KECIL)
+       ===================================================================== */
+    .mini-honeycomb-dropdown {
+      background: radial-gradient(circle at 50% 0%, rgba(254, 243, 199, 0.55) 0%, rgba(236, 253, 245, 0.9) 55%, rgba(255, 255, 255, 0.96) 100%);
+      transform-origin: top center;
+      animation: dropdownHiveUnfold 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes dropdownHiveUnfold {
+      0% {
+        opacity: 0;
+        transform: translateY(-18px) scaleY(0.92);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+      }
+    }
+
+    .mini-hive-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .mini-hive-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.85rem;
+    }
+
+    @media (min-width: 768px) {
+      .mini-hive-cluster {
+        gap: 0;
+        padding: 0.5rem 0 1.25rem 0;
+      }
+      .mini-hive-row {
+        flex-wrap: nowrap;
+        gap: 1rem;
+      }
+      .mini-hive-row-offset {
+        margin-top: -2.45rem;
+      }
+    }
+
+    .mini-hex-wrapper {
+      width: 210px;
+      height: 236px;
+      position: relative;
+      opacity: 0;
+      transform: scale(0.6) translateY(24px);
+      filter: drop-shadow(0 8px 16px rgba(2, 44, 34, 0.08));
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s ease;
+      cursor: pointer;
+    }
+
+    @media (min-width: 1024px) {
+      .mini-hex-wrapper {
+        width: 224px;
+        height: 252px;
+      }
+    }
+
+    @keyframes miniHexSlowPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.6) translateY(28px);
+        filter: blur(4px) drop-shadow(0 0 0 rgba(217, 119, 6, 0));
+      }
+      65% {
+        opacity: 1;
+        transform: scale(1.03) translateY(-3px);
+        filter: blur(0px) drop-shadow(0 12px 22px rgba(217, 119, 6, 0.22));
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0px) drop-shadow(0 8px 16px rgba(2, 44, 34, 0.08));
+      }
+    }
+
+    .mini-hex-animate {
+      animation: miniHexSlowPop 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .mini-hex-wrapper:hover {
+      transform: translateY(-6px) scale(1.05) !important;
+      filter: drop-shadow(0 16px 26px rgba(217, 119, 6, 0.28)) !important;
+      z-index: 20;
+    }
+
+    .mini-hex-border {
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: linear-gradient(145deg, rgba(16, 185, 129, 0.55), rgba(217, 119, 6, 0.55));
+      padding: 2.5px;
+      transition: background 0.35s ease;
+    }
+
+    .mini-hex-wrapper:hover .mini-hex-border {
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #059669 100%);
+      padding: 3.5px;
+    }
+
+    .mini-hex-inner {
+      width: 100%;
+      height: 100%;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 75%, #ecfdf5 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.65rem 1.05rem;
+      position: relative;
+      transition: background 0.35s ease;
+    }
+
+    .mini-hex-wrapper:hover .mini-hex-inner {
+      background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col islamic-pattern selection:bg-emerald-700 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR (Always Accessible) -->
+  <header class="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-emerald-900/10 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3 sm:gap-4 cursor-pointer" onclick="returnToEntrance()">
+        <!-- Emblem SVG Kementerian Agama -->
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-950 p-1.5 shadow-md border border-amber-400/50 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 64 64" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Bintang Sudut 5 -->
+            <polygon points="32,4 35.5,14 46,14 37.5,20.5 40.5,30.5 32,24.5 23.5,30.5 26.5,20.5 18,14 28.5,14" fill="#FBBF24"/>
+            <!-- Kitab Suci Terbuka -->
+            <path d="M14 44C20 41 27 42 32 46C37 42 44 41 50 44V54C44 51 37 52 32 56C27 52 20 51 14 54V44Z" fill="#ECFDF5" stroke="#F59E0B" stroke-width="2"/>
+            <!-- Padi & Kapas Stylized -->
+            <path d="M12 24C8 32 9 43 16 50" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M52 24C56 32 55 43 48 50" stroke="#34D399" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-amber-600">Kemenag Kab. Murung Raya</span>
+            <span class="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+            <span class="hidden sm:inline-block text-xs font-medium text-slate-500">Puruk Cahu • Kalimantan Tengah</span>
+          </div>
+          <h1 class="text-sm sm:text-lg font-extrabold text-emerald-950 tracking-tight leading-tight">
+            PTSP Kementerian Agama Kab. Murung Raya
+          </h1>
+        </div>
+      </div>
+
+      <!-- Status & Action Controls -->
+      <div class="flex items-center gap-2 sm:gap-4">
+        <!-- Service Hours Badge -->
+        <div class="hidden md:flex items-center gap-2.5 bg-emerald-50/90 border border-emerald-200/80 px-3.5 py-2 rounded-2xl">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+          </span>
+          <div class="text-xs">
+            <p class="font-bold text-emerald-900">Loket PTSP Puruk Cahu Buka</p>
+            <p class="text-emerald-700/80">Senin – Jumat • 07.30 – 16.00 WIB</p>
+          </div>
+        </div>
+
+        <!-- Portal Web Utama Link -->
+        <a href="https://kemenag-mura.vercel.app/" target="_blank" rel="noopener noreferrer"
+           class="hidden lg:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 text-xs font-bold transition-all">
+          <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-700"></i>
+          <span>Portal Kemenag Mura</span>
+        </a>
+
+        <!-- Exit Building Button (Visible when inside Lobby) -->
+        <button id="btn-exit-building" onclick="returnToEntrance()" class="hidden items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-300 text-xs sm:text-sm font-semibold transition-all shadow-sm">
+          <i data-lucide="door-closed" class="w-4 h-4 text-amber-600"></i>
+          <span>Keluar Gedung</span>
+        </button>
+
+        <!-- My Queue Ticket Button -->
+        <button id="btn-my-ticket" onclick="openSavedTicket()" class="hidden items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-amber-500/20">
+          <i data-lucide="ticket" class="w-4 h-4"></i>
+          <span>Tiket Saya</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: TAMPAK DEPAN GEDUNG & PINTU MASUK INTERAKTIF (EXTERIOR VIEW)  -->
+  <!-- ===================================================================== -->
+  <main id="exterior-view" class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-10 relative overflow-hidden">
+    
+    <!-- Ambient Decorative Background Glows -->
+    <div class="pointer-events-none absolute top-10 left-1/4 w-72 h-72 bg-emerald-400/15 rounded-full blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-10 right-1/4 w-80 h-80 bg-amber-400/15 rounded-full blur-3xl"></div>
+
+    <!-- Intro Heading Above Building -->
+    <div id="exterior-header" class="text-center max-w-2xl mx-auto mb-6 sm:mb-8 transition-all duration-700">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-emerald-200 shadow-sm text-xs font-semibold text-emerald-800 mb-3">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+        <span>Portal Layanan Digital • Tana Malai Tolung Lingu</span>
+      </div>
+      <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+        Selamat Datang di Gedung <span class="text-emerald-800">PTSP Kemenag Murung Raya</span>
+      </h2>
+      <p class="text-sm sm:text-base text-slate-600">
+        Arahkan kursor dan <span class="font-semibold text-emerald-800 underline decoration-amber-400 decoration-2 underline-offset-4">klik pada pintu masuk utama</span> di bawah untuk memasuki ruang pelayanan.
+      </p>
+    </div>
+
+    <!-- 3D ARCHITECTURAL FACADE & INTERACTIVE ENTRANCE DOOR -->
+    <div id="building-stage" class="building-stage w-full max-w-4xl mx-auto relative">
+      
+      <!-- Architectural Building Facade -->
+      <div class="relative bg-gradient-to-b from-white via-slate-50 to-slate-100 rounded-t-[2.5rem] rounded-b-3xl shadow-2xl border border-slate-200/90 pt-6 sm:pt-10 px-4 sm:px-10 pb-0 overflow-hidden">
+        
+        <!-- Top Roof Cornice & Emerald Accent -->
+        <div class="absolute top-0 inset-x-0 h-3 bg-gradient-to-r from-emerald-900 via-amber-500 to-emerald-900"></div>
+        
+        <!-- Islamic Geometric Relief Header Band -->
+        <div class="w-full h-10 sm:h-12 rounded-2xl bg-emerald-950 islamic-pattern-dark border border-amber-500/40 flex items-center justify-between px-4 sm:px-6 mb-5 sm:mb-7 shadow-inner">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </div>
+          <span class="text-[10px] sm:text-xs font-bold tracking-[0.18em] text-amber-300 uppercase text-center">
+            Kantor Kementerian Agama Kabupaten Murung Raya
+          </span>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          </div>
+        </div>
+
+        <!-- Main Portico / Canopy Signboard -->
+        <div class="max-w-xl mx-auto mb-5 sm:mb-7 relative z-10">
+          <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-2xl p-3.5 sm:p-5 text-center shadow-xl border-2 border-amber-400/70 relative">
+            <!-- Downlights under signboard -->
+            <div class="absolute -bottom-2 left-1/4 w-8 h-1.5 bg-amber-200 rounded-full blur-[2px] opacity-90"></div>
+            <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-10 h-1.5 bg-amber-200 rounded-full blur-[2px] opacity-95"></div>
+            <div class="absolute -bottom-2 right-1/4 w-8 h-1.5 bg-amber-200 rounded-full blur-[2px] opacity-90"></div>
+            
+            <p class="text-[10px] sm:text-xs font-semibold tracking-widest text-amber-300 uppercase mb-0.5">
+              Pelayanan Terpadu Satu Pintu • Puruk Cahu
+            </p>
+            <h3 class="text-lg sm:text-2xl font-extrabold text-white tracking-wide">
+              PTSP KEMENAG MURUNG RAYA
+            </h3>
+            <p class="text-[10px] text-emerald-200/90 mt-1">Jl. KH. Ahmad Dahlan No. 01, Puruk Cahu 73911 • Telp/Fax (0528) 31854</p>
+          </div>
+        </div>
+
+        <!-- Columns + Interactive Entrance Doors Grid -->
+        <div class="grid grid-cols-12 items-end gap-2 sm:gap-5 max-w-3xl mx-auto">
+          
+          <!-- Left Architectural Pillar & Side Glass -->
+          <div class="hidden sm:flex sm:col-span-3 flex-col items-center">
+            <!-- Wall Sconce Lamp -->
+            <div class="mb-4 flex flex-col items-center">
+              <div class="w-6 h-8 rounded-t-full bg-amber-200/90 border border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.75)]"></div>
+              <div class="w-8 h-2 bg-emerald-900 rounded-b-md"></div>
+            </div>
+            <!-- Pillar -->
+            <div class="w-full h-56 bg-gradient-to-r from-slate-200 via-white to-slate-200 rounded-t-xl border-x border-t border-slate-300/80 shadow-inner flex flex-col justify-between p-3">
+              <div class="h-2 w-full bg-amber-500/40 rounded-full"></div>
+              <div class="flex-1 my-3 border-x border-slate-300/60 flex items-center justify-center">
+                <div class="text-center px-2">
+                  <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Transparan</span>
+                  <span class="block text-[9px] text-slate-500 mt-0.5">Cepat & Akuntabel</span>
+                </div>
+              </div>
+              <div class="h-3 w-full bg-emerald-900/15 rounded-sm"></div>
+            </div>
+          </div>
+
+          <!-- CENTER INTERACTIVE DOUBLE DOORS -->
+          <div class="col-span-12 sm:col-span-6 flex flex-col items-center relative">
+            
+            <!-- Floating Hover Instruction Tooltip -->
+            <div id="door-tooltip" class="animate-float mb-3 z-30">
+              <button onclick="enterPTSPBuilding()" class="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/30 border border-amber-300 transition-all cursor-pointer">
+                <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                <span>Klik Pintu untuk Masuk ke Ruang PTSP</span>
+                <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
+              </button>
+            </div>
+
+            <!-- Door Portal Arch / Frame -->
+            <div id="door-interactive-zone" onclick="enterPTSPBuilding()" role="button" tabindex="0" aria-label="Klik pintu untuk masuk ke ruang PTSP"
+                 onkeydown="if(event.key==='Enter' || event.key===' ') enterPTSPBuilding()"
+                 class="door-interactive-zone group relative w-full max-w-[320px] sm:max-w-[340px] h-[270px] sm:h-[310px] bg-emerald-950 p-2.5 sm:p-3 rounded-t-3xl border-t-4 border-x-4 border-amber-500/80 shadow-2xl cursor-pointer select-none">
+              
+              <!-- Warm Welcoming Light Glow Behind Doors (Visible as doors open) -->
+              <div class="interior-glow absolute inset-2.5 sm:inset-3 rounded-t-2xl flex flex-col items-center justify-center overflow-hidden">
+                <!-- Miniature preview silhouette of PTSP lobby desk inside -->
+                <div class="w-3/4 h-24 rounded-xl bg-white/80 backdrop-blur-sm border border-emerald-200 shadow-md flex flex-col items-center justify-center p-2 text-center transform scale-90">
+                  <span class="text-[10px] font-extrabold text-emerald-900 uppercase tracking-wider">Loket Informasi & Layanan</span>
+                  <span class="text-[9px] text-emerald-700 mt-0.5">Silakan Masuk</span>
+                </div>
+              </div>
+
+              <!-- Double Glass & Wood Doors Container -->
+              <div class="door-frame relative w-full h-full grid grid-cols-2 gap-0.5 rounded-t-2xl overflow-hidden">
+                
+                <!-- LEFT DOOR LEAF -->
+                <div class="door-leaf-left relative h-full bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-950 border-r border-amber-400/50 p-2 sm:p-2.5 flex flex-col justify-between shadow-lg group-hover:brightness-110">
+                  <!-- Glass Window Pane with Islamic Geometric Lattice -->
+                  <div class="relative flex-1 rounded-tl-xl rounded-tr-sm bg-gradient-to-b from-sky-100/25 via-emerald-100/15 to-amber-100/20 backdrop-blur-[2px] border border-amber-400/50 overflow-hidden flex items-center justify-center">
+                    <!-- Subtle Islamic Star Ornament SVG -->
+                    <svg class="w-16 h-16 text-amber-300/45 group-hover:text-amber-300/75 transition-colors" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="22" y="22" width="56" height="56" />
+                      <rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)" />
+                      <circle cx="50" cy="50" r="14" />
+                    </svg>
+                    <!-- Glass Reflection Diagonal -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  </div>
+
+                  <!-- Vertical Gold Door Handle -->
+                  <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                    <div class="w-1.5 h-16 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 shadow-md group-hover:shadow-amber-400/80"></div>
+                  </div>
+
+                  <!-- Bottom Kickplate -->
+                  <div class="mt-2 h-8 rounded-b-sm bg-emerald-950/90 border border-amber-500/30 flex items-center justify-center">
+                    <span class="text-[9px] font-bold tracking-widest text-amber-400/80">MASUK</span>
+                  </div>
+                </div>
+
+                <!-- RIGHT DOOR LEAF -->
+                <div class="door-leaf-right relative h-full bg-gradient-to-bl from-emerald-900 via-emerald-800 to-emerald-950 border-l border-amber-400/50 p-2 sm:p-2.5 flex flex-col justify-between shadow-lg group-hover:brightness-110">
+                  <!-- Glass Window Pane with Islamic Geometric Lattice -->
+                  <div class="relative flex-1 rounded-tr-xl rounded-tl-sm bg-gradient-to-b from-sky-100/25 via-emerald-100/15 to-amber-100/20 backdrop-blur-[2px] border border-amber-400/50 overflow-hidden flex items-center justify-center">
+                    <!-- Subtle Islamic Star Ornament SVG -->
+                    <svg class="w-16 h-16 text-amber-300/45 group-hover:text-amber-300/75 transition-colors" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="22" y="22" width="56" height="56" />
+                      <rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)" />
+                      <circle cx="50" cy="50" r="14" />
+                    </svg>
+                    <!-- Glass Reflection Diagonal -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  </div>
+
+                  <!-- Vertical Gold Door Handle -->
+                  <div class="absolute left-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                    <div class="w-1.5 h-16 rounded-full bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 shadow-md group-hover:shadow-amber-400/80"></div>
+                  </div>
+
+                  <!-- Bottom Kickplate -->
+                  <div class="mt-2 h-8 rounded-b-sm bg-emerald-950/90 border border-amber-500/30 flex items-center justify-center">
+                    <span class="text-[9px] font-bold tracking-widest text-amber-400/80">PUSH / KLIK</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Architectural Pillar & Side Glass -->
+          <div class="hidden sm:flex sm:col-span-3 flex-col items-center">
+            <!-- Wall Sconce Lamp -->
+            <div class="mb-4 flex flex-col items-center">
+              <div class="w-6 h-8 rounded-t-full bg-amber-200/90 border border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.75)]"></div>
+              <div class="w-8 h-2 bg-emerald-900 rounded-b-md"></div>
+            </div>
+            <!-- Pillar -->
+            <div class="w-full h-56 bg-gradient-to-l from-slate-200 via-white to-slate-200 rounded-t-xl border-x border-t border-slate-300/80 shadow-inner flex flex-col justify-between p-3">
+              <div class="h-2 w-full bg-amber-500/40 rounded-full"></div>
+              <div class="flex-1 my-3 border-x border-slate-300/60 flex items-center justify-center">
+                <div class="text-center px-2">
+                  <span class="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Bebas Biaya</span>
+                  <span class="block text-[9px] text-slate-500 mt-0.5">Zona Integritas WBK</span>
+                </div>
+              </div>
+              <div class="h-3 w-full bg-emerald-900/15 rounded-sm"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Entrance Marble Steps & Welcome Carpet -->
+        <div class="mt-0 -mx-4 sm:-mx-10">
+          <div class="h-3 bg-slate-200 border-t border-slate-300 flex justify-center">
+            <div class="w-48 sm:w-64 h-full bg-emerald-800"></div>
+          </div>
+          <div class="h-4 bg-slate-300/90 border-t border-slate-400/40 flex justify-center">
+            <div class="w-56 sm:w-72 h-full bg-emerald-900 border-x-2 border-amber-400"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Quick Info Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 text-center sm:text-left">
+        <div class="bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+            <i data-lucide="layers" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-800">6 Seksi Pelayanan</p>
+            <p class="text-[11px] text-slate-500">Terintegrasi dalam satu ruang</p>
+          </div>
+        </div>
+        <div class="bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-800">Tarif Layanan Rp 0</p>
+            <p class="text-[11px] text-slate-500">Sesuai standar maklumat pelayanan</p>
+          </div>
+        </div>
+        <div class="bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+            <i data-lucide="qr-code" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-800">Antrean & Resi Digital</p>
+            <p class="text-[11px] text-slate-500">Cetak & pantau permohonan instan</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: RUANG LOBI PTSP (PILIHAN SEKSI & DAFTAR LAYANAN)              -->
+  <!-- ===================================================================== -->
+  <section id="lobby-view" class="lobby-view lobby-hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+    
+    <!-- Welcome Banner inside Lobby (Appears 1st in Super Slow-Motion) -->
+    <div id="lobby-banner" class="lobby-slow-element relative rounded-3xl bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800 p-6 sm:p-8 text-white shadow-2xl overflow-hidden mb-8 border border-amber-400/40">
+      <div class="absolute inset-0 islamic-pattern-dark opacity-70 pointer-events-none"></div>
+      <div class="absolute -right-12 -bottom-12 w-72 h-72 rounded-full bg-amber-500/20 blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-12 -top-12 w-56 h-56 rounded-full bg-emerald-400/15 blur-2xl pointer-events-none"></div>
+      
+      <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-amber-400/40 text-amber-300 text-xs font-semibold mb-3">
+            <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+            <span>Ruang Lobi Utama PTSP • Kemenag Kab. Murung Raya</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+            Selamat Datang di Ruang Pelayanan Terpadu Satu Pintu
+          </h2>
+          <p class="text-emerald-100/90 text-sm sm:text-base max-w-2xl">
+            Silakan pilih <span class="text-amber-300 font-semibold">Seksi atau Penyelenggara</span> pada sarang lebah di bawah untuk membuka dropdown sarang lebah layanan yang diperlukan.
+          </p>
+        </div>
+
+        <!-- Quick Search Bar for Services -->
+        <div class="w-full lg:w-80 shrink-0">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-emerald-300 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="service-search-input" onkeyup="handleSearch(this.value)"
+                   placeholder="Cari layanan (mis. Haji, Ijazah, KUA, Hindu)..."
+                   class="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 text-white placeholder-emerald-200/75 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white/20 transition-all" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Menu Bar Khusus Kemenag Kabupaten Murung Raya -->
+      <div class="relative z-10 mt-5 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openInfoMuraModal('profil')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-amber-500/30 border border-white/15 text-emerald-50 font-semibold transition-all cursor-pointer">
+            <i data-lucide="landmark" class="w-3.5 h-3.5 text-amber-300"></i>
+            <span>Profil & Satker Mura</span>
+          </button>
+          <button onclick="openInfoMuraModal('kua')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-amber-500/30 border border-white/15 text-emerald-50 font-semibold transition-all cursor-pointer">
+            <i data-lucide="map-pinned" class="w-3.5 h-3.5 text-amber-300"></i>
+            <span>Direktori KUA 10 Kecamatan</span>
+          </button>
+          <button onclick="openInfoMuraModal('madrasah')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-amber-500/30 border border-white/15 text-emerald-50 font-semibold transition-all cursor-pointer">
+            <i data-lucide="school" class="w-3.5 h-3.5 text-amber-300"></i>
+            <span>Madrasah Negeri Mura</span>
+          </button>
+          <button onclick="openInfoMuraModal('maklumat')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-amber-500/30 border border-white/15 text-emerald-50 font-semibold transition-all cursor-pointer">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-300"></i>
+            <span>Maklumat & Standar Pelayanan</span>
+          </button>
+        </div>
+
+        <a href="https://kemenag-mura.vercel.app/" target="_blank" rel="noopener noreferrer"
+           class="inline-flex items-center gap-1.5 text-amber-300 hover:text-amber-200 font-bold underline underline-offset-4">
+          <span>kemenag-mura.vercel.app</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- SEARCH RESULTS PANEL (Shown when typing in search bar) -->
+    <div id="search-results-container" class="hidden mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+          <i data-lucide="search-check" class="w-5 h-5 text-emerald-700"></i>
+          <span>Hasil Pencarian Layanan</span>
+        </h3>
+        <button onclick="clearSearch()" class="text-xs font-bold text-emerald-800 hover:text-amber-700 underline">
+          Tutup Pencarian
+        </button>
+      </div>
+      <div id="search-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+    <!-- STEP A: SARANG LEBAH UTAMA PILIHAN SEKSI & PENYELENGGARA -->
+    <div id="sections-container" class="mb-6">
+      <!-- Status Bar & Replay Control -->
+      <div id="lobby-section-bar" class="lobby-slow-element flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-2.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+          <h3 class="text-base sm:text-lg font-extrabold text-slate-900">
+            Pilih Seksi / Penyelenggara Layanan
+          </h3>
+          <span id="reveal-status-text" class="hidden sm:inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-bold">
+            6 Loket Seksi PTSP Aktif
+          </span>
+        </div>
+
+        <button onclick="replayHoneycombAnimation()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-300 text-xs font-bold shadow-sm transition-all cursor-pointer">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-600"></i>
+          <span>Putar Ulang Slow-Mo</span>
+        </button>
+      </div>
+
+      <!-- Honeycomb Stage Frame -->
+      <div id="lobby-honeycomb-frame" class="lobby-slow-element honeycomb-stage rounded-3xl border border-emerald-900/15 shadow-xl p-5 sm:p-8 overflow-hidden">
+        <!-- Ambient Golden Floating Particles -->
+        <div class="pointer-events-none absolute top-8 left-12 w-2.5 h-2.5 rounded-full bg-amber-400/50 hive-particle"></div>
+        <div class="pointer-events-none absolute bottom-10 right-16 w-3 h-3 rounded-full bg-emerald-400/40 hive-particle" style="animation-delay: 1.5s;"></div>
+        <div class="pointer-events-none absolute top-1/2 right-10 w-2 h-2 rounded-full bg-amber-500/45 hive-particle" style="animation-delay: 2.7s;"></div>
+
+        <!-- Interlocking 3-3 Honeycomb Grid -->
+        <div id="sections-grid" class="honeycomb-hive relative z-10">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP B: DROPDOWN SARANG LEBAH MINI UNTUK PILIHAN LAYANAN DALAM SEKSI TERPILIH -->
+    <div id="services-container" class="hidden mt-5 scroll-mt-24">
+      <div class="mini-honeycomb-dropdown rounded-3xl border-2 border-amber-400/60 shadow-2xl p-5 sm:p-7 relative overflow-hidden">
+        <!-- Top Golden Connector Pointer -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-emerald-900/15">
+          <div id="selected-section-header" class="flex items-center gap-3.5">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <div id="selected-section-badge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold">
+              <!-- Populated dynamically -->
+            </div>
+            <button onclick="backToSections()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 hover:border-red-300 text-xs font-bold shadow-sm transition-all cursor-pointer">
+              <i data-lucide="chevron-up" class="w-4 h-4"></i>
+              <span>Tutup Dropdown</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sub-caption inside mini-honeycomb dropdown -->
+        <div class="text-center mb-4">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-900 text-amber-300 text-[11px] font-bold tracking-wide uppercase shadow-sm">
+            <i data-lucide="hexagon" class="w-3.5 h-3.5"></i>
+            <span>Pilih Sel Layanan Sarang Lebah di Bawah</span>
+          </span>
+        </div>
+
+        <!-- Mini Honeycomb Cluster of Services (Populated dynamically) -->
+        <div id="services-list" class="mini-hive-cluster relative z-10">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: DETAIL PERSYARATAN & FORM PERMOHONAN / ANTREAN DIGITAL       -->
+  <!-- ===================================================================== -->
+  <div id="application-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 animate-[fadeIn_0.25s_ease-out]">
+      
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-emerald-900 to-emerald-800 px-6 py-5 text-white flex items-start justify-between gap-4">
+        <div>
+          <span id="modal-section-name" class="inline-block text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-1">
+            Seksi Layanan
+          </span>
+          <h3 id="modal-service-title" class="text-lg sm:text-xl font-extrabold leading-snug">
+            Nama Layanan
+          </h3>
+        </div>
+        <button onclick="closeApplicationModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 max-h-[75vh] overflow-y-auto space-y-6">
+        
+        <!-- Service Meta Info Pills -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3">
+            <span class="block text-[11px] text-slate-500 font-medium">Estimasi Waktu</span>
+            <span id="modal-service-time" class="text-sm font-bold text-slate-800 mt-0.5 block">1 Hari Kerja</span>
+          </div>
+          <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3">
+            <span class="block text-[11px] text-emerald-700 font-medium">Biaya Layanan</span>
+            <span id="modal-service-fee" class="text-sm font-extrabold text-emerald-900 mt-0.5 block">Gratis (Rp 0)</span>
+          </div>
+          <div class="col-span-2 sm:col-span-1 bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3">
+            <span class="block text-[11px] text-amber-700 font-medium">Loket Tujuan</span>
+            <span id="modal-service-counter" class="text-sm font-bold text-amber-900 mt-0.5 block">Loket 1</span>
+          </div>
+        </div>
+
+        <!-- Document Requirements Checklist -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-700"></i>
+              <span>Persyaratan Dokumen (Centang Kelengkapan Anda)</span>
+            </h4>
+            <span id="checklist-counter" class="text-xs font-semibold text-emerald-700">0/0 Siap</span>
+          </div>
+          <div id="modal-requirements-list" class="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Applicant Short Form -->
+        <form id="ptsp-application-form" onsubmit="submitPTSPApplication(event)" class="space-y-4 pt-2 border-t border-slate-200">
+          <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <i data-lucide="user-check" class="w-4 h-4 text-amber-600"></i>
+            <span>Data Pemohon & Pengambilan Nomor Antrean</span>
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap Pemohon <span class="text-red-500">*</span></label>
+              <input type="text" id="applicant-name" required placeholder="Contoh: Ahmad Fauzi, S.Pd."
+                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-sm outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Nomor WhatsApp / HP <span class="text-red-500">*</span></label>
+              <input type="tel" id="applicant-phone" required placeholder="Contoh: 081234567890"
+                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-sm outline-none transition-all" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Instansi / Lembaga / Kecamatan Asal</label>
+              <input type="text" id="applicant-org" placeholder="Contoh: MTsN 1 Murung Raya / Kec. Murung"
+                     class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-sm outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Metode Layanan</label>
+              <select id="applicant-method" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 text-sm outline-none bg-white transition-all">
+                <option value="Datang ke Loket PTSP Puruk Cahu">Datang Langsung ke Loket PTSP Puruk Cahu</option>
+                <option value="Konsultasi & Verifikasi Online">Konsultasi & Verifikasi Online</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4">
+            <button type="button" onclick="closeApplicationModal()" class="px-5 py-2.5 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold transition-colors">
+              Batal
+            </button>
+            <button type="submit" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-700 hover:from-emerald-900 hover:to-emerald-800 text-white text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all">
+              <i data-lucide="ticket" class="w-4 h-4 text-amber-300"></i>
+              <span>Terbitkan Tiket Antrean & Resi</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: BUKTI TIKET ANTREAN / RESI PERMOHONAN DIGITAL PTSP           -->
+  <!-- ===================================================================== -->
+  <div id="ticket-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8">
+      
+      <!-- Top Emerald Receipt Header -->
+      <div class="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-6 text-center text-white relative">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-300 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="check-circle-2" class="w-7 h-7"></i>
+        </div>
+        <p class="text-[11px] font-bold uppercase tracking-widest text-amber-300">Bukti Registrasi Layanan</p>
+        <h3 class="text-xl font-extrabold mt-0.5">Tiket Antrean Digital PTSP</h3>
+        <p class="text-xs text-emerald-200 mt-1">Kantor Kementerian Agama Kab. Murung Raya</p>
+      </div>
+
+      <!-- Ticket Perforated Divider -->
+      <div class="relative flex items-center justify-between bg-slate-50 px-4 py-2 border-b border-dashed border-slate-300">
+        <div class="w-5 h-5 rounded-full bg-slate-950/65 -ml-6"></div>
+        <span class="text-[11px] font-mono font-bold text-slate-500" id="ticket-reg-code">REG-PTSP-2026-0001</span>
+        <div class="w-5 h-5 rounded-full bg-slate-950/65 -mr-6"></div>
+      </div>
+
+      <!-- Ticket Body -->
+      <div class="p-6 space-y-4">
+        <!-- Queue Number Highlight Box -->
+        <div class="bg-emerald-50/80 border-2 border-emerald-600/30 rounded-2xl p-4 text-center">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 block">Nomor Antrean Loket</span>
+          <span id="ticket-queue-number" class="text-4xl font-extrabold text-emerald-950 tracking-tight my-1 block">A-014</span>
+          <span id="ticket-counter-label" class="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+            Loket 1 • Subbag Tata Usaha
+          </span>
+        </div>
+
+        <!-- Details Table -->
+        <div class="space-y-2.5 text-xs sm:text-sm border-t border-slate-100 pt-3">
+          <div class="flex justify-between gap-4">
+            <span class="text-slate-500">Nama Pemohon</span>
+            <span id="ticket-applicant-name" class="font-bold text-slate-900 text-right">-</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span class="text-slate-500">Layanan Dipilih</span>
+            <span id="ticket-service-name" class="font-bold text-emerald-900 text-right">-</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span class="text-slate-500">Metode</span>
+            <span id="ticket-method" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span class="text-slate-500">Waktu Terbit</span>
+            <span id="ticket-timestamp" class="font-medium text-slate-600 text-right">-</span>
+          </div>
+          <div class="flex justify-between gap-4">
+            <span class="text-slate-500">Biaya</span>
+            <span class="font-extrabold text-emerald-700 text-right">Rp 0 (Gratis)</span>
+          </div>
+        </div>
+
+        <!-- QR Code Simulation & Toast Feedback -->
+        <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200/80 flex items-center gap-3.5">
+          <!-- Crisp SVG QR Illustration -->
+          <div class="w-16 h-16 bg-white p-1.5 rounded-xl border border-slate-200 shrink-0 flex items-center justify-center">
+            <svg viewBox="0 0 36 36" class="w-full h-full fill-slate-900">
+              <path d="M2 2h10v10H2V2zm2 2v6h6V4H4zm2 2h2v2H6V6zm18-4h10v10H24V2zm2 2v6h6V4h-6zm2 2h2v2h-2V6zM2 24h10v10H2V24zm2 2v6h6v-6H4zm2 2h2v2H6v-2zm10-22h2v4h-2V6zm4 2h2v4h-2V8zm-4 6h4v2h-4v-2zm-8 2h4v2H8v-2zm6 2h2v4h-2v-4zm4 0h4v2h-4v-2zm6 0h2v6h-2v-6zm4 2h2v4h-2v-4zm-14 4h4v2h-4v-2zm-2 4h2v6h-2v-6zm4 2h4v2h-4v-2zm6 0h2v4h-2v-4zm4 2h4v2h-4v-2z"/>
+            </svg>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-relaxed">
+            Tunjukkan kode registrasi atau QR ini kepada petugas di <strong class="text-slate-800">Meja Informasi / Loket PTSP</strong> saat panggilan nomor antrean Anda.
+          </p>
+        </div>
+
+        <!-- Copy Toast Notification -->
+        <div id="copy-toast" class="hidden text-center text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 py-2 rounded-xl">
+          Kode Registrasi berhasil disalin ke clipboard!
+        </div>
+
+        <!-- Ticket Modal Buttons -->
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="copyTicketCode()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold transition-colors">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span>Salin Kode</span>
+          </button>
+          <button onclick="closeTicketModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm font-bold transition-colors">
+            <span>Selesai</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: INFORMASI PUBLIK, DIREKTORI KUA & MADRASAH MURUNG RAYA       -->
+  <!-- ===================================================================== -->
+  <div id="info-mura-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm overflow-y-auto">
+    <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800 px-6 py-5 text-white flex items-center justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300 block">Informasi Resmi Kantor Kemenag Kab. Murung Raya</span>
+          <h3 id="info-mura-title" class="text-lg sm:text-xl font-extrabold mt-0.5">Direktori Layanan</h3>
+        </div>
+        <button onclick="closeInfoMuraModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="info-mura-body" class="p-6 max-h-[72vh] overflow-y-auto text-sm text-slate-700 space-y-4">
+        <!-- Populated dynamically -->
+      </div>
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
+        <a href="https://kemenag-mura.vercel.app/" target="_blank" rel="noopener noreferrer"
+           class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-amber-700">
+          <i data-lucide="globe" class="w-4 h-4"></i>
+          <span>Buka Website Utama Kemenag Mura</span>
+        </a>
+        <button onclick="closeInfoMuraModal()" class="px-5 py-2 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition-colors">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-auto border-t border-slate-200/80 bg-white/75 backdrop-blur-sm py-4 px-4 text-center text-xs text-slate-500">
+    <p>© 2026 Pelayanan Terpadu Satu Pintu (PTSP) — Kantor Kementerian Agama Kabupaten Murung Raya (Kk.15.14) • Jl. KH. Ahmad Dahlan No. 01, Puruk Cahu 73911 • Telp (0528) 31854.</p>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT APPLICATION LOGIC                                          -->
+  <!-- ===================================================================== -->
+  <script>
+    // 1. DATA SEKSI & PENYELENGGARA PTSP KEMENAG KABUPATEN MURUNG RAYA (Kk.15.14)
+    const ptspSections = [
+      {
+        id: 'tu',
+        code: 'A',
+        counter: 'Loket 1',
+        name: 'Subbagian Tata Usaha (TU)',
+        shortDesc: 'Persuratan, Kepegawaian ASN, Perencanaan, Keuangan, BMN & Kehumasan',
+        icon: 'briefcase',
+        colorClass: 'emerald',
+        services: [
+          {
+            id: 'tu-1',
+            title: 'Penerimaan Surat Masuk & Permohonan Audiensi Kepala Kantor',
+            time: '15 Menit',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Registrasi surat resmi instansi/masyarakat serta permohonan audiensi Kepala Kantor Kemenag Kab. Murung Raya.',
+            requirements: [
+              'Surat resmi permohonan yang telah ditandatangani & distempel',
+              'Fotokopi KTP pemohon / penanggung jawab surat',
+              'Nomor WhatsApp aktif yang dapat dihubungi'
+            ]
+          },
+          {
+            id: 'tu-2',
+            title: 'Layanan Informasi Publik (PPID) & Pengaduan Masyarakat',
+            time: '1 – 3 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Permintaan data informasi publik atau penyampaian laporan pengaduan layanan di wilayah Kab. Murung Raya.',
+            requirements: [
+              'Formulir permohonan informasi publik / pengaduan',
+              'Salinan identitas diri (KTP/SIM)',
+              'Uraian informasi yang dibutuhkan atau kronologi pengaduan'
+            ]
+          },
+          {
+            id: 'tu-3',
+            title: 'Administrasi Kepegawaian, Cuti, Karis/Karsu & Pensiun ASN',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pengusulan kenaikan pangkat, cuti, mutasi, dan pemberkasan pensiun ASN Kemenag Kab. Murung Raya.',
+            requirements: [
+              'Surat pengantar dari satuan kerja / madrasah / KUA Kecamatan',
+              'Salinan SK pangkat terakhir & SKP 2 tahun terakhir',
+              'Berkas pendukung sesuai jenis usulan kepegawaian'
+            ]
+          },
+          {
+            id: 'tu-4',
+            title: 'Permohonan Izin Penelitian Skripsi / Tesis / Magang / PKL',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Rekomendasi penelitian dan praktik kerja lapangan di lingkungan Kantor, KUA, maupun Madrasah di Kab. Murung Raya.',
+            requirements: [
+              'Surat pengantar resmi dari Perguruan Tinggi / Sekolah',
+              'Proposal singkat penelitian atau rencana kegiatan magang',
+              'Fotokopi KTM / Kartu Pelajar'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'pendis',
+        code: 'B',
+        counter: 'Loket 2',
+        name: 'Seksi Pendidikan Islam (Pendis)',
+        shortDesc: 'Madrasah (RA/MI/MTs/MA), PAI Sekolah, Pondok Pesantren, MDT & LPQ/TPQ',
+        icon: 'graduation-cap',
+        colorClass: 'amber',
+        services: [
+          {
+            id: 'pendis-1',
+            title: 'Legalisir Ijazah & Surat Pengganti Ijazah Madrasah',
+            time: '30 Menit',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pengesahan fotokopi ijazah RA, MI, MTs, MA atau penerbitan surat keterangan pengganti ijazah hilang/rusak di Murung Raya.',
+            requirements: [
+              'Ijazah asli (untuk legalisir) atau Surat Keterangan Kehilangan Kepolisian',
+              'Fotokopi ijazah yang akan dilegalisir (maksimal 10 lembar)',
+              'Fotokopi KTP pemohon & transkrip nilai / buku induk siswa'
+            ]
+          },
+          {
+            id: 'pendis-2',
+            title: 'Rekomendasi Mutasi / Pindah Siswa Madrasah',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Penerbitan surat rekomendasi perpindahan peserta didik antar madrasah maupun ke sekolah umum.',
+            requirements: [
+              'Surat keterangan pindah dari madrasah asal (MIN/MIS/MTsN/MTsS/MAN/MAS)',
+              'Surat keterangan diterima dari madrasah/sekolah tujuan',
+              'Fotokopi Rapor terakhir dan Kartu Keluarga (KK)'
+            ]
+          },
+          {
+            id: 'pendis-3',
+            title: 'Izin Operasional Ponpes, MDT, LPQ/TPQ & Madrasah',
+            time: '3 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pengusulan Piagam Statistik Pesantren, Madrasah Diniyah Takmiliyah, TPQ, maupun pendirian madrasah baru.',
+            requirements: [
+              'Surat permohonan dari pimpinan yayasan/lembaga',
+              'Profil lembaga, daftar santri/siswa, dan daftar ustadz/guru',
+              'Surat keterangan domisili dari Kelurahan/Desa & foto sarana belajar'
+            ]
+          },
+          {
+            id: 'pendis-4',
+            title: 'Verifikasi Dana BOS, PIP & Tunjangan Profesi Guru (TPG)',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Validasi dokumen pencairan bantuan operasional madrasah, beasiswa PIP siswa, dan TPG guru PAI/Madrasah.',
+            requirements: [
+              'Surat pengantar dari Kepala Madrasah / Pengawas PAI',
+              'RKAM / SPJ sebelumnya / SK penetapan penerima',
+              'Salinan buku rekening aktif dan dokumen pendukung SIMPATIKA/EMIS'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'bimas',
+        code: 'C',
+        counter: 'Loket 3',
+        name: 'Seksi Bimbingan Masyarakat (Bimas) Islam',
+        shortDesc: 'KUA 10 Kecamatan, Pengukuran Arah Kiblat, ID Masjid (SIMAS) & Produk Halal',
+        icon: 'landmark',
+        colorClass: 'emerald',
+        services: [
+          {
+            id: 'bimas-1',
+            title: 'Permohonan Pengukuran & Kalibrasi Arah Kiblat',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Penentuan titik koordinat dan arah kiblat akurat untuk pembangunan masjid, musholla, atau tanah wakaf di 10 Kecamatan Murung Raya.',
+            requirements: [
+              'Surat permohonan dari Takmir Masjid / Panitia Pembangunan',
+              'Denah lokasi bangunan / titik koordinat Google Maps',
+              'Fotokopi KTP pemohon / ketua takmir'
+            ]
+          },
+          {
+            id: 'bimas-2',
+            title: 'Penerbitan Nomor ID Masjid / Musholla (SIMAS)',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Registrasi identitas nasional masjid dan musholla pada Sistem Informasi Masjid (SIMAS) Kemenag.',
+            requirements: [
+              'Surat permohonan dari pengurus takmir masjid/musholla',
+              'SK Susunan Pengurus Takmir yang disahkan KUA Kecamatan',
+              'Surat keterangan status tanah (wakaf/hibah) dan foto tampak depan masjid'
+            ]
+          },
+          {
+            id: 'bimas-3',
+            title: 'Konsultasi & Pendampingan Sertifikasi Halal UMKM',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Fasilitasi pendaftaran sertifikat halal jalur Self Declare maupun Reguler bagi pelaku usaha UMKM di Kab. Murung Raya.',
+            requirements: [
+              'Nomor Induk Berusaha (NIB) pelaku usaha',
+              'Daftar nama produk dan rincian bahan baku yang digunakan',
+              'Fotokopi KTP pemilik usaha'
+            ]
+          },
+          {
+            id: 'bimas-4',
+            title: 'Rekomendasi Nikah & Legalisir Buku Nikah / Dokumen KUA',
+            time: '30 Menit',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Konsultasi administrasi nikah lintas kecamatan/kabupaten dan pengesahan salinan dokumen KUA.',
+            requirements: [
+              'Surat pengantar dari KUA Kecamatan asal',
+              'Buku Nikah asli (untuk legalisir) & fotokopi',
+              'Fotokopi KTP dan Kartu Keluarga pemohon'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'phu',
+        code: 'D',
+        counter: 'Loket 4',
+        name: 'Seksi Penyelenggaraan Haji & Umrah (PHU)',
+        shortDesc: 'Pendaftaran Haji Reguler, Pelimpahan/Pembatalan Porsi & Rekomendasi Umrah',
+        icon: 'compass',
+        colorClass: 'amber',
+        services: [
+          {
+            id: 'phu-1',
+            title: 'Pendaftaran Haji Reguler & Penerbitan SPPH',
+            time: '45 Menit',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Validasi data biometrik dan penerbitan Surat Pendaftaran Pergi Haji (SPPH) jemaah Kab. Murung Raya.',
+            requirements: [
+              'Bukti Setoran Awal BPIH dari Bank Penerima Setoran (BPS)',
+              'KTP elektronik asli & fotokopi domisili Kab. Murung Raya',
+              'Kartu Keluarga (KK) serta Akta Kelahiran / Buku Nikah / Ijazah'
+            ]
+          },
+          {
+            id: 'phu-2',
+            title: 'Pelimpahan Nomor Porsi Haji (Wafat / Sakit Permanen)',
+            time: '3 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pengalihan hak porsi jemaah haji yang wafat atau sakit permanen kepada ahli waris yang sah.',
+            requirements: [
+              'Akta Kematian dari Dukcapil atau Surat Keterangan Sakit Permanen RSUD Puruk Cahu',
+              'Surat kuasa penunjukan pelimpahan porsi yang disepakati ahli waris',
+              'Bukti setoran awal BPIH asli & KTP/KK penerima pelimpahan'
+            ]
+          },
+          {
+            id: 'phu-3',
+            title: 'Pembatalan Porsi Haji & Pengembalian Setoran',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Proses pembatalan pendaftaran haji dan pengajuan pengembalian dana setoran awal/lunas.',
+            requirements: [
+              'Surat permohonan pembatalan bermeterai cukup',
+              'Bukti asli Setoran Awal BPIH dan SPPH',
+              'Fotokopi KTP dan buku tabungan aktif atas nama jemaah bersangkutan'
+            ]
+          },
+          {
+            id: 'phu-4',
+            title: 'Rekomendasi Penerbitan Paspor Jamaah Umrah',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Surat rekomendasi bagi calon jamaah umrah Kab. Murung Raya melalui PPIU resmi berizin Kementerian Agama.',
+            requirements: [
+              'Surat rekomendasi asli dari PPIU (Travel Umrah berizin resmi)',
+              'Fotokopi KTP, Kartu Keluarga, dan jadwal keberangkatan',
+              'Bukti pendaftaran / kontrak perjalanan umrah'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'kristen',
+        code: 'E',
+        counter: 'Loket 5',
+        name: 'Seksi Bimbingan Masyarakat (Bimas) Kristen',
+        shortDesc: 'Tanda Daftar Gereja, Pendidikan Agama Kristen (PAK) & Bantuan Lembaga',
+        icon: 'church',
+        colorClass: 'emerald',
+        services: [
+          {
+            id: 'kristen-1',
+            title: 'Penerbitan Surat Keterangan Tanda Lapor / Daftar Gereja',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pendaftaran dan pemutakhiran data sinode/gereja lokal di wilayah Kabupaten Murung Raya.',
+            requirements: [
+              'Surat permohonan dari pimpinan majelis/jemaat gereja',
+              'SK Badan Hukum Sinode dari Ditjen Bimas Kristen Kemenag RI',
+              'Susunan pengurus jemaat dan surat keterangan domisili gereja'
+            ]
+          },
+          {
+            id: 'kristen-2',
+            title: 'Rekomendasi Bantuan Sarana Ibadah & Lembaga Keagamaan',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Verifikasi proposal dan penerbitan rekomendasi bantuan rumah ibadah atau kegiatan keagamaan Kristen.',
+            requirements: [
+              'Proposal permohonan bantuan beserta Rencana Anggaran Biaya (RAB)',
+              'Fotokopi Tanda Daftar Gereja / Lembaga Keagamaan Kristen',
+              'Fotokopi KTP pengurus dan buku rekening bank atas nama gereja/lembaga'
+            ]
+          },
+          {
+            id: 'kristen-3',
+            title: 'Layanan Administrasi Guru Pendidikan Agama Kristen (PAK)',
+            time: '1 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Verifikasi data guru PAK sekolah umum di Murung Raya, surat keterangan mengajar, dan konsultasi TPG.',
+            requirements: [
+              'Surat pengantar dari Kepala Sekolah / Pengawas PAK',
+              'SK Pembagian Tugas Mengajar semester berjalan',
+              'Salinan sertifikat pendidik dan dokumen pendukung lainnya'
+            ]
+          }
+        ]
+      },
+      {
+        id: 'katolik-hindu-zawa',
+        code: 'F',
+        counter: 'Loket 6',
+        name: 'Penyelenggara Katolik, Hindu & Zakat Wakaf',
+        shortDesc: 'Layanan Umat Katolik, Hindu Kaharingan, Akta Ikrar Wakaf & Zakat',
+        icon: 'heart-handshake',
+        colorClass: 'amber',
+        services: [
+          {
+            id: 'khz-1',
+            title: 'Layanan Paroki/Stasi & Guru Pendidikan Agama Katolik',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pendataan stasi/paroki umat Katolik di Kab. Murung Raya serta layanan administrasi guru Pendidikan Agama Katolik.',
+            requirements: [
+              'Surat permohonan dari Pastor Paroki / Pengurus Stasi / Kepala Sekolah',
+              'Profil stasi/lembaga atau SK pembagian tugas mengajar guru',
+              'Fotokopi KTP pemohon / penanggung jawab'
+            ]
+          },
+          {
+            id: 'khz-2',
+            title: 'Layanan Rumah Ibadah / Balai Basarah & Guru Agama Hindu',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pendataan rumah ibadah Pura/Balai Basarah Hindu Kaharingan, rekomendasi bantuan lembaga, dan guru Pendidikan Agama Hindu.',
+            requirements: [
+              'Surat permohonan dari Pengurus Majelis / Balai Basarah / Kepala Sekolah',
+              'Profil lembaga keagamaan atau SK pembagian tugas mengajar guru',
+              'Fotokopi KTP pengurus / pemohon'
+            ]
+          },
+          {
+            id: 'khz-3',
+            title: 'Fasilitasi Akta Ikrar Wakaf (AIW) & Sertifikasi Tanah Wakaf',
+            time: '3 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Pendampingan penerbitan AIW oleh PPAIW (Kepala KUA) hingga pengantar sertifikat tanah wakaf ke BPN Murung Raya.',
+            requirements: [
+              'Sertifikat hak atas tanah asli atau bukti kepemilikan sah',
+              'KTP Wakif (pemberi wakaf), Nadzir (pengelola), dan 2 orang saksi',
+              'Surat keterangan tidak dalam sengketa dari Kelurahan/Desa'
+            ]
+          },
+          {
+            id: 'khz-4',
+            title: 'Rekomendasi UPZ / LAZ & Pembaruan SK Nadzir Wakaf',
+            time: '2 Hari Kerja',
+            fee: 'Gratis (Rp 0)',
+            desc: 'Verifikasi pendirian Unit Pengumpul Zakat (UPZ) serta pembaruan kepengurusan Nadzir wakaf di Kab. Murung Raya.',
+            requirements: [
+              'Berita acara musyawarah / surat permohonan lembaga',
+              'Salinan Akta Ikrar Wakaf (AIW) atau rekomendasi BAZNAS Kab. Murung Raya',
+              'Fotokopi KTP pengurus dan program kerja lembaga'
+            ]
+          }
+        ]
+      }
+    ];
+
+    // State Management
+    let currentSection = null;
+    let currentService = null;
+    let savedTicket = null;
+    let queueCounter = 14;
+    let revealTimers = [];
+    let miniRevealTimers = [];
+
+    // Initialize Icons & Render Sections on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSectionsGrid();
+      lucide.createIcons();
+    });
+
+    // Clear any running slow-motion timers
+    function clearRevealTimers() {
+      revealTimers.forEach(timer => clearTimeout(timer));
+      revealTimers = [];
+    }
+
+    function clearMiniRevealTimers() {
+      miniRevealTimers.forEach(timer => clearTimeout(timer));
+      miniRevealTimers = [];
+    }
+
+    // 2. ANIMASI PINTU TERBUKA & MASUK KE RUANG LOBI PTSP (SUPER SLOW-MOTION 1 PER 1)
+    function enterPTSPBuilding() {
+      const doorZone = document.getElementById('door-interactive-zone');
+      const buildingStage = document.getElementById('building-stage');
+      const exteriorHeader = document.getElementById('exterior-header');
+      const exteriorView = document.getElementById('exterior-view');
+      const lobbyView = document.getElementById('lobby-view');
+      const exitBtn = document.getElementById('btn-exit-building');
+
+      // Prevent double trigger
+      if (doorZone.classList.contains('doors-opened')) return;
+
+      // Step 1: Open double doors inward (3D rotation)
+      doorZone.classList.add('doors-opened');
+      exteriorHeader.style.opacity = '0';
+      exteriorHeader.style.transform = 'translateY(-12px)';
+
+      // Step 2: Camera zooms in through the open doorway
+      setTimeout(() => {
+        buildingStage.classList.add('entering');
+      }, 450);
+
+      // Step 3: Enter PTSP Room & begin Super Slow-Motion 1-by-1 reveal
+      setTimeout(() => {
+        exteriorView.classList.add('hidden');
+        lobbyView.classList.remove('lobby-hidden');
+        lobbyView.classList.add('lobby-visible');
+        
+        // Show "Keluar Gedung" button in header
+        exitBtn.classList.remove('hidden');
+        exitBtn.classList.add('inline-flex');
+
+        // Trigger Super Slow-Motion 1-by-1 Lobby & Honeycomb Reveal
+        triggerSuperSlowMotionSequence();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        lucide.createIcons();
+      }, 1250);
+    }
+
+    // Super Slow-Motion 1-by-1 Orchestrator inside PTSP Room
+    function triggerSuperSlowMotionSequence() {
+      clearRevealTimers();
+
+      const banner = document.getElementById('lobby-banner');
+      const sectionBar = document.getElementById('lobby-section-bar');
+      const honeycombFrame = document.getElementById('lobby-honeycomb-frame');
+      const statusText = document.getElementById('reveal-status-text');
+      const hexCells = document.querySelectorAll('.hex-wrapper');
+
+      // Reset all lobby elements to initial hidden state
+      [banner, sectionBar, honeycombFrame].forEach(el => {
+        if (el) el.classList.remove('revealed');
+      });
+
+      hexCells.forEach(cell => {
+        cell.classList.remove('hex-animate-in');
+        void cell.offsetWidth; // Force reflow
+      });
+
+      if (statusText) {
+        statusText.textContent = 'Memasuki Ruang PTSP...';
+      }
+
+      // 1. Reveal Welcome Banner slowly
+      revealTimers.push(setTimeout(() => {
+        if (banner) banner.classList.add('revealed');
+      }, 150));
+
+      // 2. Reveal Section Header & Honeycomb Frame
+      revealTimers.push(setTimeout(() => {
+        if (sectionBar) sectionBar.classList.add('revealed');
+        if (honeycombFrame) honeycombFrame.classList.add('revealed');
+      }, 650));
+
+      // 3. Reveal each Hexagon Seksi 1-by-1 in Super Slow-Motion (750ms interval between each)
+      hexCells.forEach((cell, idx) => {
+        const delay = 1150 + idx * 750;
+        revealTimers.push(setTimeout(() => {
+          cell.classList.add('hex-animate-in');
+          if (statusText) {
+            if (idx < hexCells.length - 1) {
+              statusText.textContent = `Menampilkan Seksi ${idx + 1} dari ${hexCells.length}...`;
+            } else {
+              statusText.textContent = '6 Loket Seksi PTSP Aktif';
+            }
+          }
+        }, delay));
+      });
+    }
+
+    function replayHoneycombAnimation() {
+      triggerSuperSlowMotionSequence();
+    }
+
+    // Return to Exterior Building Front View
+    function returnToEntrance() {
+      clearRevealTimers();
+      const doorZone = document.getElementById('door-interactive-zone');
+      const buildingStage = document.getElementById('building-stage');
+      const exteriorHeader = document.getElementById('exterior-header');
+      const exteriorView = document.getElementById('exterior-view');
+      const lobbyView = document.getElementById('lobby-view');
+      const exitBtn = document.getElementById('btn-exit-building');
+
+      // Hide lobby and reset states
+      lobbyView.classList.remove('lobby-visible');
+      lobbyView.classList.add('lobby-hidden');
+      exitBtn.classList.add('hidden');
+      exitBtn.classList.remove('inline-flex');
+
+      // Reset exterior view
+      exteriorView.classList.remove('hidden');
+      backToSections();
+      clearSearch();
+
+      // Animate doors closing smoothly after returning outside
+      requestAnimationFrame(() => {
+        buildingStage.classList.remove('entering');
+        exteriorHeader.style.opacity = '1';
+        exteriorHeader.style.transform = 'translateY(0)';
+        setTimeout(() => {
+          doorZone.classList.remove('doors-opened');
+        }, 300);
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 3. RENDER KARTU PILIHAN SEKSI BERBENTUK SARANG LEBAH (HONEYCOMB) DI LOBI PTSP
+    function renderSectionsGrid() {
+      const grid = document.getElementById('sections-grid');
+
+      // Split 6 sections into 2 interlocking honeycomb rows (Row 1: 3 cells, Row 2: 3 offset cells)
+      const row1 = ptspSections.slice(0, 3);
+      const row2 = ptspSections.slice(3, 6);
+
+      const createHexCellHTML = (sec) => {
+        const isEmerald = sec.colorClass === 'emerald';
+        const isActive = currentSection && currentSection.id === sec.id;
+        const iconBg = isActive
+          ? 'bg-amber-400 text-emerald-950 border-amber-300'
+          : isEmerald
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : 'bg-amber-50 text-amber-700 border-amber-200';
+        const badgeBg = isActive
+          ? 'bg-amber-400 text-emerald-950'
+          : isEmerald
+            ? 'bg-emerald-900 text-white'
+            : 'bg-amber-600 text-white';
+
+        return `
+          <div id="hex-cell-${sec.id}"
+               onclick="selectSection('${sec.id}')"
+               onmouseenter="highlightNeighborCells('${sec.id}', true)"
+               onmouseleave="highlightNeighborCells('${sec.id}', false)"
+               role="button"
+               tabindex="0"
+               onkeydown="if(event.key==='Enter' || event.key===' ') selectSection('${sec.id}')"
+               class="hex-wrapper group ${isActive ? 'hex-active hex-animate-in' : ''}">
+            <div class="hex-border">
+              <div class="hex-inner">
+                <!-- Loket Pill -->
+                <span class="px-3 py-0.5 rounded-full ${badgeBg} text-[10px] font-extrabold tracking-wider uppercase mb-2.5 shadow-sm">
+                  ${sec.counter} • Kode ${sec.code}
+                </span>
+
+                <!-- Section Icon -->
+                <div class="w-12 h-12 rounded-2xl ${iconBg} border flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <i data-lucide="${sec.icon}" class="w-6 h-6"></i>
+                </div>
+
+                <!-- Section Title -->
+                <h4 class="text-sm lg:text-[15px] font-extrabold ${isActive ? 'text-white' : 'text-slate-900 group-hover:text-emerald-900'} leading-snug line-clamp-2 px-2 mb-1.5">
+                  ${sec.name}
+                </h4>
+
+                <!-- Service Count & CTA -->
+                <div class="mt-1 inline-flex items-center gap-1 text-[11px] font-bold ${isActive ? 'text-amber-300' : 'text-emerald-800 group-hover:text-amber-600'} transition-colors">
+                  <span>${sec.services.length} Layanan</span>
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5 group-hover:translate-y-0.5 transition-transform"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      grid.innerHTML = `
+        <div class="honeycomb-row">
+          ${row1.map(createHexCellHTML).join('')}
+        </div>
+        <div class="honeycomb-row honeycomb-row-offset">
+          ${row2.map(createHexCellHTML).join('')}
+        </div>
+      `;
+    }
+
+    // Subtle pulse on adjacent honeycomb cells when hovering
+    function highlightNeighborCells(hoveredId, isHovering) {
+      document.querySelectorAll('.hex-wrapper').forEach(el => {
+        if (el.id !== `hex-cell-${hoveredId}`) {
+          if (isHovering) {
+            el.classList.add('hex-neighbor-pulse');
+          } else {
+            el.classList.remove('hex-neighbor-pulse');
+          }
+        }
+      });
+    }
+
+    // 4. PILIH SEKSI DARI SARANG LEBAH -> MUNCULKAN DROPDOWN SARANG LEBAH LEBIH KECIL UNTUK LAYANAN
+    function selectSection(sectionId) {
+      // Toggle close if clicking the same active section
+      if (currentSection && currentSection.id === sectionId) {
+        backToSections();
+        return;
+      }
+
+      const section = ptspSections.find(s => s.id === sectionId);
+      if (!section) return;
+
+      currentSection = section;
+      clearMiniRevealTimers();
+
+      // Update active state on Honeycomb cells while keeping Honeycomb visible
+      renderSectionsGrid();
+      document.querySelectorAll('.hex-wrapper').forEach(el => el.classList.add('hex-animate-in'));
+
+      document.getElementById('search-results-container').classList.add('hidden');
+      const servicesContainer = document.getElementById('services-container');
+      servicesContainer.classList.remove('hidden');
+
+      // Populate Section Badge & Header inside Dropdown
+      document.getElementById('selected-section-badge').innerHTML = `
+        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+        <span>${section.counter} • Kode Antrean ${section.code}</span>
+      `;
+
+      document.getElementById('selected-section-header').innerHTML = `
+        <div class="w-11 h-11 rounded-2xl bg-emerald-900 text-amber-300 flex items-center justify-center shrink-0 shadow-md">
+          <i data-lucide="${section.icon}" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700 block">Dropdown Layanan Seksi</span>
+          <h3 class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${section.name}</h3>
+        </div>
+      `;
+
+      // Build Mini-Honeycomb Cluster of Services (split into interlocking rows of max 2-3 cells)
+      const servicesList = document.getElementById('services-list');
+      const midPoint = Math.ceil(section.services.length / 2);
+      const miniRow1 = section.services.slice(0, midPoint);
+      const miniRow2 = section.services.slice(midPoint);
+
+      const createMiniServiceHexHTML = (srv, globalIdx) => `
+        <div onclick="openServiceModal('${section.id}', '${srv.id}')"
+             role="button"
+             tabindex="0"
+             onkeydown="if(event.key==='Enter' || event.key===' ') openServiceModal('${section.id}', '${srv.id}')"
+             class="mini-hex-wrapper group">
+          <div class="mini-hex-border">
+            <div class="mini-hex-inner">
+              <span class="px-2.5 py-0.5 rounded-full bg-emerald-900 text-amber-300 text-[9px] font-extrabold tracking-wider uppercase mb-1.5 shadow-sm">
+                Layanan #0${globalIdx + 1} • ${srv.time}
+              </span>
+              <h4 class="text-xs lg:text-[13px] font-extrabold text-slate-900 group-hover:text-emerald-950 leading-snug line-clamp-3 px-1.5 mb-2">
+                ${srv.title}
+              </h4>
+              <div class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 group-hover:text-amber-700 transition-colors">
+                <span>${srv.fee}</span>
+                <span>•</span>
+                <span class="underline">Pilih</span>
+                <i data-lucide="arrow-right" class="w-3 h-3 group-hover:translate-x-0.5 transition-transform"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      servicesList.innerHTML = `
+        <div class="mini-hive-row">
+          ${miniRow1.map((srv, idx) => createMiniServiceHexHTML(srv, idx)).join('')}
+        </div>
+        ${miniRow2.length > 0 ? `
+          <div class="mini-hive-row mini-hive-row-offset">
+            ${miniRow2.map((srv, idx) => createMiniServiceHexHTML(srv, midPoint + idx)).join('')}
+          </div>
+        ` : ''}
+      `;
+
+      lucide.createIcons();
+
+      // Animate mini honeycomb cells 1-by-1 in smooth slow motion
+      const miniCells = servicesList.querySelectorAll('.mini-hex-wrapper');
+      miniCells.forEach((cell, idx) => {
+        miniRevealTimers.push(setTimeout(() => {
+          cell.classList.add('mini-hex-animate');
+        }, 140 + idx * 240));
+      });
+
+      servicesContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Back to Section Selection
+    function backToSections() {
+      clearMiniRevealTimers();
+      currentSection = null;
+      document.getElementById('services-container').classList.add('hidden');
+      renderSectionsGrid();
+      document.querySelectorAll('.hex-wrapper').forEach(el => el.classList.add('hex-animate-in'));
+      lucide.createIcons();
+    }
+
+    // 5. PENCARIAN CEPAT LAYANAN PTSP
+    function handleSearch(query) {
+      const trimmed = query.trim().toLowerCase();
+      const searchContainer = document.getElementById('search-results-container');
+      const searchGrid = document.getElementById('search-results-grid');
+      const sectionsContainer = document.getElementById('sections-container');
+      const servicesContainer = document.getElementById('services-container');
+
+      if (!trimmed) {
+        searchContainer.classList.add('hidden');
+        sectionsContainer.classList.remove('hidden');
+        if (currentSection) {
+          servicesContainer.classList.remove('hidden');
+        }
+        return;
+      }
+
+      sectionsContainer.classList.add('hidden');
+      servicesContainer.classList.add('hidden');
+      searchContainer.classList.remove('hidden');
+
+      const matchedServices = [];
+      ptspSections.forEach(sec => {
+        sec.services.forEach(srv => {
+          if (
+            srv.title.toLowerCase().includes(trimmed) ||
+            srv.desc.toLowerCase().includes(trimmed) ||
+            sec.name.toLowerCase().includes(trimmed)
+          ) {
+            matchedServices.push({ section: sec, service: srv });
+          }
+        });
+      });
+
+      if (matchedServices.length === 0) {
+        searchGrid.innerHTML = `
+          <div class="col-span-full bg-white rounded-3xl p-8 text-center border border-slate-200">
+            <p class="text-sm font-bold text-slate-700">Layanan "${query}" tidak ditemukan.</p>
+            <p class="text-xs text-slate-500 mt-1">Coba kata kunci lain seperti "Haji", "Ijazah", "Wakaf", "Nikah", atau "Pesantren".</p>
+          </div>
+        `;
+        return;
+      }
+
+      searchGrid.innerHTML = matchedServices.map(({ section, service }) => `
+        <div class="bg-white rounded-3xl p-5 border border-slate-200 hover:border-emerald-500 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="inline-block px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold mb-2">
+              ${section.name} • ${section.counter}
+            </span>
+            <h4 class="text-base font-extrabold text-slate-900 mb-1.5">${service.title}</h4>
+            <p class="text-xs text-slate-600 mb-4">${service.desc}</p>
+          </div>
+          <button onclick="openServiceModal('${section.id}', '${service.id}')"
+                  class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition-colors cursor-pointer">
+            <span>Pilih Layanan</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-amber-300"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function clearSearch() {
+      document.getElementById('service-search-input').value = '';
+      handleSearch('');
+    }
+
+    // 6. MODAL PERSYARATAN & PENGAJUAN LAYANAN
+    function openServiceModal(sectionId, serviceId) {
+      const section = ptspSections.find(s => s.id === sectionId);
+      const service = section?.services.find(srv => srv.id === serviceId);
+      if (!section || !service) return;
+
+      currentSection = section;
+      currentService = service;
+
+      document.getElementById('modal-section-name').textContent = `${section.name} (${section.counter})`;
+      document.getElementById('modal-service-title').textContent = service.title;
+      document.getElementById('modal-service-time').textContent = service.time;
+      document.getElementById('modal-service-fee').textContent = service.fee;
+      document.getElementById('modal-service-counter').textContent = `${section.counter} (Kode ${section.code})`;
+
+      // Render Requirements Checklist
+      const reqList = document.getElementById('modal-requirements-list');
+      reqList.innerHTML = service.requirements.map((req, index) => `
+        <label class="flex items-start gap-3 p-2.5 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-400 cursor-pointer transition-colors">
+          <input type="checkbox" onchange="updateChecklistCount()" class="req-checkbox mt-0.5 w-4 h-4 accent-emerald-700 rounded cursor-pointer" />
+          <span class="text-xs sm:text-sm text-slate-700 leading-snug">${req}</span>
+        </label>
+      `).join('');
+
+      updateChecklistCount();
+
+      const modal = document.getElementById('application-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function updateChecklistCount() {
+      const checkboxes = document.querySelectorAll('.req-checkbox');
+      const checked = document.querySelectorAll('.req-checkbox:checked').length;
+      document.getElementById('checklist-counter').textContent = `${checked}/${checkboxes.length} Berkas Siap`;
+    }
+
+    function closeApplicationModal() {
+      const modal = document.getElementById('application-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // 7. SUBMIT PERMOHONAN & TERBITKAN TIKET ANTREAN DIGITAL
+    function submitPTSPApplication(event) {
+      event.preventDefault();
+      if (!currentSection || !currentService) return;
+
+      const name = document.getElementById('applicant-name').value.trim();
+      const phone = document.getElementById('applicant-phone').value.trim();
+      const org = document.getElementById('applicant-org').value.trim();
+      const method = document.getElementById('applicant-method').value;
+
+      queueCounter += 1;
+      const paddedNum = String(queueCounter).padStart(3, '0');
+      const queueNumber = `${currentSection.code}-${paddedNum}`;
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const regCode = `REG-PTSP-MURA-2026-${randomSuffix}`;
+
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      }) + ' WIB';
+
+      savedTicket = {
+        regCode,
+        queueNumber,
+        counterLabel: `${currentSection.counter} • ${currentSection.name}`,
+        applicantName: org ? `${name} (${org})` : name,
+        phone,
+        serviceName: currentService.title,
+        method,
+        timestamp: formattedDate
+      };
+
+      // Reset form & close application modal
+      document.getElementById('ptsp-application-form').reset();
+      closeApplicationModal();
+
+      // Enable "Tiket Saya" button in top navbar
+      const myTicketBtn = document.getElementById('btn-my-ticket');
+      myTicketBtn.classList.remove('hidden');
+      myTicketBtn.classList.add('inline-flex');
+
+      // Show Ticket Modal
+      renderAndOpenTicketModal(savedTicket);
+    }
+
+    function renderAndOpenTicketModal(ticket) {
+      document.getElementById('ticket-reg-code').textContent = ticket.regCode;
+      document.getElementById('ticket-queue-number').textContent = ticket.queueNumber;
+      document.getElementById('ticket-counter-label').textContent = ticket.counterLabel;
+      document.getElementById('ticket-applicant-name').textContent = ticket.applicantName;
+      document.getElementById('ticket-service-name').textContent = ticket.serviceName;
+      document.getElementById('ticket-method').textContent = ticket.method;
+      document.getElementById('ticket-timestamp').textContent = ticket.timestamp;
+
+      document.getElementById('copy-toast').classList.add('hidden');
+      const modal = document.getElementById('ticket-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function openSavedTicket() {
+      if (savedTicket) {
+        renderAndOpenTicketModal(savedTicket);
+      }
+    }
+
+    function closeTicketModal() {
+      const modal = document.getElementById('ticket-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function copyTicketCode() {
+      if (!savedTicket) return;
+      const textToCopy = `${savedTicket.regCode} | Antrean: ${savedTicket.queueNumber} (${savedTicket.serviceName})`;
+      
+      const tempInput = document.createElement('textarea');
+      tempInput.value = textToCopy;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+
+      const toast = document.getElementById('copy-toast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2800);
+    }
+
+    // 8. MODAL DIREKTORI INFORMASI KANTOR KEMENAG KABUPATEN MURUNG RAYA
+    const muraInfoData = {
+      profil: {
+        title: 'Profil Kantor Kemenag Kabupaten Murung Raya',
+        html: `
+          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <p class="font-extrabold text-emerald-950 text-base">Kantor Kementerian Agama Kabupaten Murung Raya</p>
+            <p class="text-xs text-emerald-800 mt-1">Kode Satker / Tata Naskah Dinas: <strong>Kk.15.14</strong></p>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Melayani masyarakat di <strong>10 Kecamatan, 9 Kelurahan, dan 116 Desa</strong> di Bumi Tana Malai Tolung Lingu, Provinsi Kalimantan Tengah.
+            </p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+              <span class="text-[11px] font-bold text-amber-700 uppercase">Alamat Kantor</span>
+              <p class="font-bold text-slate-900 text-xs mt-1">Jl. KH. Ahmad Dahlan No. 01, Puruk Cahu, Kec. Murung, Kab. Murung Raya 73911</p>
+            </div>
+            <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50">
+              <span class="text-[11px] font-bold text-amber-700 uppercase">Kontak & Layanan Pengaduan</span>
+              <p class="font-bold text-slate-900 text-xs mt-1">Telp / Fax: (0528) 31854<br>Jam Layanan: Senin–Jumat (07.30–16.00 WIB)</p>
+            </div>
+          </div>
+        `
+      },
+      kua: {
+        title: 'Direktori KUA 10 Kecamatan se-Kabupaten Murung Raya',
+        html: `
+          <p class="text-xs text-slate-600">Layanan pencatatan nikah, rujuk, konsultasi keluarga sakinah, kemasjidan, dan ikrar wakaf tersedia di seluruh KUA Kecamatan:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">1. KUA Kecamatan Murung (Puruk Cahu)</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">2. KUA Kecamatan Tanah Siang</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">3. KUA Kecamatan Tanah Siang Selatan</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">4. KUA Kecamatan Laung Tuhup</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">5. KUA Kecamatan Permata Intan</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">6. KUA Kecamatan Barito Tuhup Raya</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">7. KUA Kecamatan Sumber Barito</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">8. KUA Kecamatan Sungai Babuat</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">9. KUA Kecamatan Seribu Riam</div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-emerald-950">10. KUA Kecamatan Uut Murung</div>
+          </div>
+        `
+      },
+      madrasah: {
+        title: 'Satuan Pendidikan Madrasah Negeri di Murung Raya',
+        html: `
+          <p class="text-xs text-slate-600">Daftar Madrasah Negeri di bawah pembinaan Seksi Pendidikan Islam (Pendis) Kemenag Kabupaten Murung Raya:</p>
+          <div class="space-y-2.5 text-xs">
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p class="font-extrabold text-emerald-950">MAN 1 Murung Raya</p>
+              <p class="text-slate-600 mt-0.5">Jl. KH. Ahmad Dahlan, Puruk Cahu • Jenjang Madrasah Aliyah</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p class="font-extrabold text-emerald-950">MTsN 1 Murung Raya</p>
+              <p class="text-slate-600 mt-0.5">Puruk Cahu, Kec. Murung • Jenjang Madrasah Tsanawiyah</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p class="font-extrabold text-emerald-950">MTsN 2 Murung Raya</p>
+              <p class="text-slate-600 mt-0.5">Kec. Laung Tuhup / Muara Laung • Jenjang Madrasah Tsanawiyah</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p class="font-extrabold text-emerald-950">MIN 1 & MIN 2 Murung Raya</p>
+              <p class="text-slate-600 mt-0.5">Jenjang Madrasah Ibtidaiyah Negeri di Kabupaten Murung Raya</p>
+            </div>
+          </div>
+        `
+      },
+      maklumat: {
+        title: 'Maklumat Pelayanan PTSP Kemenag Murung Raya',
+        html: `
+          <div class="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-center">
+            <p class="text-xs font-extrabold uppercase tracking-wider text-amber-800 mb-2">Maklumat Pelayanan Publik</p>
+            <p class="text-sm font-bold text-slate-900 leading-relaxed">
+              "Dengan ini, kami seluruh jajaran Kantor Kementerian Agama Kabupaten Murung Raya menyatakan sanggup menyelenggarakan pelayanan sesuai standar pelayanan yang telah ditetapkan dan apabila tidak menepati janji ini, kami siap menerima sanksi sesuai peraturan perundang-undangan yang berlaku."
+            </p>
+          </div>
+          <ul class="space-y-2 text-xs text-slate-700 list-disc pl-5">
+            <li>Seluruh layanan administrasi pada PTSP Kemenag Kab. Murung Raya tidak dipungut biaya (<strong>Rp 0 / Gratis</strong>).</li>
+            <li>Dilayani secara ramah, cepat, transparan, dan akuntabel oleh petugas loket terlatih.</li>
+            <li>Tersedia layanan prioritas bagi penyandang disabilitas, lansia, dan ibu hamil.</li>
+          </ul>
+        `
+      }
+    };
+
+    function openInfoMuraModal(key) {
+      const item = muraInfoData[key];
+      if (!item) return;
+      document.getElementById('info-mura-title').textContent = item.title;
+      document.getElementById('info-mura-body').innerHTML = item.html;
+      const modal = document.getElementById('info-mura-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeInfoMuraModal() {
+      const modal = document.getElementById('info-mura-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  </script>
+</body>
+</html>
