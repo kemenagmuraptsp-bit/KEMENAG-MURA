@@ -596,7 +596,7 @@ export function PtspInteractiveHero({
       {isDoorStage && (
         <div
           ref={heroStageRef}
-          className="relative min-h-[88vh] sm:min-h-[94vh] w-full overflow-hidden bg-[#081526]"
+          className="relative min-h-[88vh] sm:min-h-[94vh] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
         >
           {/* Coordinate-Locked Building Facade + Pixel-Aligned Realistic 3D Glass Entrance Door */}
           <div

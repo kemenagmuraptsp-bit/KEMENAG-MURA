@@ -14,7 +14,7 @@ export const HERO_FACADE_HEIGHT = 768;
 // and lowered so the finial + waving flag sit fully visible below the fixed top Navbar.
 const POLE_CENTER_X = 94;
 const POLE_TOP_Y = 186; // 24.2% — comfortably below fixed desktop Navbar (~14%–17%)
-const POLE_BASE_Y = 574; // Anchors cleanly into stone pedestal on left front garden lawn
+const POLE_BASE_Y = 558; // Meets upper concrete plinth collar emerging from behind front garden hedge (y~572)
 const HOIST_X = 96.5;
 const HOIST_TOP_Y = 196; // 25.5%
 const FLAG_HEIGHT = 78; // Official 3:2 proportion (117 x 78); top red: 39, bottom white: 39
@@ -231,6 +231,19 @@ export function HeroOfficeBackground({
           <filter id="poleShadow" x="-40%" y="-5%" width="180%" height="110%">
             <feDropShadow dx="1.5" dy="2" stdDeviation="1.6" floodColor="#07182b" floodOpacity="0.28" />
           </filter>
+
+          {/* Soft organic mask tracing the exact top crest of the manicured garden hedge (y~571..574) */}
+          <filter id="foliageEdgeFeather" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="1.2" />
+          </filter>
+          <mask id="leftGardenPlantsMask">
+            <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
+            <path
+              d="M 60 573 Q 68 569 76 572 Q 84 568 92 571 Q 99 568 107 572 Q 115 569 124 572 L 130 574 L 130 656 L 60 656 Z"
+              fill="white"
+              filter="url(#foliageEdgeFeather)"
+            />
+          </mask>
         </defs>
 
         {/* Main Official Kantor Kemenag Murung Raya Facade Photo (Clean Right Lawn Without Old Flagpole) */}
@@ -243,45 +256,38 @@ export function HeroOfficeBackground({
           preserveAspectRatio="none"
         />
 
-        {/* LEFT-SIDE FLAGPOLE, STEPPED PEDESTAL & LOWERED WAVING BENDERA MERAH PUTIH */}
+        {/* LEFT-SIDE FLAGPOLE, PEDESTAL BEHIND GARDEN PLANTS & WAVING BENDERA MERAH PUTIH */}
         <g aria-label="Tiang dan Bendera Merah Putih di sisi kiri kantor">
-          {/* Soft ground contact shadow under pedestal on left garden lawn */}
-          <ellipse cx={POLE_CENTER_X} cy={650} rx="26" ry="5.5" fill="#071a12" opacity="0.42" />
-
-          {/* Lower natural stone stepped base (stays left of x=116, clear of left videotron at x=133.5) */}
+          {/* Lower natural stone stepped base tucked behind the manicured garden hedge (y=574..616) */}
           <rect
-            x={POLE_CENTER_X - 20}
-            y={612}
-            width="40"
-            height="36"
+            x={POLE_CENTER_X - 18}
+            y={575}
+            width="36"
+            height="42"
             rx="2"
             fill="url(#pedestalStoneGrad)"
             stroke="#6b6257"
             strokeWidth="0.8"
           />
-          {/* Subtle masonry stone joints */}
-          <line x1={POLE_CENTER_X - 20} y1={624} x2={POLE_CENTER_X + 20} y2={624} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
-          <line x1={POLE_CENTER_X - 20} y1={636} x2={POLE_CENTER_X + 20} y2={636} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
-          <line x1={POLE_CENTER_X - 4} y1={612} x2={POLE_CENTER_X - 4} y2={624} stroke="#6b6257" strokeWidth="0.6" opacity="0.5" />
-          <line x1={POLE_CENTER_X + 6} y1={624} x2={POLE_CENTER_X + 6} y2={636} stroke="#6b6257" strokeWidth="0.6" opacity="0.5" />
-          <line x1={POLE_CENTER_X - 7} y1={636} x2={POLE_CENTER_X - 7} y2={648} stroke="#6b6257" strokeWidth="0.6" opacity="0.5" />
+          <line x1={POLE_CENTER_X - 18} y1={589} x2={POLE_CENTER_X + 18} y2={589} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
+          <line x1={POLE_CENTER_X - 18} y1={603} x2={POLE_CENTER_X + 18} y2={603} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
 
-          {/* Upper white concrete stepped plinth */}
+          {/* Upper white concrete stepped plinth peeking cleanly just above the back of the hedge */}
           <rect
-            x={POLE_CENTER_X - 15}
-            y={603}
-            width="30"
-            height="10"
+            x={POLE_CENTER_X - 13.5}
+            y={567}
+            width="27"
+            height="9"
             rx="1"
             fill="url(#pedestalConcreteGrad)"
             stroke="#94a3b8"
             strokeWidth="0.6"
           />
           <rect
-            x={POLE_CENTER_X - 9.5}
-            y={576}
-            width="19"
-            height="28"
+            x={POLE_CENTER_X - 8.5}
+            y={559}
+            width="17"
+            height="9"
             rx="1"
             fill="url(#pedestalConcreteGrad)"
             stroke="#94a3b8"
@@ -289,9 +295,9 @@ export function HeroOfficeBackground({
           />
           {/* Steel base collar */}
           <rect
-            x={POLE_CENTER_X - 5.2}
-            y={570}
-            width="10.4"
+            x={POLE_CENTER_X - 4.8}
+            y={553}
+            width="9.6"
             height="6.5"
             rx="1"
             fill="#cbd5e1"
@@ -374,6 +380,17 @@ export function HeroOfficeBackground({
             ))}
           </g>
         </g>
+
+        {/* FOREGROUND REAL GARDEN PLANTS OVERLAY: Places the Flagpole Pedestal Naturally Behind the Greenery */}
+        <image
+          href={imageSrc}
+          x="0"
+          y="0"
+          width={HERO_FACADE_WIDTH}
+          height={HERO_FACADE_HEIGHT}
+          preserveAspectRatio="none"
+          mask="url(#leftGardenPlantsMask)"
+        />
       </svg>
     </div>
   );
