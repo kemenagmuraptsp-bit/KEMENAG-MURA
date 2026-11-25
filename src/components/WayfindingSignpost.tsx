@@ -4,7 +4,6 @@ import {
   FolderArchive,
   GitBranch,
   Globe,
-  LayoutGrid,
   Lightbulb,
 } from 'lucide-react';
 
@@ -22,17 +21,10 @@ interface SignpostPlankItem {
   number: string;
   labelId: string;
   labelEn: string;
-  icon: typeof LayoutGrid;
+  icon: typeof Compass;
 }
 
 const SIGNPOST_ITEMS: SignpostPlankItem[] = [
-  {
-    id: 'katalog-ptsp',
-    number: '1',
-    labelId: 'Katalog Layanan PTSP',
-    labelEn: 'PTSP Service Catalog',
-    icon: LayoutGrid,
-  },
   {
     id: 'dokumen-penting',
     number: '2',

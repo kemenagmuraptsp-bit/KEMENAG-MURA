@@ -56,7 +56,6 @@ import { OfficialTteDocumentModal } from '@/src/components/OfficialTteDocumentMo
 import { formatAttachmentBytes } from '@/src/utils/serviceDocumentTemplates';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
-  AccountAccessBanner,
   AdminVerificationPanel,
   OperatorTicketConsole,
 } from '@/src/components/KepegawaianGateAndAdmin';
@@ -398,13 +397,7 @@ export function LayananView({
 
   return (
     <div className="bg-white dark:bg-slate-950">
-      <PageHeader
-        kicker="Pelayanan Terpadu Satu Pintu (PTSP)"
-        title="Daftar Layanan & Permohonan PTSP"
-        description="Pilih bidang layanan melalui Beranda atau menu sidebar di sisi kiri layar untuk melihat seluruh layanan, persyaratan, waktu dan biaya, format template dokumen, serta mengajukan permohonan daring."
-      />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-5 sm:space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-32 lg:pt-36 pb-6 sm:pb-8 space-y-5 sm:space-y-6">
         {/* Mobile Back to Catalog Button (Desktop uses floating right-edge bar) */}
         {(onBackToKatalog || onBackHome) && (
           <div className="md:hidden">
@@ -418,14 +411,6 @@ export function LayananView({
             </button>
           </div>
         )}
-
-        {/* 3-Tier Access Mode Banner */}
-        <AccountAccessBanner
-          showAdminPanel={showAdminPanel}
-          onToggleAdminPanel={() => setShowAdminPanel((p) => !p)}
-          showOperatorPanel={showOperatorPanel}
-          onToggleOperatorPanel={() => setShowOperatorPanel((p) => !p)}
-        />
 
         {/* Super Admin Console */}
         {isAdmin && showAdminPanel && (
