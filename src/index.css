@@ -487,6 +487,65 @@
   pointer-events: none;
 }
 
+/* =====================================================================
+   RUANG PTSP CINEMATIC SLOW-MOTION LEFT-TO-RIGHT CAMERA PAN
+   ===================================================================== */
+@keyframes ptspRoomSlowPanLeftToRight {
+  0% {
+    transform: translate3d(17.2%, 0.6%, 0) scale(1.36);
+    object-position: 0% 50%;
+    filter: brightness(1.06);
+  }
+  12% {
+    transform: translate3d(15.6%, 0.5%, 0) scale(1.36);
+    object-position: 8% 50%;
+    filter: brightness(1);
+  }
+  48% {
+    transform: translate3d(0%, -0.6%, 0) scale(1.33);
+    object-position: 50% 48%;
+    filter: brightness(1);
+  }
+  82% {
+    transform: translate3d(-17.2%, 0.6%, 0) scale(1.36);
+    object-position: 100% 50%;
+    filter: brightness(1);
+  }
+  100% {
+    transform: translate3d(0%, 0%, 0) scale(1.01);
+    object-position: 50% 50%;
+    filter: brightness(1);
+  }
+}
+
+.ptsp-room-slow-pan {
+  transform-origin: center center;
+  animation: ptspRoomSlowPanLeftToRight 6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  will-change: transform, object-position;
+}
+
+@keyframes ptspRoomPanProgress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.ptsp-room-pan-progress {
+  transform-origin: left center;
+  animation: ptspRoomPanProgress 6s linear forwards;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptsp-room-slow-pan,
+  .ptsp-room-pan-progress {
+    animation: none;
+  }
+}
+
 .ptsp-door-frame {
   perspective: 680px;
   transform-style: preserve-3d;

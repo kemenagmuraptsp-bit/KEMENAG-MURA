@@ -2,19 +2,11 @@ import { useState } from 'react';
 import {
   ArrowRight,
   ChevronRight,
-  Church,
   ExternalLink,
   Play,
-  Building2,
-  GraduationCap,
-  IdCard,
-  Lock,
-  Moon,
-  Sun,
 } from 'lucide-react';
 import { useAuthRole } from '@/src/context/AuthRoleContext';
 import {
-  SERVICE_UNITS,
   LEADERSHIP_QUOTES,
   GALLERY_ITEMS,
   INFOGRAFIS_TABS,
@@ -34,13 +26,10 @@ import {
   PtspInteractiveHero,
   type PtspPortalStage,
 } from '@/src/components/PtspInteractiveHero';
-import { type QuickSignpostAction } from '@/src/components/WayfindingSignpost';
-import kartuSekretariatImg from '@/src/assets/images/katalog_full_sekretariat_1795232127240.jpg';
-import kartuBimasIslamImg from '@/src/assets/images/katalog_full_bimas_islam_1795232127252.jpg';
-import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_1795232126912.jpg';
-import kartuBimasHinduImg from '@/src/assets/images/katalog_full_bimas_hindu_1795232127988.jpg';
-import kartuKristenImg from '@/src/assets/images/katalog_full_bimas_kristen_1795232127426.jpg';
-import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_1795232127634.jpg';
+import {
+  WayfindingSignpost,
+  type QuickSignpostAction,
+} from '@/src/components/WayfindingSignpost';
 
 interface BerandaViewProps {
   lang: 'id' | 'en';
@@ -53,91 +42,6 @@ interface BerandaViewProps {
   onSelectArticle: (article: NewsArticle) => void;
   onSelectGallery: (item: GalleryItem) => void;
 }
-
-const SERVICE_ICONS: Record<string, typeof Building2> = {
-  sekretariat: Building2,
-  'bimas-islam': Moon,
-  pendis: GraduationCap,
-  'bimas-hindu': Sun,
-  'bimas-kristen': Church,
-  kepegawaian: IdCard,
-};
-
-const SERVICE_IMAGES: Record<string, string> = {
-  sekretariat: kartuSekretariatImg,
-  'bimas-islam': kartuBimasIslamImg,
-  pendis: kartuPendisImg,
-  'bimas-hindu': kartuBimasHinduImg,
-  'bimas-kristen': kartuKristenImg,
-  kepegawaian: kartuKepegawaianImg,
-};
-
-const SERVICE_MODERN_THEMES: Record<
-  string,
-  {
-    cardFrame: string;
-    scrim: string;
-    iconBg: string;
-    ctaText: string;
-    accentLine: string;
-    fallbackBg: string;
-  }
-> = {
-  sekretariat: {
-    cardFrame:
-      'border-emerald-300/60 hover:border-emerald-400 hover:shadow-[0_22px_45px_-12px_rgba(6,95,70,0.5)]',
-    scrim: 'from-emerald-950/95 via-emerald-950/75 to-transparent',
-    iconBg: 'bg-emerald-600/85 text-white',
-    ctaText: 'text-emerald-300',
-    accentLine: 'from-emerald-400 to-teal-300',
-    fallbackBg: 'bg-emerald-950',
-  },
-  'bimas-islam': {
-    cardFrame:
-      'border-teal-300/60 hover:border-teal-400 hover:shadow-[0_22px_45px_-12px_rgba(17,94,89,0.5)]',
-    scrim: 'from-teal-950/95 via-teal-950/75 to-transparent',
-    iconBg: 'bg-teal-600/85 text-white',
-    ctaText: 'text-teal-300',
-    accentLine: 'from-teal-400 to-emerald-300',
-    fallbackBg: 'bg-teal-950',
-  },
-  pendis: {
-    cardFrame:
-      'border-sky-300/60 hover:border-sky-400 hover:shadow-[0_22px_45px_-12px_rgba(7,89,133,0.5)]',
-    scrim: 'from-sky-950/95 via-slate-950/75 to-transparent',
-    iconBg: 'bg-sky-600/85 text-white',
-    ctaText: 'text-sky-300',
-    accentLine: 'from-sky-400 to-cyan-300',
-    fallbackBg: 'bg-sky-950',
-  },
-  'bimas-hindu': {
-    cardFrame:
-      'border-amber-300/60 hover:border-amber-400 hover:shadow-[0_22px_45px_-12px_rgba(146,64,14,0.5)]',
-    scrim: 'from-amber-950/95 via-stone-950/75 to-transparent',
-    iconBg: 'bg-amber-600/85 text-white',
-    ctaText: 'text-amber-300',
-    accentLine: 'from-amber-400 to-orange-300',
-    fallbackBg: 'bg-amber-950',
-  },
-  'bimas-kristen': {
-    cardFrame:
-      'border-violet-300/60 hover:border-violet-400 hover:shadow-[0_22px_45px_-12px_rgba(91,33,182,0.5)]',
-    scrim: 'from-violet-950/95 via-slate-950/75 to-transparent',
-    iconBg: 'bg-violet-600/85 text-white',
-    ctaText: 'text-violet-300',
-    accentLine: 'from-violet-400 to-purple-300',
-    fallbackBg: 'bg-violet-950',
-  },
-  kepegawaian: {
-    cardFrame:
-      'border-indigo-300/60 hover:border-indigo-400 hover:shadow-[0_22px_45px_-12px_rgba(55,48,163,0.5)]',
-    scrim: 'from-indigo-950/95 via-slate-950/75 to-transparent',
-    iconBg: 'bg-indigo-600/85 text-white',
-    ctaText: 'text-indigo-300',
-    accentLine: 'from-indigo-400 to-sky-300',
-    fallbackBg: 'bg-indigo-950',
-  },
-};
 
 const APP_ACCENTS: Record<string, string> = {
   'app-pusaka': 'bg-emerald-700 text-white',
@@ -164,21 +68,9 @@ export function BerandaView({
   onSelectArticle,
   onSelectGallery,
 }: BerandaViewProps) {
-  const { isVerifiedEmployee, openLoginModal, newsArticles } = useAuthRole();
-  const visibleServiceUnits = SERVICE_UNITS;
+  const { newsArticles } = useAuthRole();
   const [activeInfografis, setActiveInfografis] = useState<InfografisCategory>('utama');
   const [activeVideoId, setActiveVideoId] = useState<string>(VIDEO_ITEMS[0].id);
-
-  const handleQuickCatalogClick = (unit: ServiceUnit) => {
-    if (unit.id === 'kepegawaian' && !isVerifiedEmployee) {
-      openLoginModal(
-        'pegawai',
-        'Layanan Kepegawaian dikhususkan untuk ASN & Pegawai Kemenag Kab. Murung Raya. Silakan masuk melalui tab Login Pegawai (NIP).'
-      );
-      return;
-    }
-    onSelectService(unit);
-  };
 
   const leadArticle = newsArticles[0];
   const secondaryToday = newsArticles.slice(1, 3);
@@ -231,191 +123,19 @@ export function BerandaView({
         onSelectService={onSelectService}
         onSelectSubService={onSelectSubService}
         onOpenServiceSidebar={onOpenServiceSidebar}
-        onSignpostAction={handleSignpostAction}
         onSelectArticle={onSelectArticle}
       />
 
-      {/* SECTION 1: Katalog Layanan PTSP (Quick Scroll Section when Hero is on Front Office or Ruang PTSP) */}
+      {/* SECTION 1: Tombol Melayang Akses Cepat Layanan PTSP (Small-Medium) */}
       {ptspStage !== 'katalog' && (
-      <section
-        id="katalog-layanan-preview"
-        className="scroll-mt-20 py-10 lg:py-12 bg-white/95 dark:bg-slate-950 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 relative overflow-hidden"
-      >
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-14">
-          <div className="text-center max-w-3xl mx-auto">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.35em] text-emerald-700 dark:text-emerald-400">
-              {lang === 'en' ? 'Public Services' : 'Layanan Masyarakat'}
-            </p>
-            <h2 className="mt-2 text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
-              Katalog Layanan PTSP Terpadu
-            </h2>
-            <p className="mt-3 text-xs sm:text-sm font-semibold text-slate-600 dark:text-zinc-300">
-              <span className="text-amber-600 dark:text-amber-400">S</span>istem{' '}
-              <span className="text-amber-600 dark:text-amber-400">I</span>nformasi{' '}
-              <span className="text-amber-600 dark:text-amber-400">A</span>dministrasi{' '}
-              <span className="text-amber-600 dark:text-amber-400">T</span>erpadu{' '}
-              <span className="text-amber-600 dark:text-amber-400">L</span>ayanan{' '}
-              <span className="text-amber-600 dark:text-amber-400">K</span>eagamaan Kabupaten Murung Raya
-            </p>
-            <p className="mt-2.5 max-w-2xl mx-auto text-xs sm:text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
-              {lang === 'en' ? (
-                <>
-                  <strong className="font-bold text-slate-800 dark:text-white">
-                    One-Stop Integrated Service (PTSP)
-                  </strong>{' '}
-                  is an integrated religious administration gateway enabling the public to receive services quickly, transparently, and accountably in one place.
-                </>
-              ) : (
-                <>
-                  <strong className="font-bold text-slate-800 dark:text-white">
-                    Pelayanan Terpadu Satu Pintu (PTSP)
-                  </strong>{' '}
-                  adalah layanan administrasi keagamaan terintegrasi dalam satu pintu agar masyarakat memperoleh pelayanan secara cepat, transparan, dan akuntabel.
-                </>
-              )}
-            </p>
-
-            <a
-              href="#katalog-layanan-grid"
-              className="mt-5 inline-flex flex-col items-center gap-1.5 group focus-visible:outline-2 focus-visible:outline-emerald-700 rounded-lg px-3 py-1"
-            >
-              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-100 tracking-wide">
-                {lang === 'en' ? (
-                  <>
-                    <span className="font-black uppercase text-red-600 dark:text-red-400">
-                      CLICK CATALOG
-                    </span>{' '}
-                    to select a service
-                  </>
-                ) : (
-                  <>
-                    <span className="font-black uppercase text-red-600 dark:text-red-400">
-                      KLIK KATALOG
-                    </span>{' '}
-                    untuk memilih layanan
-                  </>
-                )}
-              </span>
-              <span className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 animate-arrow-down-pulse dark:rounded-full dark:bg-white dark:p-1 dark:shadow-sm">
-                <SafeImage
-                  src="/assets/aistudio/images__9__e42ac56b.jpg"
-                  alt={lang === 'en' ? 'Arrow pointing to service catalog' : 'Panah mengarah ke katalog layanan'}
-                  fallbackLabel="↓"
-                  className="w-full h-full object-contain rotate-[135deg] mix-blend-multiply dark:mix-blend-normal"
-                />
-              </span>
-            </a>
+        <section
+          id="katalog-layanan-preview"
+          className="scroll-mt-20 py-5 sm:py-6 bg-gradient-to-b from-slate-50/95 via-white to-slate-50/95 dark:from-slate-950 dark:via-slate-900/95 dark:to-slate-950 border-b border-slate-200/80 dark:border-slate-800 relative z-20"
+        >
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
+            <WayfindingSignpost lang={lang} onSelect={handleSignpostAction} />
           </div>
-
-          <div
-            id="katalog-layanan-grid"
-            className={`scroll-mt-24 mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
-              visibleServiceUnits.length === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-6'
-            } gap-3.5`}
-          >
-            {visibleServiceUnits.map((unit, idx) => {
-              const Icon = SERVICE_ICONS[unit.id] || Building2;
-              const coverSrc = SERVICE_IMAGES[unit.id];
-              const theme = SERVICE_MODERN_THEMES[unit.id] || SERVICE_MODERN_THEMES.sekretariat;
-              return (
-                <div
-                  key={unit.id}
-                  style={{ animationDelay: `${idx * 150}ms` }}
-                  className="animate-catalog-card-pulse h-full"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleQuickCatalogClick(unit)}
-                    className={`group relative w-full h-full flex flex-col justify-between overflow-hidden rounded-2xl border p-3.5 sm:p-4 text-left min-h-[195px] sm:min-h-[235px] shadow-md hover:-translate-y-1 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-emerald-700 ${theme.fallbackBg} ${theme.cardFrame}`}
-                  >
-                  {/* Full-Bleed Category Background with Service Officer */}
-                  <SafeImage
-                    src={coverSrc}
-                    alt={`Petugas pelayanan dan ruang layanan ${unit.title}`}
-                    fallbackLabel={unit.title}
-                    className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-
-                  {/* Top subtle vignette for top metadata legibility */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-slate-950/65 via-slate-950/20 to-transparent pointer-events-none"
-                  />
-
-                  {/* Bottom rich category-tinted contrast scrim */}
-                  <div
-                    aria-hidden="true"
-                    className={`absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t ${theme.scrim} pointer-events-none transition-opacity duration-300`}
-                  />
-
-                  {/* Top Row: Category Icon & Service Count */}
-                  <div className="relative z-10 flex items-center justify-between gap-2 w-full">
-                    <span
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 backdrop-blur-md ring-1 ring-white/30 shadow-md ${theme.iconBg}`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                    </span>
-                    <span className="text-[10px] font-mono-tabular text-white font-bold tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] truncate">
-                      Bidang {unit.code} · {unit.subServices.length} layanan
-                    </span>
-                  </div>
-
-                  {/* Bottom Content Overlay */}
-                  <div className="relative z-10 mt-auto space-y-1.5 w-full pt-8">
-                    <div
-                      aria-hidden="true"
-                      className={`h-0.5 w-8 rounded-full bg-gradient-to-r ${theme.accentLine} group-hover:w-14 transition-all duration-300`}
-                    />
-                    <h3 className="text-sm sm:text-[15px] font-black text-white leading-snug uppercase tracking-tight flex items-center gap-1.5 drop-shadow-sm pr-2">
-                      <span className="service-card-expand-title">{unit.title}</span>
-                      {unit.id === 'kepegawaian' && !isVerifiedEmployee && (
-                        <Lock className="w-3 h-3 text-amber-300 shrink-0" />
-                      )}
-                    </h3>
-                    <p className="text-[11px] text-slate-100/90 line-clamp-2 leading-snug font-medium drop-shadow-xs">
-                      {unit.shortDesc}
-                    </p>
-
-                    <div className="pt-2 border-t border-white/20 flex items-center justify-between gap-2 w-full">
-                      <span className={`inline-block origin-left transition-transform duration-200 group-hover:scale-105 text-[11px] font-extrabold tracking-wide ${theme.ctaText}`}>
-                        {unit.id === 'kepegawaian' && !isVerifiedEmployee
-                          ? 'Login Pegawai'
-                          : 'Lihat Sub-Layanan'}
-                      </span>
-                      <span className="w-6 h-6 rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/30 text-white group-hover:bg-white group-hover:text-slate-950 flex items-center justify-center transition-all duration-200">
-                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                      </span>
-                    </div>
-                  </div>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={onOpenServiceSidebar}
-              className="menu-expand-btn w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-2.5 min-h-[44px] rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider shadow-sm"
-            >
-              <span className="menu-expand-label">
-                Buka Menu Sidebar Layanan (
-                {visibleServiceUnits.reduce((sum, u) => sum + u.subServices.length, 0)} Sub-Menu)
-              </span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('layanan')}
-              className="menu-expand-btn w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-white/10"
-            >
-              <span className="menu-expand-label">Halaman Layanan & Lacak Tiket</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
       )}
 
       {/* SECTION 2: Zona Integritas — Apa Kata Mereka */}

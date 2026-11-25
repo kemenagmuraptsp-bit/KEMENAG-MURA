@@ -41,10 +41,6 @@ import {
   type CalendarHolidayGreeting,
 } from '@/src/data/holidayGreetings';
 import { SafeImage } from '@/src/components/SafeImage';
-import {
-  WayfindingSignpost,
-  type QuickSignpostAction,
-} from '@/src/components/WayfindingSignpost';
 import kartuSekretariatImg from '@/src/assets/images/katalog_full_sekretariat_1795232127240.jpg';
 import kartuBimasIslamImg from '@/src/assets/images/katalog_full_bimas_islam_1795232127252.jpg';
 import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_1795232126912.jpg';
@@ -54,6 +50,8 @@ import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_17
 import heroKantorZoomImg from '@/src/assets/images/facade_no_right_flag_1795513652053.jpg';
 
 const KEMENAG_LOGO_SRC = '/assets/aistudio/Kementerian_Agama_new_logo_f9b3eec1.png';
+const PTSP_KATALOG_BG_SRC =
+  '/assets/aistudio/Ganti_wajah_petugas_dengan_gambar_6b132579_2K_526b0e23.jpg';
 
 // Exact measured inner double-door opening in hero_kantor_zoom_facade_1795495476715.jpg (1376x768)
 const DOOR_RECT_PCT = {
@@ -96,7 +94,6 @@ interface PtspInteractiveHeroProps {
   onSelectService: (unit: ServiceUnit) => void;
   onSelectSubService: (unit: ServiceUnit, sub: SubService) => void;
   onOpenServiceSidebar: () => void;
-  onSignpostAction: (action: QuickSignpostAction) => void;
   onSelectArticle?: (article: NewsArticle) => void;
 }
 
@@ -184,7 +181,6 @@ export function PtspInteractiveHero({
   onNavigate,
   onSelectService,
   onSelectSubService,
-  onSignpostAction,
   onSelectArticle,
 }: PtspInteractiveHeroProps) {
   const { isVerifiedEmployee, openLoginModal, user, newsArticles } = useAuthRole();
@@ -220,12 +216,18 @@ export function PtspInteractiveHero({
     top: number;
   } | null>(null);
 
+  // Slow-motion panoramic left-to-right Ruang PTSP camera tour after clicking the entrance door
+  const [roomPanActive, setRoomPanActive] = useState<boolean>(false);
+  const [roomPanKey, setRoomPanKey] = useState<number>(0);
+
   // Periodic gentle letter-by-letter replay for "Selamat Datang" above the entrance door
   const [welcomeAnimKey, setWelcomeAnimKey] = useState<number>(0);
 
   const timersRef = useRef<number[]>([]);
   const hexTimersRef = useRef<number[]>([]);
   const miniTimersRef = useRef<number[]>([]);
+  const panTimerRef = useRef<number | null>(null);
+  const pendingRoomPanRef = useRef<boolean>(false);
 
   const clearDoorTimers = () => {
     timersRef.current.forEach((id) => window.clearTimeout(id));
@@ -240,6 +242,13 @@ export function PtspInteractiveHero({
   const clearMiniTimers = () => {
     miniTimersRef.current.forEach((id) => window.clearTimeout(id));
     miniTimersRef.current = [];
+  };
+
+  const clearPanTimer = () => {
+    if (panTimerRef.current !== null) {
+      window.clearTimeout(panTimerRef.current);
+      panTimerRef.current = null;
+    }
   };
 
   const activeUnit = useMemo(
@@ -310,16 +319,42 @@ export function PtspInteractiveHero({
     }
   };
 
+  const finishRoomPan = () => {
+    clearPanTimer();
+    setRoomPanActive(false);
+    triggerHoneycombSlowMo();
+  };
+
   useEffect(() => {
     if (stage === 'katalog') {
-      triggerHoneycombSlowMo();
+      if (pendingRoomPanRef.current) {
+        pendingRoomPanRef.current = false;
+        clearHexTimers();
+        clearPanTimer();
+        setRevealedHexCount(0);
+        setRoomPanActive(true);
+        setRoomPanKey((k) => k + 1);
+        panTimerRef.current = window.setTimeout(() => {
+          panTimerRef.current = null;
+          setRoomPanActive(false);
+          triggerHoneycombSlowMo();
+        }, 6000);
+      } else {
+        clearPanTimer();
+        setRoomPanActive(false);
+        triggerHoneycombSlowMo();
+      }
     } else if (stage === 'depan') {
       clearDoorTimers();
+      clearPanTimer();
+      pendingRoomPanRef.current = false;
+      setRoomPanActive(false);
       setDoorsOpened(false);
       setCameraZooming(false);
     }
     return () => {
       clearHexTimers();
+      clearPanTimer();
     };
   }, [stage]);
 
@@ -337,6 +372,7 @@ export function PtspInteractiveHero({
       clearDoorTimers();
       clearHexTimers();
       clearMiniTimers();
+      clearPanTimer();
     };
   }, []);
 
@@ -404,11 +440,12 @@ export function PtspInteractiveHero({
       setCameraZooming(true);
     }, 450);
 
-    // Step 3: Enter Ruang PTSP directly with Super Slow-Motion Honeycomb at 1250ms
+    // Step 3: Enter Ruang PTSP with Slow-Motion Left-to-Right Room Pan before Honeycomb Reveal
     const enterTimer = window.setTimeout(() => {
       setDoorsOpened(false);
       setCameraZooming(false);
       setSelectedUnitId(null);
+      pendingRoomPanRef.current = true;
       onStageChange('katalog');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 1250);
@@ -808,7 +845,7 @@ export function PtspInteractiveHero({
                 {/* Real Sunlit Ruang PTSP Interior Revealed Inside the Open Doorway */}
                 <div className="ptsp-interior-glow absolute inset-[1.5px] overflow-hidden">
                   <img
-                    src="/assets/aistudio/ptsp_ruang_pelayanan.png"
+                    src={PTSP_KATALOG_BG_SRC}
                     alt=""
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover object-center scale-110 brightness-110"
@@ -917,11 +954,6 @@ export function PtspInteractiveHero({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Far-Right Edge Docked Wayfinding Signpost (Preserved on Front Office View) */}
-          <div className="relative lg:absolute lg:right-0 lg:top-[27%] xl:top-[28%] lg:bottom-0 z-20 flex justify-end pr-0 pt-24 lg:pt-0 pointer-events-none">
-            <WayfindingSignpost lang={lang} onSelect={onSignpostAction} />
           </div>
         </div>
       )}
@@ -1178,24 +1210,73 @@ export function PtspInteractiveHero({
       {/* STAGE 3: KATALOG SARANG LEBAH DI ATAS LATAR BELAKANG RUANG PTSP   */}
       {/* ================================================================= */}
       {stage === 'katalog' && (
-        <div className="animate-ptsp-stage-reveal relative z-10 min-h-[100vh] bg-[#0a1c16] pt-[104px] sm:pt-[116px] lg:pt-[124px] pb-10 px-3 sm:px-6 lg:px-8 overflow-hidden">
-          {/* Full Ruang PTSP Interior Photo Backdrop (Clearly Visible Behind Honeycomb) */}
+        <div
+          className={`animate-ptsp-stage-reveal relative z-10 bg-[#0a1c16] overflow-hidden ${
+            roomPanActive
+              ? 'h-[100vh] min-h-[100vh]'
+              : 'min-h-[100vh] pt-[104px] sm:pt-[116px] lg:pt-[124px] pb-10 px-3 sm:px-6 lg:px-8'
+          }`}
+        >
+          {/* Full Ruang PTSP Interior Photo Backdrop (Slow-Motion Pan Left-to-Right First, Then Wide Backdrop) */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 overflow-hidden"
           >
             <img
-              src="/assets/aistudio/ptsp_ruang_pelayanan.png"
+              key={`ptsp-room-bg-${roomPanKey}`}
+              src={PTSP_KATALOG_BG_SRC}
               alt="Latar belakang Ruang Pelayanan Terpadu Satu Pintu (PTSP) Kantor Kementerian Agama Kabupaten Murung Raya"
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover object-center scale-[1.02]"
+              className={
+                roomPanActive
+                  ? 'w-full h-full object-cover ptsp-room-slow-pan'
+                  : 'w-full h-full object-cover object-center scale-[1.01] transition-transform duration-700 ease-out'
+              }
             />
-            {/* Measured Warm Emerald Atmospheric Scrim Keeping Ruang PTSP Clearly Recognizable */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#041d15]/68 via-[#062b20]/45 to-[#041812]/82" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(251,191,36,0.12)_0%,transparent_62%)]" />
+            {/* Measured Warm Emerald Atmospheric Scrim (Hidden During Slow-Mo Room Pan So Details Are 100% Crisp) */}
+            <div
+              className={`absolute inset-0 bg-gradient-to-b from-[#041d15]/48 via-[#062b20]/26 to-[#041812]/68 transition-opacity duration-700 ${
+                roomPanActive ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+            <div
+              className={`absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(251,191,36,0.1)_0%,transparent_62%)] transition-opacity duration-700 ${
+                roomPanActive ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
           </div>
 
-          <div className="relative z-10 max-w-[1440px] mx-auto space-y-4">
+          {/* Unobstructed Slow-Motion Room Pan HUD (Bottom Floating Control Only) */}
+          {roomPanActive && (
+            <div className="absolute inset-x-0 bottom-7 sm:bottom-9 z-30 flex justify-center px-4">
+              <div className="inline-flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-slate-950/72 backdrop-blur-md border border-amber-300/35 shadow-[0_14px_34px_rgba(0,0,0,0.45)]">
+                <div className="flex flex-col gap-1.5 min-w-[175px] sm:min-w-[235px]">
+                  <span className="text-[11px] sm:text-xs font-bold tracking-wide text-amber-200 whitespace-nowrap">
+                    {lang === 'en'
+                      ? 'Exploring PTSP Service Hall...'
+                      : 'Menampilkan Ruang Pelayanan PTSP...'}
+                  </span>
+                  <div className="h-1 w-full rounded-full bg-white/20 overflow-hidden">
+                    <div
+                      key={`pan-progress-${roomPanKey}`}
+                      className="h-full w-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-300 to-amber-400 ptsp-room-pan-progress"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={finishRoomPan}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-amber-400 hover:text-slate-950 border border-white/25 text-[11px] font-extrabold text-white transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <span>{lang === 'en' ? 'Skip' : 'Lewati'}</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!roomPanActive && (
+          <div className="relative z-10 max-w-[1440px] mx-auto space-y-4 animate-ptsp-stage-reveal">
             {/* ============================================================ */}
             {/* SARANG LEBAH UTAMA (6 BIDANG LAYANAN INTERLOCKING 3-3 HIVE)  */}
             {/* ============================================================ */}
@@ -1453,8 +1534,10 @@ export function PtspInteractiveHero({
               </div>
             </div>
           </div>
+          )}
 
           {/* Signature Bottom Green & Gold Wave Ribbon */}
+          {!roomPanActive && (
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-10 overflow-hidden">
             <svg viewBox="0 0 1440 48" preserveAspectRatio="none" className="w-full h-full block">
               <path
@@ -1469,6 +1552,7 @@ export function PtspInteractiveHero({
               />
             </svg>
           </div>
+          )}
         </div>
       )}
 
