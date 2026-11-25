@@ -239,7 +239,7 @@ export function HeroOfficeBackground({
           <mask id="leftGardenPlantsMask">
             <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
             <path
-              d="M 60 573 Q 68 569 76 572 Q 84 568 92 571 Q 99 568 107 572 Q 115 569 124 572 L 130 574 L 130 656 L 60 656 Z"
+              d="M 60 573 Q 68 569 76 572 Q 84 568 92 571 Q 99 568 107 572 Q 115 569 124 572 L 130 574 L 130 606 L 60 606 Z"
               fill="white"
               filter="url(#foliageEdgeFeather)"
             />
@@ -258,19 +258,19 @@ export function HeroOfficeBackground({
 
         {/* LEFT-SIDE FLAGPOLE, PEDESTAL BEHIND GARDEN PLANTS & WAVING BENDERA MERAH PUTIH */}
         <g aria-label="Tiang dan Bendera Merah Putih di sisi kiri kantor">
-          {/* Lower natural stone stepped base tucked behind the manicured garden hedge (y=574..616) */}
+          {/* Lower natural stone stepped base tucked behind the manicured garden hedge (y=574..605) */}
           <rect
             x={POLE_CENTER_X - 18}
             y={575}
             width="36"
-            height="42"
+            height="30"
             rx="2"
             fill="url(#pedestalStoneGrad)"
             stroke="#6b6257"
             strokeWidth="0.8"
           />
           <line x1={POLE_CENTER_X - 18} y1={589} x2={POLE_CENTER_X + 18} y2={589} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
-          <line x1={POLE_CENTER_X - 18} y1={603} x2={POLE_CENTER_X + 18} y2={603} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
+          <line x1={POLE_CENTER_X - 18} y1={600} x2={POLE_CENTER_X + 18} y2={600} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
 
           {/* Upper white concrete stepped plinth peeking cleanly just above the back of the hedge */}
           <rect

@@ -384,14 +384,18 @@ export function PtspInteractiveHero({
     const computeCover = () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      const scale = Math.max(rect.width / HERO_FACADE_WIDTH, rect.height / HERO_FACADE_HEIGHT);
+      // Visible facade ends right beneath the granite terrace stairs & wall shrubs (y=606),
+      // cleanly removing the foreground garden & driveway strip at the bottom.
+      const VISIBLE_FACADE_HEIGHT = 606;
+      const scale = Math.max(rect.width / HERO_FACADE_WIDTH, rect.height / VISIBLE_FACADE_HEIGHT);
       const renderedW = HERO_FACADE_WIDTH * scale;
       const renderedH = HERO_FACADE_HEIGHT * scale;
+      const visibleRenderedH = VISIBLE_FACADE_HEIGHT * scale;
       setCoverBox({
         width: renderedW,
         height: renderedH,
         left: (rect.width - renderedW) / 2,
-        top: (rect.height - renderedH) / 2,
+        top: (rect.height - visibleRenderedH) / 2,
       });
     };
 
@@ -633,7 +637,7 @@ export function PtspInteractiveHero({
       {isDoorStage && (
         <div
           ref={heroStageRef}
-          className="relative min-h-[88vh] sm:min-h-[94vh] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
+          className="relative min-h-[440px] sm:min-h-[500px] md:min-h-0 md:aspect-[1376/606] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
         >
           {/* Coordinate-Locked Building Facade + Pixel-Aligned Realistic 3D Glass Entrance Door */}
           <div

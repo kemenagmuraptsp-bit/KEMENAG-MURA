@@ -84,20 +84,26 @@ function VideotronWallHardware() {
         className="pointer-events-none absolute -inset-[2px] translate-x-[3px] translate-y-[4px] rounded-[5px] bg-black/35 blur-[3px] -z-20"
       />
 
-      {/* 1 Central Vertical Steel Support Pillar Tucked Behind Garden Bushes Against Office Wall */}
+      {/* 1 Central Vertical Steel Support Pillar Grounded Cleanly onto the Paved Courtyard */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[99%] flex flex-col items-center -z-10 [mask-image:linear-gradient(to_bottom,black_0%,black_68%,transparent_100%)]"
-        style={{ height: '30%', width: '22%' }}
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[99%] flex flex-col items-center -z-10"
+        style={{ height: '19%', width: '22%' }}
       >
         {/* Welded Top Saddle Bracket Under Cabinet */}
-        <div className="videotron-pole-collar relative w-[52%] h-[18%] min-h-[4px] rounded-b-[2px] border-x border-b border-slate-500/40 flex items-center justify-between px-[12%]">
+        <div className="videotron-pole-collar relative w-[52%] h-[22%] min-h-[4px] rounded-b-[2px] border-x border-b border-slate-500/40 flex items-center justify-between px-[12%]">
           <span className="w-[2px] h-[2px] rounded-full bg-slate-300/75" />
           <span className="w-[2px] h-[2px] rounded-full bg-slate-300/75" />
         </div>
 
-        {/* Wall-Hugging Cylindrical Steel Support Shaft Disappearing Behind Garden Foliage */}
+        {/* Wall-Hugging Cylindrical Steel Support Shaft */}
         <div className="videotron-support-pole relative flex-1 w-[24%] min-w-[7px] max-w-[12px] border-x border-slate-900/70" />
+
+        {/* Anchored Steel Base Plate Resting on Courtyard Pavement */}
+        <div className="relative flex flex-col items-center w-[70%]">
+          <div className="videotron-pole-base w-[82%] h-[4px] rounded-[1.5px] border border-slate-700/80" />
+          <div className="w-full h-[3px] -mt-[1px] rounded-full bg-black/45 blur-[1.5px]" />
+        </div>
       </div>
     </>
   );
