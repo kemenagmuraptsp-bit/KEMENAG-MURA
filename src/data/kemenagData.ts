@@ -1,4 +1,4 @@
-import heroBuildingImg from '@/src/assets/images/hero_kemenag_mura_1794563086797.jpg';
+import heroBuildingImg from '@/src/assets/images/facade_no_wing_roofs_1795680697556.jpg';
 import fkubHarmonyImg from '@/src/assets/images/news_fkub_harmony_1794563088273.jpg';
 import madrasahEduImg from '@/src/assets/images/news_madrasah_education_1794563087581.jpg';
 import wakafKuaImg from '@/src/assets/images/news_wakaf_kua_1794563088488.jpg';
@@ -37,7 +37,7 @@ export const OFFICE_INFO = {
   whatsapp: '0811-5209-411',
   hoursWeekday: 'Senin – Kamis: 07:30 – 16:00 WIB',
   hoursFriday: "Jum'at: 07:30 – 16:30 WIB",
-  heroImage: '/assets/aistudio/Halaman_Kantor_Kemenag_Murung_Raya_clean.png',
+  heroImage: heroBuildingImg,
   officeBuildingImage: heroBuildingImg,
 };
 
