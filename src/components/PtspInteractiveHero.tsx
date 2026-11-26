@@ -47,13 +47,13 @@ import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_179523212691
 import kartuBimasHinduImg from '@/src/assets/images/katalog_full_bimas_hindu_1795232127988.jpg';
 import kartuKristenImg from '@/src/assets/images/katalog_full_bimas_kristen_1795232127426.jpg';
 import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_1795232127634.jpg';
-import heroKantorZoomImg from '@/src/assets/images/facade_no_right_flag_1795513652053.jpg';
+import heroKantorZoomImg from '@/src/assets/images/facade_no_wing_roofs_1795680697556.jpg';
 
 const KEMENAG_LOGO_SRC = '/assets/aistudio/Kementerian_Agama_new_logo_f9b3eec1.png';
 const PTSP_KATALOG_BG_SRC =
   '/assets/aistudio/Ganti_wajah_petugas_dengan_gambar_6b132579_2K_526b0e23.jpg';
 
-// Exact measured inner double-door opening in hero_kantor_zoom_facade_1795495476715.jpg (1376x768)
+// Exact measured inner double-door opening in facade_no_wing_roofs_1795680697556.jpg (1376x768)
 const DOOR_RECT_PCT = {
   left: (658 / HERO_FACADE_WIDTH) * 100, // 47.82%
   top: (454 / HERO_FACADE_HEIGHT) * 100, // 59.11%
@@ -686,6 +686,44 @@ export function PtspInteractiveHero({
               onSelectArticle={onSelectArticle}
               onNavigateNews={() => onNavigate('berita')}
             />
+
+            {/* FOREGROUND REAL GARDEN SHRUBS OVERLAY: Places Extended Videotron Poles Naturally Behind the Garden */}
+            <svg
+              viewBox={`0 0 ${HERO_FACADE_WIDTH} ${HERO_FACADE_HEIGHT}`}
+              preserveAspectRatio={coverBox ? 'none' : 'xMidYMid slice'}
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-[19] w-full h-full block"
+            >
+              <defs>
+                <filter id="videotronGardenFeather" x="-10%" y="-10%" width="120%" height="120%">
+                  <feGaussianBlur stdDeviation="1.0" />
+                </filter>
+                <mask id="videotronGardenPlantsMask">
+                  <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
+                  {/* Left videotron pillar shrub crest (x=242..288, y=550..606) */}
+                  <path
+                    d="M 242 560 Q 252 562 260 560 Q 266 558 271 552 Q 277 550 282 558 L 288 560 L 288 606 L 242 606 Z"
+                    fill="white"
+                    filter="url(#videotronGardenFeather)"
+                  />
+                  {/* Right videotron pillar shrub crest (x=1112..1156, y=531..606) */}
+                  <path
+                    d="M 1112 548 Q 1120 544 1125 533 Q 1133 531 1143 533 Q 1149 535 1156 540 L 1156 606 L 1112 606 Z"
+                    fill="white"
+                    filter="url(#videotronGardenFeather)"
+                  />
+                </mask>
+              </defs>
+              <image
+                href={heroKantorZoomImg}
+                x="0"
+                y="0"
+                width={HERO_FACADE_WIDTH}
+                height={HERO_FACADE_HEIGHT}
+                preserveAspectRatio="none"
+                mask="url(#videotronGardenPlantsMask)"
+              />
+            </svg>
 
             {/* OUTDOOR LED RUNNING TEXT: Spanning Exactly Between the Two Front Terrace Pillars */}
             <div

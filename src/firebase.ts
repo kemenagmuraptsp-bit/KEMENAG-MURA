@@ -21,6 +21,7 @@ import {
   getDocFromServer,
   getDocs,
   getFirestore,
+  initializeFirestore,
   limit,
   onSnapshot,
   query,
@@ -29,6 +30,7 @@ import {
   updateDoc,
   where,
   Timestamp,
+  type FirestoreSettings,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import type { NewsArticle } from '@/src/types';
@@ -45,7 +47,19 @@ import {
 } from '@/src/utils/security';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+function createFirestoreClient() {
+  const settings = (
+    typeof window !== 'undefined' && typeof XMLHttpRequest !== 'undefined'
+      ? { experimentalForceLongPolling: true, useFetchStreams: false }
+      : {}
+  ) as FirestoreSettings;
+  try {
+    return initializeFirestore(app, settings, firebaseConfig.firestoreDatabaseId);
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+}
+export const db = createFirestoreClient();
 export const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });

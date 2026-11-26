@@ -24,7 +24,7 @@ const KASUBBAG_TU_PHOTO_SRC = '/assets/aistudio/KASUBBAG_TU-removebg-preview_57e
 
 /**
  * Compact, proportional wall-mounted videotron dimensions mounted flush against the office walls
- * on facade_no_right_flag_1795513652053.jpg (1376x768).
+ * on facade_no_wing_roofs_1795680697556.jpg (1376x768) with equal raised wings under the second roof.
  * - Left wing wall: left 11.05% -> 27.45% (width 16.4%, height 19.8%)
  * - Right wing wall: left 74.15% -> 90.55% (width 16.4%, height 19.8% — exact mirror match)
  * - Vertical span: top 48.6% -> bottom 68.4%, so the 1 central steel support pillar descends
@@ -84,26 +84,20 @@ function VideotronWallHardware() {
         className="pointer-events-none absolute -inset-[2px] translate-x-[3px] translate-y-[4px] rounded-[5px] bg-black/35 blur-[3px] -z-20"
       />
 
-      {/* 1 Central Vertical Steel Support Pillar Grounded Cleanly onto the Paved Courtyard */}
+      {/* 1 Central Vertical Steel Support Pillar Extending Behind Garden Bushes Against Office Wall */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[99%] flex flex-col items-center -z-10"
-        style={{ height: '19%', width: '22%' }}
+        style={{ height: '54%', width: '22%' }}
       >
         {/* Welded Top Saddle Bracket Under Cabinet */}
-        <div className="videotron-pole-collar relative w-[52%] h-[22%] min-h-[4px] rounded-b-[2px] border-x border-b border-slate-500/40 flex items-center justify-between px-[12%]">
+        <div className="videotron-pole-collar relative w-[52%] h-[11%] min-h-[4px] rounded-b-[2px] border-x border-b border-slate-500/40 flex items-center justify-between px-[12%]">
           <span className="w-[2px] h-[2px] rounded-full bg-slate-300/75" />
           <span className="w-[2px] h-[2px] rounded-full bg-slate-300/75" />
         </div>
 
-        {/* Wall-Hugging Cylindrical Steel Support Shaft */}
+        {/* Wall-Hugging Cylindrical Steel Support Shaft Extending Behind Garden Foliage */}
         <div className="videotron-support-pole relative flex-1 w-[24%] min-w-[7px] max-w-[12px] border-x border-slate-900/70" />
-
-        {/* Anchored Steel Base Plate Resting on Courtyard Pavement */}
-        <div className="relative flex flex-col items-center w-[70%]">
-          <div className="videotron-pole-base w-[82%] h-[4px] rounded-[1.5px] border border-slate-700/80" />
-          <div className="w-full h-[3px] -mt-[1px] rounded-full bg-black/45 blur-[1.5px]" />
-        </div>
       </div>
     </>
   );
@@ -196,7 +190,7 @@ export function LeftHolidayVideotron({
           {/* Dual Crystal-Clear Official Cutout Portraits: Kepala Kantor & Kasubbag TU */}
           <div className="relative z-10 flex-1 min-h-0 grid grid-cols-2 gap-1.5 px-2 pt-1 pb-1.5">
             {/* Kepala Kantor: H. Maslan, S.Ag., M.Pd. */}
-            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] border border-amber-300/65 bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c] shadow-sm">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c]">
               <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(251,191,36,0.24),transparent_72%)] pt-0.5">
                 <img
                   src={KEPALA_KANTOR_PHOTO_SRC}
@@ -205,7 +199,7 @@ export function LeftHolidayVideotron({
                   className="w-full h-full object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.55)] group-hover:scale-[1.04] transition-transform duration-500"
                 />
               </div>
-              <div className="shrink-0 bg-[#04241c] border-t border-amber-300/50 px-1 py-[3px] text-center">
+              <div className="shrink-0 bg-[#04241c] px-1 py-[3px] text-center">
                 <p
                   style={{ fontSize: `${nameSize}px` }}
                   className="font-extrabold text-amber-200 leading-tight truncate"
@@ -222,7 +216,7 @@ export function LeftHolidayVideotron({
             </div>
 
             {/* Kasubbag TU: Hj. Nina Narly, S.Ag., M.H */}
-            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] border border-emerald-300/65 bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c] shadow-sm">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c]">
               <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(52,211,153,0.22),transparent_72%)] pt-0.5">
                 <img
                   src={KASUBBAG_TU_PHOTO_SRC}
@@ -231,7 +225,7 @@ export function LeftHolidayVideotron({
                   className="w-full h-full object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.55)] group-hover:scale-[1.04] transition-transform duration-500"
                 />
               </div>
-              <div className="shrink-0 bg-[#04241c] border-t border-emerald-300/50 px-1 py-[3px] text-center">
+              <div className="shrink-0 bg-[#04241c] px-1 py-[3px] text-center">
                 <p
                   style={{ fontSize: `${nameSize}px` }}
                   className="font-extrabold text-emerald-200 leading-tight truncate"
