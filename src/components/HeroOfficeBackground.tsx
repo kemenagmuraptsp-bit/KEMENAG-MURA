@@ -9,16 +9,16 @@ interface HeroOfficeBackgroundProps {
 export const HERO_FACADE_WIDTH = 1376;
 export const HERO_FACADE_HEIGHT = 768;
 
-// Left-side flagpole & lowered Bendera Merah Putih geometry in 1376x768 facade coordinates:
-// Positioned cleanly to the left of the left videotron (which starts at x=133.5 / 9.7%, y=421 / 54.8%)
-// and lowered so the finial + waving flag sit fully visible below the fixed top Navbar.
-const POLE_CENTER_X = 94;
-const POLE_TOP_Y = 186; // 24.2% — comfortably below fixed desktop Navbar (~14%–17%)
-const POLE_BASE_Y = 558; // Meets upper concrete plinth collar emerging from behind front garden hedge (y~572)
-const HOIST_X = 96.5;
-const HOIST_TOP_Y = 196; // 25.5%
-const FLAG_HEIGHT = 78; // Official 3:2 proportion (117 x 78); top red: 39, bottom white: 39
-const FLAG_LENGTH = 117;
+// Left-side flagpole & tall Bendera Merah Putih geometry in 1376x768 facade coordinates:
+// Shifted slightly left (x=64, cleanly outside the x=80 green cornice tip) and raised so
+// the waving flag sits proudly in the open sky above the building roofline (y=231) and below the Navbar.
+const POLE_CENTER_X = 64;
+const POLE_TOP_Y = 132; // 17.2% — visible cleanly below fixed desktop Navbar while soaring above roofline
+const POLE_BASE_Y = 558; // Meets upper concrete plinth collar emerging from behind front garden hedge (y~568)
+const HOIST_X = 66.5;
+const HOIST_TOP_Y = 140; // Flag spans y~140..222, clearly above building's green upper trim (y=231)
+const FLAG_HEIGHT = 68; // Official 3:2 proportion (102 x 68); top red: 34, bottom white: 34
+const FLAG_LENGTH = 102;
 const SEGMENTS = 26;
 const SHADING_STRIPS = 18;
 
@@ -239,7 +239,7 @@ export function HeroOfficeBackground({
           <mask id="leftGardenPlantsMask">
             <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
             <path
-              d="M 60 573 Q 68 569 76 572 Q 84 568 92 571 Q 99 568 107 572 Q 115 569 124 572 L 130 574 L 130 606 L 60 606 Z"
+              d="M 34 568 Q 44 563 54 568 Q 62 565 70 569 Q 80 567 90 571 Q 99 568 108 572 L 108 606 L 34 606 Z"
               fill="white"
               filter="url(#foliageEdgeFeather)"
             />

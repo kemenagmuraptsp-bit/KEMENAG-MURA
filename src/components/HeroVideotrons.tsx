@@ -24,7 +24,7 @@ const KASUBBAG_TU_PHOTO_SRC = '/assets/aistudio/KASUBBAG_TU-removebg-preview_57e
 
 /**
  * Compact, proportional wall-mounted videotron dimensions mounted flush against the office walls
- * on facade_no_wing_roofs_1795680697556.jpg (1376x768) with equal raised wings under the second roof.
+ * on facade_realistic_flat_1795683700000.jpg (1376x768) with realistic wall-integrated signage, matching green roofs and upper trim.
  * - Left wing wall: left 11.05% -> 27.45% (width 16.4%, height 19.8%)
  * - Right wing wall: left 74.15% -> 90.55% (width 16.4%, height 19.8% — exact mirror match)
  * - Vertical span: top 48.6% -> bottom 68.4%, so the 1 central steel support pillar descends

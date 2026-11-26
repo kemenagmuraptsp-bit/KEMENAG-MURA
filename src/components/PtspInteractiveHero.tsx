@@ -47,13 +47,13 @@ import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_179523212691
 import kartuBimasHinduImg from '@/src/assets/images/katalog_full_bimas_hindu_1795232127988.jpg';
 import kartuKristenImg from '@/src/assets/images/katalog_full_bimas_kristen_1795232127426.jpg';
 import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_1795232127634.jpg';
-import heroKantorZoomImg from '@/src/assets/images/facade_no_wing_roofs_1795680697556.jpg';
+import heroKantorZoomImg from '@/src/assets/images/facade_realistic_flat_1795683700000.jpg';
 
 const KEMENAG_LOGO_SRC = '/assets/aistudio/Kementerian_Agama_new_logo_f9b3eec1.png';
 const PTSP_KATALOG_BG_SRC =
   '/assets/aistudio/Ganti_wajah_petugas_dengan_gambar_6b132579_2K_526b0e23.jpg';
 
-// Exact measured inner double-door opening in facade_no_wing_roofs_1795680697556.jpg (1376x768)
+// Exact measured inner double-door opening in facade_realistic_flat_1795683700000.jpg (1376x768)
 const DOOR_RECT_PCT = {
   left: (658 / HERO_FACADE_WIDTH) * 100, // 47.82%
   top: (454 / HERO_FACADE_HEIGHT) * 100, // 59.11%
