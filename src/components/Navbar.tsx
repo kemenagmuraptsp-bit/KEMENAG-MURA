@@ -39,6 +39,7 @@ interface NavDropdownItem {
   infoSectionId?: string;
   href?: string;
   dividerBefore?: boolean;
+  accentColor?: 'emerald' | 'rose' | 'sky';
   children?: NavDropdownItem[];
 }
 
@@ -214,16 +215,19 @@ const NAV_ITEMS: NavItemConfig[] = [
         label: 'Formulir E-Pengaduan PTSP',
         view: 'e-pengaduan',
         sectionId: 'formulir-pengaduan',
+        accentColor: 'emerald',
       },
       {
         label: 'SPAN LAPOR (Integrasi Pusat)',
         view: 'e-pengaduan',
         sectionId: 'span-lapor',
+        accentColor: 'rose',
       },
       {
         label: 'Survei Kepuasan Masyarakat (SKM)',
         view: 'e-pengaduan',
         sectionId: 'survei-skm',
+        accentColor: 'sky',
       },
     ],
   },
@@ -584,11 +588,33 @@ export function Navbar({
 
                   {hasChildren && isOpen && (
                     <div className="absolute left-0 top-full pt-1.5 w-72 z-50 animate-dropdown-reveal">
-                      <div className="rounded-2xl border border-sky-300/25 border-t-2 border-t-emerald-400 bg-[#0b1d3d]/85 dark:bg-[#071226]/85 backdrop-blur-xl shadow-[0_20px_44px_-12px_rgba(7,18,38,0.65)] p-1.5 divide-y divide-sky-200/15">
+                      <div
+                        className={`rounded-2xl border border-sky-300/25 border-t-2 border-t-emerald-400 bg-[#0b1d3d]/85 dark:bg-[#071226]/85 backdrop-blur-xl shadow-[0_20px_44px_-12px_rgba(7,18,38,0.65)] ${
+                          item.children!.some((c) => Boolean(c.accentColor))
+                            ? 'p-2 space-y-1.5'
+                            : 'p-1.5 divide-y divide-sky-200/15'
+                        }`}
+                      >
                         {item.children!.map((sub) => {
                           const hasNested = Boolean(sub.children && sub.children.length > 0);
                           const subKey = `${item.id}:${sub.label}`;
                           const isSubOpen = openSubDropdown === subKey;
+                          const accentBtnClass =
+                            sub.accentColor === 'emerald'
+                              ? 'border-2 border-emerald-400/75 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300'
+                              : sub.accentColor === 'rose'
+                              ? 'border-2 border-rose-400/75 bg-rose-500/15 text-rose-100 hover:bg-rose-500/25 hover:border-rose-300'
+                              : sub.accentColor === 'sky'
+                              ? 'border-2 border-sky-400/75 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25 hover:border-sky-300'
+                              : '';
+                          const accentBarClass =
+                            sub.accentColor === 'emerald'
+                              ? 'bg-emerald-400 opacity-100 scale-y-100'
+                              : sub.accentColor === 'rose'
+                              ? 'bg-rose-400 opacity-100 scale-y-100'
+                              : sub.accentColor === 'sky'
+                              ? 'bg-sky-400 opacity-100 scale-y-100'
+                              : '';
 
                           return (
                             <div
@@ -630,7 +656,9 @@ export function Navbar({
                                   type="button"
                                   onClick={() => handleSelectDropdownItem(sub)}
                                   className={`group/item w-full flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
-                                    isSubOpen
+                                    accentBtnClass
+                                      ? accentBtnClass
+                                      : isSubOpen
                                       ? 'bg-white/15 text-emerald-300'
                                       : 'text-slate-100 hover:bg-white/12'
                                   }`}
@@ -638,16 +666,22 @@ export function Navbar({
                                   <span className="flex items-center gap-2 min-w-0">
                                     <span
                                       aria-hidden="true"
-                                      className={`w-1 h-4 rounded-full bg-emerald-400 transition-all duration-200 shrink-0 ${
-                                        isSubOpen
-                                          ? 'opacity-100 scale-y-100'
-                                          : 'opacity-0 scale-y-0 group-hover/item:opacity-100 group-hover/item:scale-y-100'
+                                      className={`w-1 h-4 rounded-full transition-all duration-200 shrink-0 ${
+                                        accentBarClass
+                                          ? accentBarClass
+                                          : isSubOpen
+                                          ? 'bg-emerald-400 opacity-100 scale-y-100'
+                                          : 'bg-emerald-400 opacity-0 scale-y-0 group-hover/item:opacity-100 group-hover/item:scale-y-100'
                                       }`}
                                     />
                                     <span
                                       className={`inline-block origin-left transition-all duration-200 ease-out ${
                                         isSubOpen
                                           ? 'scale-[1.06] translate-x-1 font-bold text-emerald-300'
+                                          : sub.accentColor === 'rose'
+                                          ? 'group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:font-bold group-hover/item:text-rose-200'
+                                          : sub.accentColor === 'sky'
+                                          ? 'group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:font-bold group-hover/item:text-sky-200'
                                           : 'group-hover/item:scale-[1.06] group-hover/item:translate-x-1 group-hover/item:font-bold group-hover/item:text-emerald-300'
                                       }`}
                                     >
@@ -808,11 +842,25 @@ export function Navbar({
                   )}
                 </div>
                 {hasMobileChildren && isGroupExpanded && (
-                  <div className="mt-1.5 rounded-xl bg-[#0b1d3d]/90 dark:bg-[#071226]/90 backdrop-blur-md border border-sky-300/25 p-1.5 divide-y divide-sky-200/15">
+                  <div
+                    className={`mt-1.5 rounded-xl bg-[#0b1d3d]/90 dark:bg-[#071226]/90 backdrop-blur-md border border-sky-300/25 p-1.5 ${
+                      item.children!.some((c) => Boolean(c.accentColor))
+                        ? 'space-y-1.5'
+                        : 'divide-y divide-sky-200/15'
+                    }`}
+                  >
                     {item.children!.map((sub) => {
                       const hasNested = Boolean(sub.children && sub.children.length > 0);
                       const mobileSubKey = `${item.id}:${sub.label}`;
                       const isExpanded = expandedMobileSub === mobileSubKey;
+                      const mobileAccentClass =
+                        sub.accentColor === 'emerald'
+                          ? 'border-2 border-emerald-400/75 bg-emerald-500/15 text-emerald-100'
+                          : sub.accentColor === 'rose'
+                          ? 'border-2 border-rose-400/75 bg-rose-500/15 text-rose-100'
+                          : sub.accentColor === 'sky'
+                          ? 'border-2 border-sky-400/75 bg-sky-500/15 text-sky-100'
+                          : 'text-slate-100 hover:bg-white/10';
 
                       if (sub.href) {
                         return (
@@ -887,9 +935,9 @@ export function Navbar({
                           key={sub.label}
                           type="button"
                           onClick={() => handleSelectDropdownItem(sub)}
-                          className="group/item w-full text-left px-3 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold text-slate-100 hover:bg-white/10 transition-colors"
+                          className={`group/item w-full text-left px-3 py-2.5 min-h-[42px] rounded-lg text-xs font-semibold transition-colors ${mobileAccentClass}`}
                         >
-                          <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.04] group-hover/item:translate-x-1 group-hover/item:text-emerald-300">
+                          <span className="inline-block origin-left transition-transform duration-200 group-hover/item:scale-[1.04] group-hover/item:translate-x-1">
                             {sub.label}
                           </span>
                         </button>

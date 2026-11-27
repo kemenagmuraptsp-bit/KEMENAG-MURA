@@ -1,4 +1,4 @@
-import heroBuildingImg from '@/src/assets/images/facade_realistic_flat_1795683700000.jpg';
+import heroBuildingImg from '@/src/assets/images/facade_dayak_final_1795770200000.jpg';
 import fkubHarmonyImg from '@/src/assets/images/news_fkub_harmony_1794563088273.jpg';
 import madrasahEduImg from '@/src/assets/images/news_madrasah_education_1794563087581.jpg';
 import wakafKuaImg from '@/src/assets/images/news_wakaf_kua_1794563088488.jpg';

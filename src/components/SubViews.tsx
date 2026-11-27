@@ -1965,41 +1965,62 @@ export function PengaduanView({
       {/* Sticky Sub-Menu Quick Jump Bar */}
       <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
-          <div className="w-full sm:w-auto flex flex-nowrap sm:flex-wrap items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
+          <div className="w-full sm:w-auto flex flex-nowrap sm:flex-wrap items-center gap-2.5 overflow-x-auto pb-0.5 sm:pb-0">
             {[
               {
                 id: 'formulir-pengaduan' as const,
                 num: '01',
                 label: 'Formulir E-Pengaduan PTSP',
+                Icon: MessageSquareWarning,
+                activeCls:
+                  'bg-emerald-700 text-white border-emerald-700 shadow-sm',
+                idleCls:
+                  'bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100 border-emerald-500/80 dark:border-emerald-500/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/50',
+                iconActiveCls: 'text-emerald-100',
+                iconIdleCls: 'text-emerald-700 dark:text-emerald-400',
               },
               {
                 id: 'span-lapor' as const,
                 num: '02',
                 label: 'SPAN LAPOR (Integrasi Pusat)',
+                Icon: Send,
+                activeCls:
+                  'bg-rose-700 text-white border-rose-700 shadow-sm',
+                idleCls:
+                  'bg-rose-50/90 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100 border-rose-500/80 dark:border-rose-500/70 hover:bg-rose-100 dark:hover:bg-rose-900/50',
+                iconActiveCls: 'text-rose-100',
+                iconIdleCls: 'text-rose-700 dark:text-rose-400',
               },
               {
                 id: 'survei-skm' as const,
                 num: '03',
                 label: 'Survei Kepuasan Masyarakat (SKM)',
+                Icon: ClipboardCheck,
+                activeCls:
+                  'bg-sky-700 text-white border-sky-700 shadow-sm',
+                idleCls:
+                  'bg-sky-50/90 dark:bg-sky-950/40 text-sky-900 dark:text-sky-100 border-sky-500/80 dark:border-sky-500/70 hover:bg-sky-100 dark:hover:bg-sky-900/50',
+                iconActiveCls: 'text-sky-100',
+                iconIdleCls: 'text-sky-700 dark:text-sky-400',
               },
             ].map((tab) => {
               const active = activeAnchor === tab.id;
+              const TabIcon = tab.Icon;
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => jumpToSection(tab.id)}
-                  className={`px-3 sm:px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2 border ${
-                    active
-                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400'
+                  className={`px-3 sm:px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-bold transition-colors whitespace-nowrap shrink-0 inline-flex items-center gap-2 border-2 ${
+                    active ? tab.activeCls : tab.idleCls
                   }`}
                 >
-                  <span
-                    className={`font-mono-tabular text-[11px] ${
-                      active ? 'text-emerald-200' : 'text-slate-400 dark:text-slate-500'
+                  <TabIcon
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      active ? tab.iconActiveCls : tab.iconIdleCls
                     }`}
-                  >
+                  />
+                  <span className="font-mono-tabular text-[11px] opacity-85">
                     {tab.num}.
                   </span>
                   <span>{tab.label}</span>
@@ -2089,12 +2110,16 @@ export function PengaduanView({
         )}
 
         {/* SECTION 01: FORMULIR E-PENGADUAN INTERNAL */}
-        <section id="formulir-pengaduan" className="scroll-mt-32 space-y-6">
-          <div className="space-y-1.5 border-b border-slate-200 dark:border-slate-800 pb-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
-              01 · Pengaduan Internal Kankemenag Murung Raya
-            </p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+        <section
+          id="formulir-pengaduan"
+          className="scroll-mt-32 rounded-2xl border-2 border-emerald-500/80 dark:border-emerald-500/70 bg-emerald-50/35 dark:bg-emerald-950/15 p-5 sm:p-7 space-y-6"
+        >
+          <div className="space-y-1.5 border-b border-emerald-200 dark:border-emerald-800/80 pb-4">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-emerald-500/60 bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold uppercase tracking-widest">
+              <MessageSquareWarning className="w-3.5 h-3.5 shrink-0" />
+              <span>01 · E-Pengaduan Internal Kankemenag Murung Raya</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white pt-1">
               Formulir E-Pengaduan & Whistleblowing System
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
@@ -2164,7 +2189,7 @@ export function PengaduanView({
               ) : (
                 <form
                   onSubmit={handleSubmit}
-                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
+                  className="border border-emerald-300 dark:border-emerald-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
@@ -2286,7 +2311,7 @@ export function PengaduanView({
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+              <div className="bg-white/90 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-xl p-6 space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   Jaminan Perlindungan & Tindak Lanjut
                 </h3>
@@ -2307,7 +2332,7 @@ export function PengaduanView({
               </div>
 
               {mergedComplaints.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                <div className="border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Riwayat Pengaduan Terkirim ({mergedComplaints.length})
                   </h3>
@@ -2334,12 +2359,16 @@ export function PengaduanView({
         </section>
 
         {/* SECTION 02: SPAN LAPOR (INTEGRASI SP4N-LAPOR! PUSAT) */}
-        <section id="span-lapor" className="scroll-mt-32 pt-10 border-t border-slate-200 dark:border-slate-800 space-y-6">
-          <div className="space-y-1.5">
-            <p className="text-xs font-bold uppercase tracking-widest text-rose-700 dark:text-rose-400">
-              02 · Integrasi Kanal Nasional (SP4N-LAPOR! Pusat)
-            </p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+        <section
+          id="span-lapor"
+          className="scroll-mt-32 rounded-2xl border-2 border-rose-500/80 dark:border-rose-500/70 bg-rose-50/35 dark:bg-rose-950/15 p-5 sm:p-7 space-y-6"
+        >
+          <div className="space-y-1.5 border-b border-rose-200 dark:border-rose-800/80 pb-4">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-rose-500/60 bg-rose-100/80 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 text-xs font-bold uppercase tracking-widest">
+              <Send className="w-3.5 h-3.5 shrink-0" />
+              <span>02 · SPAN LAPOR (Integrasi Kanal Nasional SP4N-LAPOR! Pusat)</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white pt-1">
               SPAN LAPOR — Sistem Pengelolaan Pengaduan Pelayanan Publik Nasional
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
@@ -2350,7 +2379,7 @@ export function PengaduanView({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
-            <div className="lg:col-span-7 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 bg-white dark:bg-slate-900 space-y-5 sm:space-y-6">
+            <div className="lg:col-span-7 border border-rose-300 dark:border-rose-800 rounded-xl p-4 sm:p-6 bg-white dark:bg-slate-900 space-y-5 sm:space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -2408,7 +2437,7 @@ export function PengaduanView({
                 ].map((flow) => (
                   <div
                     key={flow.step}
-                    className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5"
+                    className="p-4 rounded-xl bg-rose-50/60 dark:bg-slate-950 border border-rose-200 dark:border-rose-900/70 space-y-1.5"
                   >
                     <p className="font-mono-tabular text-xs font-extrabold text-rose-700 dark:text-rose-400">
                       {flow.step}.
@@ -2581,7 +2610,7 @@ export function PengaduanView({
                     <button
                       type="submit"
                       disabled={spanBusy}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-rose-700 hover:bg-rose-800 disabled:opacity-60 text-white transition-colors"
                     >
                       {spanBusy ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2616,7 +2645,7 @@ export function PengaduanView({
             </div>
 
             <div className="lg:col-span-5 space-y-5">
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+              <div className="bg-white/90 dark:bg-slate-900 border border-rose-300 dark:border-rose-800 rounded-xl p-6 space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   Spesifikasi Integrasi SP4N-LAPOR! Pusat
                 </h3>
@@ -2644,7 +2673,7 @@ export function PengaduanView({
               </div>
 
               {cloudSpanList.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                <div className="border border-rose-300 dark:border-rose-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Riwayat Pengajuan SPAN LAPOR Anda ({cloudSpanList.length})
                   </h3>
@@ -2676,12 +2705,16 @@ export function PengaduanView({
         </section>
 
         {/* SECTION 03: SURVEI KEPUASAN MASYARAKAT (SKM) */}
-        <section id="survei-skm" className="scroll-mt-32 pt-10 border-t border-slate-200 dark:border-slate-800 space-y-6">
-          <div className="space-y-1.5">
-            <p className="text-xs font-bold uppercase tracking-widest text-sky-700 dark:text-sky-400">
-              03 · Evaluasi Pelayanan Publik (PermenPAN-RB No. 14 Tahun 2017)
-            </p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
+        <section
+          id="survei-skm"
+          className="scroll-mt-32 rounded-2xl border-2 border-sky-500/80 dark:border-sky-500/70 bg-sky-50/35 dark:bg-sky-950/15 p-5 sm:p-7 space-y-6"
+        >
+          <div className="space-y-1.5 border-b border-sky-200 dark:border-sky-800/80 pb-4">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-sky-500/60 bg-sky-100/80 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-xs font-bold uppercase tracking-widest">
+              <ClipboardCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>03 · Survei Kepuasan Masyarakat (SKM — PermenPAN-RB 14/2017)</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white pt-1">
               Survei Kepuasan Masyarakat (SKM) Layanan PTSP
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
@@ -2752,7 +2785,7 @@ export function PengaduanView({
               ) : (
                 <form
                   onSubmit={handleSkmSubmit}
-                  className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
+                  className="border border-sky-300 dark:border-sky-800 rounded-xl p-4 sm:p-6 space-y-5 bg-white dark:bg-slate-900"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div>
@@ -2862,8 +2895,8 @@ export function PengaduanView({
                                   }
                                   className={`px-2.5 py-2 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-lg text-[11px] font-semibold border transition-colors whitespace-nowrap ${
                                     active
-                                      ? 'bg-emerald-700 text-white border-emerald-700'
-                                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500'
+                                      ? 'bg-sky-700 text-white border-sky-700'
+                                      : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-500'
                                   }`}
                                 >
                                   {opt.short} · {opt.label}
@@ -2892,7 +2925,7 @@ export function PengaduanView({
                   <button
                     type="submit"
                     disabled={skmBusy}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-sky-700 hover:bg-sky-800 disabled:opacity-60 rounded-lg transition-colors"
                   >
                     {skmBusy ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -2907,14 +2940,14 @@ export function PengaduanView({
 
             {/* Right: Live IKM Scoreboard & 9 Elements Breakdown */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="bg-white/90 dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-6 space-y-5">
+                <div className="flex items-center justify-between gap-3 border-b border-sky-200 dark:border-sky-800 pb-4">
                   <div className="space-y-0.5">
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                       Indeks Kepuasan Masyarakat (IKM)
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono-tabular text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                      <span className="font-mono-tabular text-3xl font-black text-sky-700 dark:text-sky-400">
                         {cumulativeIkm.toFixed(2).replace('.', ',')}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">/ 100</span>
@@ -2956,7 +2989,7 @@ export function PengaduanView({
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all duration-300"
+                              className="h-full rounded-full bg-sky-600 dark:bg-sky-500 transition-all duration-300"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -2968,7 +3001,7 @@ export function PengaduanView({
               </div>
 
               {mergedSkmResponses.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
+                <div className="border border-sky-300 dark:border-sky-800 bg-white dark:bg-slate-900 rounded-xl p-5 space-y-3">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Partisipasi Survei Anda ({mergedSkmResponses.length})
                   </h3>

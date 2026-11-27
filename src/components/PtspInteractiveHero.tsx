@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronUp,
   Church,
+  ClipboardCheck,
   Clock,
   ExternalLink,
   FileText,
@@ -18,6 +19,7 @@ import {
   MessageSquareWarning,
   Moon,
   Search,
+  Send,
   ShieldCheck,
   Sun,
   TicketCheck,
@@ -47,38 +49,36 @@ import kartuPendisImg from '@/src/assets/images/katalog_full_pendis_179523212691
 import kartuBimasHinduImg from '@/src/assets/images/katalog_full_bimas_hindu_1795232127988.jpg';
 import kartuKristenImg from '@/src/assets/images/katalog_full_bimas_kristen_1795232127426.jpg';
 import kartuKepegawaianImg from '@/src/assets/images/katalog_full_kepegawaian_1795232127634.jpg';
-import heroKantorZoomImg from '@/src/assets/images/facade_realistic_flat_1795683700000.jpg';
+import heroKantorZoomImg from '@/src/assets/images/facade_dayak_final_1795770200000.jpg';
 
 const KEMENAG_LOGO_SRC = '/assets/aistudio/Kementerian_Agama_new_logo_f9b3eec1.png';
 const PTSP_KATALOG_BG_SRC =
   '/assets/aistudio/Ganti_wajah_petugas_dengan_gambar_6b132579_2K_526b0e23.jpg';
 
-// Exact measured inner double-door opening in facade_realistic_flat_1795683700000.jpg (1376x768)
+// Exact measured inner double-door opening in facade_dayak_final_1795770200000.jpg (1376x768)
 const DOOR_RECT_PCT = {
-  left: (658 / HERO_FACADE_WIDTH) * 100, // 47.82%
-  top: (454 / HERO_FACADE_HEIGHT) * 100, // 59.11%
-  width: (96 / HERO_FACADE_WIDTH) * 100, // 6.98%
-  height: (103 / HERO_FACADE_HEIGHT) * 100, // 13.41%
-  centerX: (706 / HERO_FACADE_WIDTH) * 100, // 51.31%
-  centerY: (505.5 / HERO_FACADE_HEIGHT) * 100, // 65.82%
+  left: (640 / HERO_FACADE_WIDTH) * 100, // 46.51%
+  top: (496 / HERO_FACADE_HEIGHT) * 100, // 64.58%
+  width: (104 / HERO_FACADE_WIDTH) * 100, // 7.56%
+  height: (122 / HERO_FACADE_HEIGHT) * 100, // 15.89%
+  centerX: (692 / HERO_FACADE_WIDTH) * 100, // 50.29%
+  centerY: (557 / HERO_FACADE_HEIGHT) * 100, // 72.53%
 };
 
 // Exact measured outer dark architectural door casing (border luar pintu) in 1376x768
 const DOOR_OUTER_RECT_PCT = {
-  left: (638 / HERO_FACADE_WIDTH) * 100, // 46.37%
-  top: (438 / HERO_FACADE_HEIGHT) * 100, // 57.03%
-  width: (136 / HERO_FACADE_WIDTH) * 100, // 9.88%
-  height: (119 / HERO_FACADE_HEIGHT) * 100, // 15.49%
+  left: (626 / HERO_FACADE_WIDTH) * 100, // 45.49%
+  top: (488 / HERO_FACADE_HEIGHT) * 100, // 63.54%
+  width: (132 / HERO_FACADE_WIDTH) * 100, // 9.59%
+  height: (132 / HERO_FACADE_HEIGHT) * 100, // 17.19%
 };
 
-// Exact measured span between the two dark marble front terrace pillars (antar tiang teras kantor) in 1376x768
-// Left dark marble pillar inner edge: x=541 (39.32%), Right dark marble pillar inner edge: x=850 (61.77%)
-// Mounted cleanly beneath the porch canopy overhang lip (y=347 -> 45.18%)
+// Exact measured span along the yellow porch beam between the two Dayak front terrace pillars in 1376x768
 const TERRACE_RUNNING_TEXT_RECT_PCT = {
-  left: (541 / HERO_FACADE_WIDTH) * 100, // 39.32%
-  top: (348 / HERO_FACADE_HEIGHT) * 100, // 45.31%
-  width: (309 / HERO_FACADE_WIDTH) * 100, // 22.46%
-  height: (26 / HERO_FACADE_HEIGHT) * 100, // 3.39%
+  left: (498 / HERO_FACADE_WIDTH) * 100, // 36.19%
+  top: (379 / HERO_FACADE_HEIGHT) * 100, // 49.35%
+  width: (390 / HERO_FACADE_WIDTH) * 100, // 28.34%
+  height: (23 / HERO_FACADE_HEIGHT) * 100, // 2.99%
 };
 
 const TERRACE_RUNNING_TEXT_CONTENT =
@@ -384,9 +384,8 @@ export function PtspInteractiveHero({
     const computeCover = () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      // Visible facade ends right beneath the granite terrace stairs & wall shrubs (y=606),
-      // cleanly removing the foreground garden & driveway strip at the bottom.
-      const VISIBLE_FACADE_HEIGHT = 606;
+      // Visible facade ends cleanly below the granite terrace stairs & Dayak planter bases (y=708).
+      const VISIBLE_FACADE_HEIGHT = 708;
       const scale = Math.max(rect.width / HERO_FACADE_WIDTH, rect.height / VISIBLE_FACADE_HEIGHT);
       const renderedW = HERO_FACADE_WIDTH * scale;
       const renderedH = HERO_FACADE_HEIGHT * scale;
@@ -635,9 +634,10 @@ export function PtspInteractiveHero({
       {/* STAGE 1: ZOOMED OFFICE FACADE + REALISTIC 3D GLASS DOOR IN PLACE  */}
       {/* ================================================================= */}
       {isDoorStage && (
+        <div className="pt-[56px] sm:pt-[64px] lg:pt-[104px] bg-gradient-to-b from-[#042d56] via-[#2b82cc] to-[#5db2fa]">
         <div
           ref={heroStageRef}
-          className="relative min-h-[440px] sm:min-h-[500px] md:min-h-0 md:aspect-[1376/606] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
+          className="relative min-h-[440px] sm:min-h-[500px] md:min-h-0 md:aspect-[1376/708] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
         >
           {/* Coordinate-Locked Building Facade + Pixel-Aligned Realistic 3D Glass Entrance Door */}
           <div
@@ -700,15 +700,15 @@ export function PtspInteractiveHero({
                 </filter>
                 <mask id="videotronGardenPlantsMask">
                   <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
-                  {/* Left videotron pillar shrub crest (x=242..288, y=550..606) */}
+                  {/* Left videotron pillar shrub crest (x=214..264, y=608..670) */}
                   <path
-                    d="M 242 560 Q 252 562 260 560 Q 266 558 271 552 Q 277 550 282 558 L 288 560 L 288 606 L 242 606 Z"
+                    d="M 214 614 Q 226 609 238 612 Q 250 608 264 615 L 264 670 L 214 670 Z"
                     fill="white"
                     filter="url(#videotronGardenFeather)"
                   />
-                  {/* Right videotron pillar shrub crest (x=1112..1156, y=531..606) */}
+                  {/* Right videotron pillar shrub crest (x=1114..1164, y=608..670) */}
                   <path
-                    d="M 1112 548 Q 1120 544 1125 533 Q 1133 531 1143 533 Q 1149 535 1156 540 L 1156 606 L 1112 606 Z"
+                    d="M 1114 615 Q 1126 608 1138 612 Q 1150 609 1164 614 L 1164 670 L 1114 670 Z"
                     fill="white"
                     filter="url(#videotronGardenFeather)"
                   />
@@ -785,11 +785,11 @@ export function PtspInteractiveHero({
               </div>
             </div>
 
-            {/* Letter-by-Letter "Selamat Datang" Positioned Directly Above the Office Entrance Door */}
+            {/* Letter-by-Letter "Selamat Datang" Plaque Positioned Directly Above the Glass Door */}
             <div
               style={{
                 left: `${DOOR_RECT_PCT.centerX}%`,
-                top: '50.0%',
+                top: '57.6%',
               }}
               className={`pointer-events-none absolute -translate-x-1/2 z-[21] flex flex-col items-center text-center whitespace-nowrap transition-all duration-500 ${
                 doorsOpened ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'
@@ -800,10 +800,10 @@ export function PtspInteractiveHero({
                 aria-label={lang === 'en' ? 'Welcome' : 'Selamat Datang'}
                 style={{
                   fontSize: coverBox
-                    ? `${Math.max(15, Math.min(30, coverBox.width * 0.02))}px`
-                    : '25px',
+                    ? `${Math.max(13, Math.min(26, coverBox.width * 0.0175))}px`
+                    : '22px',
                 }}
-                className="font-serif-editorial italic font-semibold leading-none text-white drop-shadow-[0_3px_10px_rgba(2,18,12,0.95)] [text-shadow:0_2px_6px_rgba(0,0,0,0.9),0_0_16px_rgba(4,47,34,0.85)] px-2.5 py-0.5 rounded-lg bg-emerald-950/32 backdrop-blur-[1.5px]"
+                className="font-serif-editorial italic font-semibold leading-none text-white drop-shadow-[0_3px_10px_rgba(2,18,12,0.95)] [text-shadow:0_2px_6px_rgba(0,0,0,0.9)] px-3.5 py-1 rounded-full bg-[#131f1d]/88 border border-amber-200/35 backdrop-blur-[2px]"
               >
                 {Array.from(lang === 'en' ? 'Welcome' : 'Selamat Datang').map((char, idx) => (
                   <span
@@ -919,8 +919,21 @@ export function PtspInteractiveHero({
                         className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
                       />
 
+                      {/* Frosted Dayak Batang Garing Glass Etching Backdrop */}
+                      <svg
+                        viewBox="0 0 80 140"
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-[8%] w-[84%] h-[84%] opacity-45"
+                      >
+                        <g fill="none" stroke="#f8fafc" strokeWidth="1.5" strokeLinecap="round">
+                          <path d="M40 128 V12 M40 112 C24 108 18 94 26 84 C32 76 40 84 40 94 M40 112 C56 108 62 94 54 84 C48 76 40 84 40 94" />
+                          <path d="M40 62 C22 58 14 42 24 30 C32 22 40 34 40 46 M40 62 C58 58 66 42 56 30 C48 22 40 34 40 46" />
+                          <path d="M40 24 C32 16 34 8 40 6 C46 8 48 16 40 24 Z" />
+                        </g>
+                      </svg>
+
                       {/* Official Kemenag Emblem Decal on Left Glass Panel */}
-                      <div className="relative z-10 w-[58%] aspect-square rounded-full bg-white/18 backdrop-blur-[1px] border border-amber-200/45 shadow-[0_1px_4px_rgba(0,0,0,0.4)] flex items-center justify-center p-[8%] mr-[10%]">
+                      <div className="relative z-10 w-[56%] aspect-square rounded-full bg-white/20 backdrop-blur-[1px] border border-amber-200/50 shadow-[0_1px_4px_rgba(0,0,0,0.4)] flex items-center justify-center p-[8%] mr-[10%]">
                         <img
                           src={KEMENAG_LOGO_SRC}
                           alt="Logo Kementerian Agama RI"
@@ -956,8 +969,21 @@ export function PtspInteractiveHero({
                         className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
                       />
 
+                      {/* Frosted Dayak Batang Garing Glass Etching Backdrop */}
+                      <svg
+                        viewBox="0 0 80 140"
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-[8%] w-[84%] h-[84%] opacity-45"
+                      >
+                        <g fill="none" stroke="#f8fafc" strokeWidth="1.5" strokeLinecap="round">
+                          <path d="M40 128 V12 M40 112 C24 108 18 94 26 84 C32 76 40 84 40 94 M40 112 C56 108 62 94 54 84 C48 76 40 84 40 94" />
+                          <path d="M40 62 C22 58 14 42 24 30 C32 22 40 34 40 46 M40 62 C58 58 66 42 56 30 C48 22 40 34 40 46" />
+                          <path d="M40 24 C32 16 34 8 40 6 C46 8 48 16 40 24 Z" />
+                        </g>
+                      </svg>
+
                       {/* Official Kemenag Emblem Decal on Right Glass Panel */}
-                      <div className="relative z-10 w-[58%] aspect-square rounded-full bg-white/18 backdrop-blur-[1px] border border-amber-200/45 shadow-[0_1px_4px_rgba(0,0,0,0.4)] flex items-center justify-center p-[8%] ml-[10%]">
+                      <div className="relative z-10 w-[56%] aspect-square rounded-full bg-white/20 backdrop-blur-[1px] border border-amber-200/50 shadow-[0_1px_4px_rgba(0,0,0,0.4)] flex items-center justify-center p-[8%] ml-[10%]">
                         <img
                           src={KEMENAG_LOGO_SRC}
                           alt="Logo Kementerian Agama RI"
@@ -997,6 +1023,7 @@ export function PtspInteractiveHero({
               )}
             </div>
           </div>
+        </div>
         </div>
       )}
 
@@ -1520,11 +1547,57 @@ export function PtspInteractiveHero({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onNavigate('e-pengaduan')}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/18 text-xs font-bold text-white transition-colors whitespace-nowrap"
+                    onClick={() => {
+                      onNavigate('e-pengaduan');
+                      window.setTimeout(() => {
+                        window.dispatchEvent(
+                          new CustomEvent('kemenag:section-focus', { detail: 'formulir-pengaduan' })
+                        );
+                        document
+                          .getElementById('formulir-pengaduan')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 120);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-emerald-400/80 bg-emerald-900/65 hover:bg-emerald-800/80 text-xs font-bold text-emerald-50 transition-colors whitespace-nowrap"
                   >
-                    <MessageSquareWarning className="w-3.5 h-3.5 text-amber-300" />
+                    <MessageSquareWarning className="w-3.5 h-3.5 text-emerald-300" />
                     <span>E-Pengaduan</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigate('e-pengaduan');
+                      window.setTimeout(() => {
+                        window.dispatchEvent(
+                          new CustomEvent('kemenag:section-focus', { detail: 'span-lapor' })
+                        );
+                        document
+                          .getElementById('span-lapor')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 120);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-rose-400/85 bg-rose-950/65 hover:bg-rose-900/80 text-xs font-bold text-rose-50 transition-colors whitespace-nowrap"
+                  >
+                    <Send className="w-3.5 h-3.5 text-rose-300" />
+                    <span>SPAN LAPOR</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigate('e-pengaduan');
+                      window.setTimeout(() => {
+                        window.dispatchEvent(
+                          new CustomEvent('kemenag:section-focus', { detail: 'survei-skm' })
+                        );
+                        document
+                          .getElementById('survei-skm')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 120);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-sky-400/85 bg-sky-950/65 hover:bg-sky-900/80 text-xs font-bold text-sky-50 transition-colors whitespace-nowrap"
+                  >
+                    <ClipboardCheck className="w-3.5 h-3.5 text-sky-300" />
+                    <span>Survei SKM</span>
                   </button>
                   <button
                     type="button"

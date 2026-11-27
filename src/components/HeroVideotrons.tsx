@@ -23,25 +23,24 @@ const KEPALA_KANTOR_PHOTO_SRC = '/assets/aistudio/KEPALA_KEMENAG-removebg-previe
 const KASUBBAG_TU_PHOTO_SRC = '/assets/aistudio/KASUBBAG_TU-removebg-preview_57efd332.png';
 
 /**
- * Compact, proportional wall-mounted videotron dimensions mounted flush against the office walls
- * on facade_realistic_flat_1795683700000.jpg (1376x768) with realistic wall-integrated signage, matching green roofs and upper trim.
- * - Left wing wall: left 11.05% -> 27.45% (width 16.4%, height 19.8%)
- * - Right wing wall: left 74.15% -> 90.55% (width 16.4%, height 19.8% — exact mirror match)
- * - Vertical span: top 48.6% -> bottom 68.4%, so the 1 central steel support pillar descends
- *   along the lower cream building wall (68.4% -> 74.3%) and tucks naturally behind the garden shrubs.
+ * Proportional wall-mounted videotron dimensions mounted cleanly on the left and right wings
+ * of facade_dayak_final_1795770200000.jpg (1376x768) below the mid-wing Dayak trim.
+ * - Left wing bay: left 8.0% -> 26.6% (width 18.6%, height 22.8%)
+ * - Right wing bay: left 73.4% -> 92.0% (width 18.6%, height 22.8% — exact mirror match)
+ * - Vertical span: top 52.8% -> bottom 75.6%, with the central steel pole descending behind garden shrubs.
  */
 export const VIDEOTRON_RECTS_PCT = {
   left: {
-    left: 11.05,
-    top: 48.6,
-    width: 16.4,
-    height: 19.8,
+    left: 8.0,
+    top: 52.8,
+    width: 18.6,
+    height: 22.8,
   },
   right: {
-    left: 74.15,
-    top: 48.6,
-    width: 16.4,
-    height: 19.8,
+    left: 73.4,
+    top: 52.8,
+    width: 18.6,
+    height: 22.8,
   },
 } as const;
 

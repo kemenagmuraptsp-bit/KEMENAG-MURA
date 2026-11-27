@@ -67,7 +67,7 @@ export function Footer({ onNavigate }: FooterProps) {
             <h3 className="text-xs uppercase tracking-widest text-emerald-300 font-semibold">
               Tautan Cepat
             </h3>
-            <ul className="divide-y divide-emerald-900/50 text-sm text-emerald-100/85">
+            <ul className="space-y-1.5 text-sm text-emerald-100/85">
               {[
                 { id: 'beranda' as PageView, label: 'Beranda' },
                 { id: 'profil' as PageView, label: 'Profil & Visi Misi' },
@@ -76,11 +76,36 @@ export function Footer({ onNavigate }: FooterProps) {
                 { id: 'galeri' as PageView, label: 'Galeri Dokumentasi' },
                 { id: 'ppid' as PageView, label: 'PPID & Informasi Publik' },
                 { id: 'zona-integritas' as PageView, label: 'Zona Integritas (WBK)' },
-                { id: 'e-pengaduan' as PageView, label: 'E-Pengaduan Masyarakat', sectionId: 'formulir-pengaduan' },
-                { id: 'e-pengaduan' as PageView, label: 'SPAN LAPOR (Integrasi Pusat)', sectionId: 'span-lapor' },
-                { id: 'e-pengaduan' as PageView, label: 'Survei Kepuasan Masyarakat (SKM)', sectionId: 'survei-skm' },
+                {
+                  id: 'e-pengaduan' as PageView,
+                  label: 'E-Pengaduan Masyarakat',
+                  sectionId: 'formulir-pengaduan',
+                  markerClass:
+                    'px-2.5 py-1.5 rounded-lg border-2 border-emerald-400/75 bg-emerald-900/65 text-emerald-50 hover:bg-emerald-800/80 font-semibold',
+                },
+                {
+                  id: 'e-pengaduan' as PageView,
+                  label: 'SPAN LAPOR (Integrasi Pusat)',
+                  sectionId: 'span-lapor',
+                  markerClass:
+                    'px-2.5 py-1.5 rounded-lg border-2 border-rose-400/80 bg-rose-950/65 text-rose-100 hover:bg-rose-900/75 font-semibold',
+                },
+                {
+                  id: 'e-pengaduan' as PageView,
+                  label: 'Survei Kepuasan Masyarakat (SKM)',
+                  sectionId: 'survei-skm',
+                  markerClass:
+                    'px-2.5 py-1.5 rounded-lg border-2 border-sky-400/80 bg-sky-950/65 text-sky-100 hover:bg-sky-900/75 font-semibold',
+                },
               ].map((link) => (
-                <li key={`${link.id}-${link.label}`} className="py-2 sm:py-1.5 first:pt-0 last:pb-0">
+                <li
+                  key={`${link.id}-${link.label}`}
+                  className={
+                    'markerClass' in link && link.markerClass
+                      ? 'pt-1'
+                      : 'py-1 border-b border-emerald-900/50 last:border-b-0'
+                  }
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -97,7 +122,11 @@ export function Footer({ onNavigate }: FooterProps) {
                         }, 120);
                       }
                     }}
-                    className="menu-expand-btn-left w-full hover:text-white hover:underline underline-offset-4 text-left"
+                    className={`menu-expand-btn-left w-full text-left transition-colors ${
+                      'markerClass' in link && link.markerClass
+                        ? link.markerClass
+                        : 'hover:text-white hover:underline underline-offset-4'
+                    }`}
                   >
                     <span className="menu-expand-label">{link.label}</span>
                   </button>

@@ -9,16 +9,16 @@ interface HeroOfficeBackgroundProps {
 export const HERO_FACADE_WIDTH = 1376;
 export const HERO_FACADE_HEIGHT = 768;
 
-// Left-side flagpole & tall Bendera Merah Putih geometry in 1376x768 facade coordinates:
-// Shifted slightly left (x=64, cleanly outside the x=80 green cornice tip) and raised so
-// the waving flag sits proudly in the open sky above the building roofline (y=231) and below the Navbar.
-const POLE_CENTER_X = 64;
-const POLE_TOP_Y = 132; // 17.2% — visible cleanly below fixed desktop Navbar while soaring above roofline
-const POLE_BASE_Y = 558; // Meets upper concrete plinth collar emerging from behind front garden hedge (y~568)
-const HOIST_X = 66.5;
-const HOIST_TOP_Y = 140; // Flag spans y~140..222, clearly above building's green upper trim (y=231)
-const FLAG_HEIGHT = 68; // Official 3:2 proportion (102 x 68); top red: 34, bottom white: 34
-const FLAG_LENGTH = 102;
+// Left-side flagpole & tall Bendera Merah Putih geometry in 1376x768 Dayak facade coordinates:
+// Positioned cleanly left (x=44, outside the x=62 green wing cornice tip) so the waving flag
+// sits proudly in the open sky above the Dayak wing roofline while remaining visible below the Navbar.
+const POLE_CENTER_X = 44;
+const POLE_TOP_Y = 122;
+const POLE_BASE_Y = 602;
+const HOIST_X = 46.5;
+const HOIST_TOP_Y = 130;
+const FLAG_HEIGHT = 66; // Official 3:2 proportion (98 x 66); top red: 33, bottom white: 33
+const FLAG_LENGTH = 98;
 const SEGMENTS = 26;
 const SHADING_STRIPS = 18;
 
@@ -232,21 +232,21 @@ export function HeroOfficeBackground({
             <feDropShadow dx="1.5" dy="2" stdDeviation="1.6" floodColor="#07182b" floodOpacity="0.28" />
           </filter>
 
-          {/* Soft organic mask tracing the exact top crest of the manicured garden hedge (y~571..574) */}
+          {/* Soft organic mask tracing the exact top crest of the manicured garden hedge (y~616..675) */}
           <filter id="foliageEdgeFeather" x="-10%" y="-10%" width="120%" height="120%">
             <feGaussianBlur stdDeviation="1.2" />
           </filter>
           <mask id="leftGardenPlantsMask">
             <rect x="0" y="0" width={HERO_FACADE_WIDTH} height={HERO_FACADE_HEIGHT} fill="black" />
             <path
-              d="M 34 568 Q 44 563 54 568 Q 62 565 70 569 Q 80 567 90 571 Q 99 568 108 572 L 108 606 L 34 606 Z"
+              d="M 14 618 Q 26 613 38 618 Q 48 614 58 619 Q 70 616 84 622 L 84 670 L 14 670 Z"
               fill="white"
               filter="url(#foliageEdgeFeather)"
             />
           </mask>
         </defs>
 
-        {/* Main Official Kantor Kemenag Murung Raya Facade Photo (Clean Right Lawn Without Old Flagpole) */}
+        {/* Main Official Kantor Kemenag Murung Raya Dayak-Ornamented Facade Photo */}
         <image
           href={imageSrc}
           x="0"
@@ -258,10 +258,10 @@ export function HeroOfficeBackground({
 
         {/* LEFT-SIDE FLAGPOLE, PEDESTAL BEHIND GARDEN PLANTS & WAVING BENDERA MERAH PUTIH */}
         <g aria-label="Tiang dan Bendera Merah Putih di sisi kiri kantor">
-          {/* Lower natural stone stepped base tucked behind the manicured garden hedge (y=574..605) */}
+          {/* Lower natural stone stepped base tucked behind the manicured garden hedge */}
           <rect
             x={POLE_CENTER_X - 18}
-            y={575}
+            y={619}
             width="36"
             height="30"
             rx="2"
@@ -269,13 +269,13 @@ export function HeroOfficeBackground({
             stroke="#6b6257"
             strokeWidth="0.8"
           />
-          <line x1={POLE_CENTER_X - 18} y1={589} x2={POLE_CENTER_X + 18} y2={589} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
-          <line x1={POLE_CENTER_X - 18} y1={600} x2={POLE_CENTER_X + 18} y2={600} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
+          <line x1={POLE_CENTER_X - 18} y1={633} x2={POLE_CENTER_X + 18} y2={633} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
+          <line x1={POLE_CENTER_X - 18} y1={644} x2={POLE_CENTER_X + 18} y2={644} stroke="#6b6257" strokeWidth="0.6" opacity="0.55" />
 
           {/* Upper white concrete stepped plinth peeking cleanly just above the back of the hedge */}
           <rect
             x={POLE_CENTER_X - 13.5}
-            y={567}
+            y={611}
             width="27"
             height="9"
             rx="1"
@@ -285,7 +285,7 @@ export function HeroOfficeBackground({
           />
           <rect
             x={POLE_CENTER_X - 8.5}
-            y={559}
+            y={603}
             width="17"
             height="9"
             rx="1"
@@ -296,7 +296,7 @@ export function HeroOfficeBackground({
           {/* Steel base collar */}
           <rect
             x={POLE_CENTER_X - 4.8}
-            y={553}
+            y={597}
             width="9.6"
             height="6.5"
             rx="1"
