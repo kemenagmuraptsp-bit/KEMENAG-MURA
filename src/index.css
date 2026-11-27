@@ -860,6 +860,111 @@
   animation: videotronSlideProgress 4.5s linear forwards;
 }
 
+@keyframes videotronLeaderPopReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.84);
+    filter: brightness(0.65) blur(3px) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(0, -2.5px, 0) scale(1.045);
+    filter: brightness(1.1) blur(0px) drop-shadow(0 5px 10px rgba(251, 191, 36, 0.42));
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: brightness(1) blur(0px) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+  }
+}
+
+@keyframes videotronLeaderAuraGold {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.58)) drop-shadow(0 0 2px rgba(251, 191, 36, 0.18));
+  }
+  50% {
+    transform: translate3d(0, -2px, 0) scale(1.042);
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.62)) drop-shadow(0 0 8px rgba(251, 191, 36, 0.68));
+  }
+}
+
+@keyframes videotronLeaderAuraEmerald {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.58)) drop-shadow(0 0 2px rgba(52, 211, 153, 0.18));
+  }
+  50% {
+    transform: translate3d(0, -2px, 0) scale(1.042);
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.62)) drop-shadow(0 0 8px rgba(52, 211, 153, 0.64));
+  }
+}
+
+@keyframes videotronSpotlightHalo {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes videotronPortraitSweep {
+  0%, 62% {
+    opacity: 0;
+    transform: translateX(-145%) skewX(-22deg);
+  }
+  74% {
+    opacity: 0.65;
+  }
+  88%, 100% {
+    opacity: 0;
+    transform: translateX(185%) skewX(-22deg);
+  }
+}
+
+.videotron-leader-photo-kepala {
+  transform-origin: bottom center;
+  animation:
+    videotronLeaderPopReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both,
+    videotronLeaderAuraGold 4.4s ease-in-out 0.95s infinite;
+  will-change: transform, filter, opacity;
+}
+
+.videotron-leader-photo-kasubbag {
+  transform-origin: bottom center;
+  animation:
+    videotronLeaderPopReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both,
+    videotronLeaderAuraEmerald 4.4s ease-in-out 3.15s infinite;
+  will-change: transform, filter, opacity;
+}
+
+.videotron-leader-halo-gold {
+  animation: videotronSpotlightHalo 4.4s ease-in-out 0.95s infinite;
+}
+
+.videotron-leader-halo-emerald {
+  animation: videotronSpotlightHalo 4.4s ease-in-out 3.15s infinite;
+}
+
+.videotron-leader-sweep-kepala {
+  animation: videotronPortraitSweep 6.2s cubic-bezier(0.22, 1, 0.36, 1) 0.6s infinite;
+}
+
+.videotron-leader-sweep-kasubbag {
+  animation: videotronPortraitSweep 6.2s cubic-bezier(0.22, 1, 0.36, 1) 1.6s infinite;
+}
+
+.videotron-cabinet:hover .videotron-leader-photo-kepala {
+  filter: brightness(1.08) drop-shadow(0 0 10px rgba(251, 191, 36, 0.8)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.65));
+}
+
+.videotron-cabinet:hover .videotron-leader-photo-kasubbag {
+  filter: brightness(1.08) drop-shadow(0 0 10px rgba(52, 211, 153, 0.78)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.65));
+}
+
 /* =====================================================================
    TERRACE OUTDOOR LED RUNNING TEXT (ANTAR TIANG TERAS KANTOR)
    ===================================================================== */
@@ -1261,10 +1366,18 @@
   .hex-wrapper,
   .mini-hex-wrapper,
   .welcome-letter-pop,
-  .welcome-line-draw {
+  .welcome-line-draw,
+  .videotron-leader-photo-kepala,
+  .videotron-leader-photo-kasubbag,
+  .videotron-leader-halo-gold,
+  .videotron-leader-halo-emerald {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+  }
+  .videotron-leader-sweep-kepala,
+  .videotron-leader-sweep-kasubbag {
+    display: none !important;
   }
   html {
     scroll-behavior: auto;

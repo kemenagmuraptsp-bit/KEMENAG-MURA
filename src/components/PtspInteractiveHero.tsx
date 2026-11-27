@@ -384,17 +384,22 @@ export function PtspInteractiveHero({
     const computeCover = () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      // Visible facade ends cleanly below the granite terrace stairs & Dayak planter bases (y=708).
-      const VISIBLE_FACADE_HEIGHT = 708;
+      // Trim ~2cm (76px) of excess sky above the Dayak roof finial while keeping full height down to y=768
+      // so the complete office building and foreground garden fit immediately above the fold on first load.
+      const TOP_CROP_Y = 76;
+      const BOTTOM_VISIBLE_Y = HERO_FACADE_HEIGHT;
+      const VISIBLE_FACADE_HEIGHT = BOTTOM_VISIBLE_Y - TOP_CROP_Y;
       const scale = Math.max(rect.width / HERO_FACADE_WIDTH, rect.height / VISIBLE_FACADE_HEIGHT);
       const renderedW = HERO_FACADE_WIDTH * scale;
       const renderedH = HERO_FACADE_HEIGHT * scale;
       const visibleRenderedH = VISIBLE_FACADE_HEIGHT * scale;
+      const verticalSlack = rect.height - visibleRenderedH;
+      const visibleTopOffset = verticalSlack >= 0 ? verticalSlack / 2 : verticalSlack * 0.6;
       setCoverBox({
         width: renderedW,
         height: renderedH,
         left: (rect.width - renderedW) / 2,
-        top: (rect.height - visibleRenderedH) / 2,
+        top: visibleTopOffset - TOP_CROP_Y * scale,
       });
     };
 
@@ -634,10 +639,10 @@ export function PtspInteractiveHero({
       {/* STAGE 1: ZOOMED OFFICE FACADE + REALISTIC 3D GLASS DOOR IN PLACE  */}
       {/* ================================================================= */}
       {isDoorStage && (
-        <div className="pt-[56px] sm:pt-[64px] lg:pt-[104px] bg-gradient-to-b from-[#042d56] via-[#2b82cc] to-[#5db2fa]">
+        <div className="pt-[56px] sm:pt-[64px] lg:pt-[100px] bg-gradient-to-b from-[#042d56] via-[#2b82cc] to-[#5db2fa]">
         <div
           ref={heroStageRef}
-          className="relative min-h-[440px] sm:min-h-[500px] md:min-h-0 md:aspect-[1376/708] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
+          className="relative min-h-[440px] sm:min-h-[500px] md:min-h-0 md:aspect-[1376/692] md:max-h-[calc(100svh-100px)] w-full overflow-hidden bg-gradient-to-b from-[#45a0f6] via-[#5fb4fa] to-[#081526]"
         >
           {/* Coordinate-Locked Building Facade + Pixel-Aligned Realistic 3D Glass Entrance Door */}
           <div

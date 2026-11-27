@@ -143,11 +143,9 @@ export function LeftHolidayVideotron({
         className="videotron-cabinet group relative z-10 w-full h-full flex flex-col overflow-hidden text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-amber-300"
       >
         {/* Crisp Unobstructed HD Screen Surface */}
-        <div
-          className={`relative flex-1 w-full h-full flex flex-col justify-between overflow-hidden rounded-[4px] bg-gradient-to-br ${activeHoliday.bgGradient}`}
-        >
+        <div className="relative flex-1 w-full h-full flex flex-col justify-between overflow-hidden rounded-[4px] bg-gradient-to-br from-[#ecfdf5] via-[#a7f3d0] to-[#fef3c7]">
           {/* Top Bar: Kemenag Logo + Calendar Holiday Badge */}
-          <div className="relative z-10 flex items-center justify-between gap-1.5 px-2 py-1 bg-[#031b15] border-b border-amber-300/40 shrink-0">
+          <div className="relative z-10 flex items-center justify-between gap-1.5 px-2 py-1 bg-emerald-600 border-b border-amber-300/80 shrink-0">
             <div className="flex items-center gap-1.5 min-w-0">
               <img
                 src={KEMENAG_LOGO_SRC}
@@ -157,14 +155,14 @@ export function LeftHolidayVideotron({
               />
               <span
                 style={{ fontSize: `${subSize}px` }}
-                className="font-black uppercase tracking-wider text-amber-300 truncate leading-none"
+                className="font-black uppercase tracking-wider text-amber-200 truncate leading-none"
               >
                 {activeHoliday.badge}
               </span>
             </div>
             <span
               style={{ fontSize: `${roleSize}px` }}
-              className="font-mono-tabular font-bold text-white bg-emerald-800 border border-emerald-400/50 px-1.5 py-[1.5px] rounded-[3px] shrink-0 leading-none"
+              className="font-mono-tabular font-bold text-white bg-emerald-800 border border-emerald-300/60 px-1.5 py-[1.5px] rounded-[3px] shrink-0 leading-none"
             >
               {activeHoliday.dateLabel}
             </span>
@@ -174,13 +172,13 @@ export function LeftHolidayVideotron({
           <div className="relative z-10 px-2 pt-1 pb-0.5 text-center shrink-0">
             <p
               style={{ fontSize: `${titleSize}px` }}
-              className="font-black uppercase leading-[1.08] tracking-tight text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] line-clamp-1"
+              className="font-black uppercase leading-[1.08] tracking-tight text-emerald-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.75)] line-clamp-1"
             >
               {activeHoliday.headline}
             </p>
             <p
               style={{ fontSize: `${roleSize}px` }}
-              className="mt-[1px] text-white font-semibold leading-tight line-clamp-1"
+              className="mt-[1px] text-emerald-900 font-bold leading-tight line-clamp-1"
             >
               {activeHoliday.theme}
             </p>
@@ -189,16 +187,21 @@ export function LeftHolidayVideotron({
           {/* Dual Crystal-Clear Official Cutout Portraits: Kepala Kantor & Kasubbag TU */}
           <div className="relative z-10 flex-1 min-h-0 grid grid-cols-2 gap-1.5 px-2 pt-1 pb-1.5">
             {/* Kepala Kantor: H. Maslan, S.Ag., M.Pd. */}
-            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c]">
-              <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(251,191,36,0.24),transparent_72%)] pt-0.5">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px]">
+              <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center pt-0.5">
                 <img
-                  src={KEPALA_KANTOR_PHOTO_SRC}
+                  key={`${activeHoliday.id}-kepala`}
+                  src="/assets/images/kepala_kantor_cutout.png"
                   alt={`${LEADERSHIP_PROFILES.kepalaKantor.name} — ${LEADERSHIP_PROFILES.kepalaKantor.role}`}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.55)] group-hover:scale-[1.04] transition-transform duration-500"
+                  className="videotron-leader-photo-kepala relative z-[1] w-full h-full object-contain object-bottom"
+                />
+                <span
+                  aria-hidden="true"
+                  className="videotron-leader-sweep-kepala pointer-events-none absolute inset-y-0 left-0 z-[2] w-[42%] bg-gradient-to-r from-transparent via-white/35 to-transparent"
                 />
               </div>
-              <div className="shrink-0 bg-[#04241c] px-1 py-[3px] text-center">
+              <div className="shrink-0 rounded-[3px] bg-emerald-800/95 px-1 py-[3px] text-center shadow-sm">
                 <p
                   style={{ fontSize: `${nameSize}px` }}
                   className="font-extrabold text-amber-200 leading-tight truncate"
@@ -215,19 +218,24 @@ export function LeftHolidayVideotron({
             </div>
 
             {/* Kasubbag TU: Hj. Nina Narly, S.Ag., M.H */}
-            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px] bg-gradient-to-b from-emerald-900/55 via-emerald-950/65 to-[#04241c]">
-              <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center bg-[radial-gradient(circle_at_50%_40%,rgba(52,211,153,0.22),transparent_72%)] pt-0.5">
+            <div className="flex flex-col h-full min-h-0 overflow-hidden rounded-[4px]">
+              <div className="relative flex-1 min-h-0 w-full overflow-hidden flex items-end justify-center pt-0.5">
                 <img
-                  src={KASUBBAG_TU_PHOTO_SRC}
+                  key={`${activeHoliday.id}-kasubbag`}
+                  src="/assets/images/kasubbag_tu_cutout.png"
                   alt={`${LEADERSHIP_PROFILES.kasubbagTu.name} — ${LEADERSHIP_PROFILES.kasubbagTu.role}`}
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain object-bottom drop-shadow-[0_3px_6px_rgba(0,0,0,0.55)] group-hover:scale-[1.04] transition-transform duration-500"
+                  className="videotron-leader-photo-kasubbag relative z-[1] w-full h-full object-contain object-bottom"
+                />
+                <span
+                  aria-hidden="true"
+                  className="videotron-leader-sweep-kasubbag pointer-events-none absolute inset-y-0 left-0 z-[2] w-[42%] bg-gradient-to-r from-transparent via-white/35 to-transparent"
                 />
               </div>
-              <div className="shrink-0 bg-[#04241c] px-1 py-[3px] text-center">
+              <div className="shrink-0 rounded-[3px] bg-emerald-800/95 px-1 py-[3px] text-center shadow-sm">
                 <p
                   style={{ fontSize: `${nameSize}px` }}
-                  className="font-extrabold text-emerald-200 leading-tight truncate"
+                  className="font-extrabold text-emerald-100 leading-tight truncate"
                 >
                   {LEADERSHIP_PROFILES.kasubbagTu.shortName}
                 </p>
@@ -316,21 +324,21 @@ export function RightNewsVideotron({
 
       <div className="videotron-cabinet group relative z-10 w-full h-full flex flex-col overflow-hidden">
         {/* Crisp Unobstructed HD Screen Surface */}
-        <div className="relative flex-1 w-full h-full flex flex-col justify-between overflow-hidden rounded-[4px] bg-[#041a17]">
+        <div className="relative flex-1 w-full h-full flex flex-col justify-between overflow-hidden rounded-[4px] bg-gradient-to-br from-[#ecfdf5] via-[#a7f3d0] to-[#fef3c7]">
           {/* Top Header Bar */}
-          <div className="relative z-10 flex items-center justify-between gap-1.5 px-2 py-1 bg-[#03211b] border-b border-emerald-400/40 shrink-0">
+          <div className="relative z-10 flex items-center justify-between gap-1.5 px-2 py-1 bg-emerald-600 border-b border-amber-300/80 shrink-0">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0 shadow-[0_0_6px_#34d399]" />
+              <span className="w-2 h-2 rounded-full bg-amber-300 animate-pulse shrink-0 shadow-[0_0_6px_#fde047]" />
               <span
                 style={{ fontSize: `${microSize}px` }}
-                className="font-black uppercase tracking-wider text-emerald-200 truncate leading-none"
+                className="font-black uppercase tracking-wider text-amber-200 truncate leading-none"
               >
                 BERITA KEMENAG
               </span>
             </div>
             <span
               style={{ fontSize: `${microSize}px` }}
-              className="font-mono-tabular font-bold text-amber-200 bg-black/65 border border-amber-400/45 px-1.5 py-[1.5px] rounded-[3px] shrink-0 leading-none"
+              className="font-mono-tabular font-bold text-white bg-emerald-800 border border-emerald-300/60 px-1.5 py-[1.5px] rounded-[3px] shrink-0 leading-none"
             >
               {totalArticles > 0 ? `${safeIndex + 1}/${totalArticles}` : '0/0'}
             </span>
@@ -350,15 +358,15 @@ export function RightNewsVideotron({
                 ? `Klik untuk membaca: ${currentArticle.title}`
                 : 'Klik untuk membuka Berita Kemenag'
             }
-            className="relative z-10 flex-1 min-h-0 w-full overflow-hidden text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-300"
+            className="relative z-10 flex-1 min-h-0 w-full overflow-hidden text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-600"
           >
             {currentArticle ? (
               <div
                 key={currentArticle.id}
                 className="videotron-news-slide relative w-full h-full flex flex-col"
               >
-                {/* Crystal-Clear Unobstructed News Photo (No Muddy Dark Scrim Over Photo) */}
-                <div className="relative flex-[1.25] min-h-0 w-full overflow-hidden bg-slate-900">
+                {/* Crystal-Clear Unobstructed News Photo */}
+                <div className="relative flex-[1.25] min-h-0 w-full overflow-hidden bg-emerald-100">
                   <SafeImage
                     src={currentArticle.image}
                     alt={currentArticle.title}
@@ -374,31 +382,31 @@ export function RightNewsVideotron({
                     </span>
                     <span
                       style={{ fontSize: `${Math.max(6, microSize * 0.88)}px` }}
-                      className="font-mono-tabular font-bold bg-slate-950/85 text-amber-200 px-1.5 py-[2px] rounded-[3px] shadow-md truncate"
+                      className="font-mono-tabular font-bold bg-emerald-900/85 text-amber-200 px-1.5 py-[2px] rounded-[3px] shadow-md truncate"
                     >
                       {currentArticle.date}
                     </span>
                   </div>
                 </div>
 
-                {/* High-Contrast Crisp Solid Editorial Text Panel */}
-                <div className="shrink-0 bg-[#04241e] border-t border-emerald-400/35 px-2 py-1.5 space-y-0.5">
+                {/* High-Contrast Bright Editorial Text Panel Matching Left Videotron */}
+                <div className="shrink-0 bg-gradient-to-r from-[#ecfdf5]/85 via-[#d1fae5]/80 to-[#fef3c7]/85 border-t border-emerald-500/30 px-2 py-1.5 space-y-0.5">
                   <h3
                     style={{ fontSize: `${headlineSize}px` }}
-                    className="font-black text-white leading-[1.16] line-clamp-2 group-hover:text-amber-200 transition-colors"
+                    className="font-black text-emerald-950 leading-[1.16] line-clamp-2 group-hover:text-emerald-700 transition-colors"
                   >
                     {currentArticle.title}
                   </h3>
                   <p
                     style={{ fontSize: `${excerptSize}px` }}
-                    className="text-emerald-100/95 leading-snug line-clamp-1 font-medium"
+                    className="text-emerald-900 leading-snug line-clamp-1 font-semibold"
                   >
                     {currentArticle.excerpt}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-emerald-200">
+              <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-emerald-900">
                 <Newspaper className="w-5 h-5 mb-1 opacity-80" />
                 <span style={{ fontSize: `${microSize}px` }} className="font-bold">
                   Berita Kemenag Murung Raya
@@ -410,11 +418,11 @@ export function RightNewsVideotron({
             {totalArticles > 1 && !isPaused && !doorsOpened && (
               <div
                 aria-hidden="true"
-                className="absolute bottom-0 inset-x-0 h-[2.5px] bg-white/15 overflow-hidden z-20"
+                className="absolute bottom-0 inset-x-0 h-[2.5px] bg-emerald-900/15 overflow-hidden z-20"
               >
                 <div
                   key={`progress-${safeIndex}`}
-                  className="videotron-slide-progress h-full bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-300"
+                  className="videotron-slide-progress h-full bg-gradient-to-r from-emerald-600 via-amber-500 to-emerald-500"
                 />
               </div>
             )}
